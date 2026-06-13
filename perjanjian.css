@@ -1,0 +1,319 @@
+.perjanjian-page{
+  min-height:100vh;
+  background:#F8F4EF;
+}
+
+.perjanjian-header{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 16px;
+  background:rgba(248,244,239,.92);
+  backdrop-filter:blur(12px);
+  z-index:100;
+}
+
+.perjanjian-hero{
+  margin-top:56px;
+  position:relative;
+  padding:40px 24px 50px;
+  text-align:center;
+  overflow:hidden;
+}
+
+.perjanjian-hero-bg{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(
+    145deg,
+    #3b1f08,
+    #7a4f2d,
+    #c49a5a
+  );
+}
+
+.perjanjian-icon-wrap{
+  position:relative;
+  z-index:1;
+
+  width:80px;
+  height:80px;
+
+  margin:auto;
+
+  border-radius:24px;
+  background:#fff;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:30px;
+  color:#B08A5C;
+}
+
+.perjanjian-title{
+  position:relative;
+  z-index:1;
+  color:#fff;
+  font-size:22px;
+  font-weight:700;
+  margin-top:14px;
+}
+
+.perjanjian-subtitle{
+  position:relative;
+  z-index:1;
+  color:rgba(255,255,255,.7);
+  font-size:13px;
+  margin-top:4px;
+}
+
+.perjanjian-body{
+  margin-top:-24px;
+  background:#F8F4EF;
+  border-radius:28px 28px 0 0;
+  padding:20px 16px 40px;
+  position:relative;
+  z-index:2;
+}
+
+.perjanjian-desc-card,
+.perjanjian-card,
+.perjanjian-content-card{
+  background:#fff;
+  border-radius:20px;
+  box-shadow:0 2px 12px rgba(61,44,30,.06);
+}
+
+.perjanjian-desc-card{
+  padding:16px;
+}
+
+.perjanjian-content-card{
+  padding:18px;
+}
+
+.perjanjian-content-title{
+  font-size:14px;
+  font-weight:700;
+  color:#3D2C1E;
+  margin-bottom:8px;
+}
+
+.perjanjian-content-text{
+  font-size:13px;
+  color:#6B5A49;
+  line-height:1.8;
+  margin-bottom:18px;
+}
+
+.perjanjian-btn-primary{
+  width:100%;
+  height:54px;
+  border:none;
+  border-radius:16px;
+  margin-top:20px;
+
+  background:linear-gradient(
+    135deg,
+    #8A6234,
+    #B08A5C
+  );
+
+  color:#fff;
+  font-weight:700;
+}
+/* HEADER */
+
+.perjanjian-back-btn{
+  width:36px;
+  height:36px;
+  border:none;
+  border-radius:12px;
+
+  background:#fdf0e0;
+  color:#B08A5C;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:14px;
+}
+
+.perjanjian-back-btn:active{
+  transform:scale(.93);
+}
+
+.perjanjian-header-title{
+  font-size:15px;
+  font-weight:700;
+  color:#3D2C1E;
+}
+
+/* HERO PATTERN */
+
+.perjanjian-hero-pattern{
+  position:absolute;
+  inset:0;
+
+  opacity:.05;
+
+  background-image:
+    radial-gradient(
+      circle,
+      #fff 1px,
+      transparent 1px
+    );
+
+  background-size:18px 18px;
+}
+
+/* BADGE */
+
+.perjanjian-badge{
+  position:relative;
+  z-index:1;
+
+  margin-top:14px;
+
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+
+  padding:6px 14px;
+
+  border-radius:999px;
+
+  background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.25);
+
+  color:#fff;
+  font-size:12px;
+  font-weight:600;
+}
+
+/* DESC */
+
+.perjanjian-desc-text{
+  font-size:13px;
+  line-height:1.8;
+  text-align:center;
+  color:#5c3d28;
+}
+
+/* SECTION */
+
+.perjanjian-section-label{
+  font-size:11px;
+  font-weight:700;
+
+  color:#8B7A69;
+
+  text-transform:uppercase;
+  letter-spacing:.7px;
+
+  margin:20px 4px 8px;
+}
+
+/* CARD */
+
+.perjanjian-card{
+  padding:4px 16px;
+}
+
+.perjanjian-card-item{
+  display:flex;
+  align-items:center;
+  gap:14px;
+
+  padding:13px 0;
+}
+
+.perjanjian-card-sep{
+  height:1px;
+  background:#f5ede3;
+
+  margin-left:50px;
+}
+
+.perjanjian-card-icon{
+  width:36px;
+  height:36px;
+
+  border-radius:10px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  flex-shrink:0;
+  font-size:14px;
+}
+
+.perjanjian-card-icon.brown{
+  background:#fdf0e0;
+  color:#B08A5C;
+}
+
+.perjanjian-card-info{
+  flex:1;
+  min-width:0;
+}
+
+.perjanjian-card-label{
+  font-size:10px;
+
+  color:#8B7A69;
+
+  text-transform:uppercase;
+  letter-spacing:.4px;
+
+  margin-bottom:2px;
+}
+
+.perjanjian-card-value{
+  font-size:13px;
+  font-weight:600;
+
+  color:#3D2C1E;
+
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* BUTTON */
+
+.perjanjian-btn-primary{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+
+  box-shadow:
+    0 8px 20px rgba(176,138,92,.25);
+}
+
+.perjanjian-btn-primary:active{
+  transform:scale(.98);
+}
+
+/* FOOTER */
+
+.perjanjian-footer{
+  margin-top:18px;
+
+  text-align:center;
+
+  font-size:11px;
+  color:#8B7A69;
+
+  line-height:1.6;
+}

@@ -1,0 +1,1336 @@
+/* ── ROOT VARIABLES ── */
+:root {
+  /* Light Mode (default) */
+  --bg-primary:       #F7F3EE;
+  --bg-secondary:     #ffffff;
+  --bg-card:          #ffffff;
+  --bg-input:         #fafafa;
+  --bg-hover:         rgba(179, 135, 79, 0.08);
+  
+  --text-primary:     #6b584b;
+  --text-secondary:   #8a7a6a;
+  --text-heading:     #4a3f35;
+  --text-muted:       rgba(107, 88, 75, 0.6);
+  --text-inverse:     #ffffff;
+  
+  --border-color:     rgba(107, 88, 75, 0.12);
+  --border-light:     rgba(255, 255, 255, 0.2);
+  --shadow-color:     rgba(138, 98, 52, 0.15);
+  --shadow-heavy:     rgba(138, 98, 52, 0.3);
+  
+  --accent:           #b3874f;
+  --accent-light:     #c9a96e;
+  --accent-dark:      #8b6914;
+  --accent-glow:      rgba(179, 135, 79, 0.5);
+  
+  --success:          #16a34a;
+  --success-bg:       #f0fdf4;
+  --warning:          #ca8a04;
+  --danger:           #dc2626;
+  --info:             #2563eb;
+  
+  /* Navbar */
+  --nav-curve-r:      52;
+  --nav-curve-dip:    32;
+  --nav-curve-cp:     0.55;
+  --nav-height:       80;
+  --nav-radius:       16;
+  --nav-color:        #8A6234;
+  --nav-color-shadow: rgba(138, 98, 52, 0.3);
+  --nav-fab-border:   #F7F3EE;
+  
+  /* Transitions */
+  --transition-fast:  0.15s ease;
+  --transition-base:  0.25s ease;
+  --transition-slow:  0.4s cubic-bezier(.34, 1.2, .64, 1);
+  
+  --home-header-bg:         #b3874f;
+  --home-header-text:       #ffffff;
+  --home-avatar-bg:         #e7d4bc;
+  --home-avatar-border:     #ffffff;
+  --home-card-bg:           #ffffff;
+  --home-card-border:       #b3874f;
+  --home-menu-bg:           #ffffff;
+  --home-menu-icon:         #B08A5C;
+  --home-menu-text:         #6b584b;
+  --home-time-color:        #B08A5C;
+  --home-divider:           #f1ece6;
+  
+  /* Notif & reload btn */
+  --home-btn-bg:            rgba(197, 155, 109, 0.12);
+  --home-btn-color:         #a87843;
+  
+  /* Laporan kemarin */
+  --lk-bg:                  #B08A5C;
+  --lk-omzet-bg:            #d1f2e1;
+  --lk-omzet-text:          #145a32;
+  --lk-omzet-border:        #a9dfbf;
+  --lk-kasbon-bg:           #ffe0b2;
+  --lk-kasbon-text:         #7a3e00;
+  --lk-kasbon-border:       #ffb74d;
+  --lk-potongan-bg:         #f8d7da;
+  --lk-potongan-text:       #7a1f27;
+  --lk-potongan-border:     #f1aeb5;
+  --lk-bonus-bg:            #fff3cd;
+  --lk-bonus-text:          #6a4b00;
+  --lk-bonus-border:        #ffe69c;
+  
+  /* Customer box */
+  --customer-list:          #ffe5b4;
+  --cust-closing-bg:        #f8d7da;
+  --cust-closing-text:       #7a1f27;
+  --cust-closing-border:    #f1aeb5;
+  --cust-konsinyasi-bg:     #fff3cd;
+  --cust-konsinyasi-text:   #6a4b00;
+  --cust-konsinyasi-border: #ffe69c;
+  --cust-cash-bg:           #d1f2e1;
+  --cust-cash-text:         #145a32;
+  --cust-cash-border:       #a9dfbf;
+  --customer-done-bg:      #d8f7dc;
+  --customer-done-border:  rgba(67, 160, 71, 0.15);
+  --customer-done-text:    #2e7d32;
+  
+  /* Payment */
+  --payment-active-bg:      #B08A5C;
+  --payment-active-text:    #ffffff;
+  --payment-inactive-bg:    #f5f5f5;
+  --payment-inactive-text:  #666666;
+  --payment-bg:             #edf9ef;
+  --payment-border:         #caebd1;
+  --payment-chip-bg:        #dff5e5;
+  --payment-chip-border:    #c7ebd0;
+  --payment-chip-text:      #2e7d32;
+
+  /* EXPIRED */
+  --expired-bg:           #fff1f0;
+  --expired-border:       #ffd1cc;
+  --expired-chip-bg:      #ffe5e2;
+  --expired-chip-border:  #ffc8c1;
+  --expired-chip-text:    #d94841;
+  
+  /* FEE */
+  --fee-bg:               #ecfff4;
+  --fee-border:           #c7f0d7;
+  --fee-chip-bg:          #e8fff0;
+  --fee-chip-border:      #c7f0d7;
+  --fee-chip-text:        #2b8a3e;
+  
+  /* DISABLE */
+  --disable-bg:           #fff0f0;
+  --disable-border:       #ffd0d0;
+  --disable-chip-bg:      #ffe9e9;
+  --disable-chip-border:  #ffd0d0;
+  --disable-chip-text:    #c92a2a;
+  
+  /* CLOSING */
+  --closing-bg:           #eef4ff;
+  --closing-chip-bg:      #dbeafe;
+  --closing-chip-text:    #1d4ed8;
+  
+  /* SALDO */
+  --saldo-bg:             #fff8e7;
+  --saldo-chip-bg:        #ffe8a3;
+  --saldo-chip-text:      #8f5b00;
+  
+  /* Extra card */
+  --extra-card-bg:          #eef7f0;
+  --extra-item-bg:          #ffffff;
+  --extra-today-bg:         #fdf0e0;
+  --extra-today-border:     #e8c99a;
+  --extra-today-text:       #b3874f;
+  --extra-total-bg:         linear-gradient(135deg, #ffeaa7, #fdcb6e);
+  --extra-total-border:     rgba(255, 200, 100, 0.8);
+  --extra-total-text:       #5a3b00;
+  --extra-low-bg:           #ffe5e5;
+  --extra-low-border:       #ffb3b3;
+  --extra-low-text:         #b00020;
+  --extra-warning-bg:       #fff1dc;
+  --extra-warning-border:   #ffd08a;
+  --extra-warning-text:     #b85c00;
+  --extra-good-bg:          #e7f8ee;
+  --extra-good-border:      #9be7b3;
+  --extra-good-text:        #1b6b3a;
+  
+  /* Popup */
+  --popup-btn-bg:           #f7f3ee;
+  --popup-btn-text:         #4b3f36;
+  --popup-btn-icon:         #B08A5C;
+  
+  /* Dots */
+  --dot-gold:               #f1c40f;
+  --dot-red:                #e74c3c;
+  --dot-orange:             #f39c12;
+  --dot-green:              #2ecc71;
+  --dot-blue:               #a98b6a;
+  
+  /* Produktif */
+  --analysis-produktif-bg:      #e8f5e9;
+  --analysis-produktif-text:    #1b5e20;
+  --analysis-produktif-border:  #4caf50;
+  --analysis-produktif-shadow:  rgba(76, 175, 80, 0.2);
+  
+  /* Stabil */
+  --analysis-stabil-bg:         #fff8e1;
+  --analysis-stabil-text:       #8d6e00;
+  --analysis-stabil-border:     #ffb300;
+  --analysis-stabil-shadow:     rgba(255, 179, 0, 0.2);
+  
+  /* Non Produktif */
+  --analysis-non-bg:            #ffebee;
+  --analysis-non-text:          #b71c1c;
+  --analysis-non-border:        #f44336;
+  --analysis-non-shadow:        rgba(244, 67, 54, 0.2);
+  
+  /* CASH */
+  --cash-bg:        #c4ebff;
+  --cash-border:    #8bd8ff;
+  
+  /* LAINNYA */
+  --lainnya-bg:     #e5c6ec;
+  --lainnya-border: #d59be2;
+
+  /* Customer Page */
+  --customer-page-bg:          var(--accent);
+  --customer-card-radius:      34px;
+  
+  --customer-stat-bg:          #e6d3b8;
+  --customer-stat-title:       #8b7d74;
+  
+  --customer-search-bg:        #f7efe3;
+  --customer-search-icon:      #6b4a2d;
+  --customer-search-text:      #3b2a1d;
+  --customer-search-placeholder:#8a6a4a;
+  
+  --customer-suggest-bg:       #fffaf3;
+  
+  --hari-menu-bg:              #ffffff;
+  --hari-menu-hover:           #f5f5f5;
+  
+  --popup-overlay-bg:          rgba(0,0,0,0.45);
+  --popup-content-bg:          #ffffff;
+  --popup-handle-bg:           #dddddd;
+  
+  --foto-border:               #d8c5ad;
+  --foto-bg:                   var(--bg-primary);
+  
+  --customer-name:             #111111;
+  --customer-address:          #777777;
+  --customer-distance:         #999999;
+  --customer-empty:            #999999;
+  
+  --customer-note-bg:          #e74c3c;
+  --customer-note-shadow:      rgba(231,76,60,.35);
+  
+  --customer-new-bg:           #2eaf62;
+  --customer-new-shadow:       rgba(46,175,98,.3);
+  
+  --customer-photo-bg:         #f1f1f1;
+  
+  --catatan-textarea-bg:       #f5f5f5;
+  --catatan-update-color:      #777777;
+  
+  /* Analisis Page */
+  --analisis-page-bg:            #f6f1ea;
+  
+  --analisis-header-gradient:    linear-gradient(135deg, #b3874f, #8b5a2b);
+  
+  --analisis-wrapper-bg:         #ffffff;
+  --analisis-wrapper-shadow:     rgba(0,0,0,.08);
+  
+  --analisis-total-bg:           #faf8f5;
+  --analisis-total-label:        #888888;
+  --analisis-total-value:        #8b5a2b;
+  
+  --summary-green-bg:            #dcfce7;
+  --summary-yellow-bg:           #fef3c7;
+  --summary-red-bg:              #fee2e2;
+  
+  --analisis-group-bg:           #ffffff;
+  --analisis-group-border:       #eeeeee;
+  --analisis-group-shadow:       rgba(0,0,0,.04);
+  
+  --analisis-group-green-bg:     #aed79e60;
+  --analisis-group-yellow-bg:    #d7cd9e60;
+  --analisis-group-red-bg:       #d79e9e60;
+  
+  --analisis-group-subtitle:     #777777;
+  
+  --analisis-customer-border:    #f1f1f1;
+  
+  --customer-score-bg:           #f5f5f5;
+  --score-green:  #2eaf62;
+  --score-yellow: #f0a500;
+  --score-red:    #e74c3c;
+  
+  --analisis-loading:            #999999;
+  --analisis-empty:              #bbbbbb;
+  
+  --analisis-grey-header:        #f0f0f0;
+  --analisis-grey-text:          #aaaaaa;
+  
+  --analisis-search-border:      #b3874f;
+  
+  --analisis-btn-bg:             #b3874f;
+  --analisis-btn-loading:        #d4a76a;
+  --analisis-btn-success:        #2eaf62;
+  
+  --analisis-tooltip-bg:         #2eaf62;
+  --analisis-tooltip-text:       #ffffff;
+  
+  /* Operasional Page */
+  --operasional-page-bg:           var(--bg-primary);
+  
+  --operasional-header-bg:         #ffffff;
+  --operasional-header-shadow:     rgba(0,0,0,.06);
+  
+  --operasional-title:             #111111;
+  
+  --operasional-filter-bg:         #ffffff;
+  --operasional-filter-shadow:     rgba(0,0,0,.08);
+  
+  --operasional-circle-bg:         #B08A5C;
+  --operasional-circle-hover:      #ffad42;
+  --operasional-circle-active:     #18a558;
+  
+  --operasional-line:              #e7d8c6;
+  
+  --operasional-card-bg:           #ffffff;
+  --operasional-card-hover:        #ffe8cc;
+  
+  --operasional-box-bg:            #f7f7f7;
+  --operasional-box-label:         #888888;
+  --operasional-box-value:         #111111;
+  
+  --operasional-detail-border:     #eeeeee;
+  --operasional-detail-title:      #333333;
+  --operasional-detail-text:       #666666;
+  --operasional-detail-empty:      #aaaaaa;
+  
+  --operasional-refresh-bg:        #f0f4ff;
+  --operasional-refresh-text:      #4361ee;
+  --operasional-refresh-active:    #dce4ff;
+  
+  --operasional-col-bg:            #f9f9f9;
+  --operasional-col-left-bg:       #f4f6ff;
+  
+  --operasional-section-title:     #4361ee;
+  --operasional-section-border:    #e0e6ff;
+  
+  --operasional-row-label:         #888888;
+  --operasional-row-value:         #333333;
+  
+  --operasional-divider:           #e0e0e0;
+  
+  --operasional-bottom-bg:         linear-gradient(135deg, #1a1a2e, #16213e);
+  --operasional-bottom-label:      rgba(255,255,255,.6);
+  --operasional-bottom-value:      #ffffff;
+  
+  /* Box Status */
+  --operasional-omzet-bg:          #eafaf0;
+  --operasional-omzet-border:      #cdeed9;
+  --operasional-omzet-text:        #18a558;
+  
+  --operasional-kasbon-bg:         #fff4ea;
+  --operasional-kasbon-border:     #ffe0c2;
+  --operasional-kasbon-text:       #ff7a00;
+  
+  --operasional-potongan-bg:       #f4efff;
+  --operasional-potongan-border:   #ddd0ff;
+  --operasional-potongan-text:     #7b57ff;
+  
+  --operasional-bonus-bg:          #fff9e7;
+  --operasional-bonus-border:      #ffe9a8;
+  --operasional-bonus-text:        #d4a100;
+  
+  /* Popup Filter */
+  --operasional-popup-input-bg:    #f5f5f5;
+  --operasional-popup-input-focus: #efefef;
+  --operasional-popup-label:       #444444;
+  
+  --operasional-picker-bg:         #f4f4f4;
+  --operasional-picker-item-bg:    #f5f5f5;
+  --operasional-picker-active-bg:  #111111;
+  --operasional-picker-active-text:#ffffff;
+  
+  --color-brand-dark:     #5C3510;
+  --color-brand-primary:  #8A6234;
+  --color-brand-mid:      #B08A5C;
+  --color-brand-light:    #D4B185;
+  --color-brand-pale:     #b3874f;
+
+  /* Background */
+  --color-bg-page:        #F8F4EF;
+  --color-bg-body:        #F7F3EE;
+  --color-bg-card:        #ffffff;
+  --color-bg-sep:         #f5ede3;
+  --color-bg-storage-bar: #f3ece3;
+
+  /* Text */
+  --color-text-primary:   #3D2C1E;
+  --color-text-secondary: #8B7A69;
+  --color-text-muted:     #c9b9a8;
+  --color-text-dark:      #111827;
+  --color-text-gray:      #6b7280;
+
+  /* Icon backgrounds */
+  --color-icon-brown-bg:  #fdf0e0;
+  --color-icon-blue-bg:   #eff6ff;
+  --color-icon-purple-bg: #f5f3ff;
+  --color-icon-green-bg:  #f0fdf4;
+  --color-icon-orange-bg: #fff7ed;
+  --color-icon-gray-bg:   #f9fafb;
+
+  /* Icon foregrounds */
+  --color-icon-brown:     #B08A5C;
+  --color-icon-blue:      #3b82f6;
+  --color-icon-purple:    #7c3aed;
+  --color-icon-green:     #16a34a;
+  --color-icon-orange:    #ea580c;
+  --color-icon-gray:      #6b7280;
+
+  /* Status / Semantic */
+  --color-status-online:  #22c55e;
+  --color-danger:         #dc2626;
+  --color-danger-light:   #e53935;
+  --color-danger-bg:      #fff7ed;
+  --color-danger-bg-hover:#ffe4c4;
+  --color-clear-btn-bg:   #fff3e0;
+
+  /* Arrow */
+  --color-arrow:          #d4c4b0;
+
+  /* Crop modal */
+  --color-crop-bg:        #181410;
+  --color-crop-workspace: #0c0a08;
+
+  /* Overlay */
+  --color-overlay-dark:   rgba(0, 0, 0, 0.75);
+  --color-overlay-logout: rgba(0, 0, 0, 0.45);
+
+  /* Shadow base */
+  --shadow-brown-1:       rgba(61, 44, 30, 0.22);
+  --shadow-brown-2:       rgba(61, 44, 30, 0.12);
+  --shadow-brown-card:    rgba(61, 44, 30, 0.06);
+  --shadow-brown-card-2:  rgba(61, 44, 30, 0.04);
+  --shadow-brand-glow:    rgba(176, 138, 92, 0.42);
+  --shadow-brand-dark:    rgba(90, 52, 16, 0.25);
+  --shadow-brand-dark-2:  rgba(90, 52, 16, 0.15);
+  
+  --aks-bg-backdrop: rgba(0,0,0,.45);
+
+  --aks-drawer-bg: #fff;
+  --aks-handle: #e0d6cc;
+
+  --aks-text: #4b3f36;
+  --aks-text-soft: #9b8c7e;
+
+  --aks-accent: #B08A5C;
+
+  --aks-border: #f1ece6;
+
+  --aks-item-bg: #faf7f4;
+  --aks-item-active: #f1ece6;
+
+  --aks-icon-bg: linear-gradient(135deg, #fdf0e0, #f5e0c8);
+
+  --aks-close-bg: #f7f3ee;
+  --aks-close-active: #ede5da;
+
+  --aks-toggle-bg: #ddd;
+  --aks-thumb: #fff;
+
+  --aks-select-border: #e0d6cc;
+
+  --aks-reset-border: #e0d6cc;
+  --aks-reset-bg: #fff;
+  
+  --color-brand-dark:      #3b1f08;
+  --color-brand-primary:   #8A6234;
+  --color-brand-mid:       #B08A5C;
+  --color-brand-light:     #c49a5a;
+  --color-brand-pale:      #7a4f2d;
+
+  /* Background */
+  --color-bg-page:         #F8F4EF;
+  --color-bg-card:         #ffffff;
+  --color-bg-sep:          #f5ede3;
+  --color-bg-desc:         linear-gradient(135deg, #fdf0e0, #fff8f0);
+  --color-bg-desc-border:  #f0dfc8;
+  --color-bg-back-btn:     #fdf0e0;
+  --color-bg-back-active:  #f5e0c8;
+  --color-bg-header:       rgba(248,244,239,0.92);
+
+  /* Text */
+  --color-text-primary:    #3D2C1E;
+  --color-text-secondary:  #8B7A69;
+  --color-text-desc:       #5c3d28;
+  --color-text-footer:     #5c3d28;
+  --color-text-muted:      #8B7A69;
+  --color-text-link:       #B08A5C;
+  --color-text-white:      #ffffff;
+
+  /* Header border */
+  --color-header-border:   rgba(176,138,92,0.1);
+
+  /* Arrow */
+  --color-arrow:           #d4c4b0;
+
+  /* Icon backgrounds */
+  --color-icon-brown-bg:   #fdf0e0;
+  --color-icon-blue-bg:    #eff6ff;
+  --color-icon-green-bg:   #f0fdf4;
+  --color-icon-gray-bg:    #f9fafb;
+
+  /* Icon foregrounds */
+  --color-icon-brown:      #B08A5C;
+  --color-icon-blue:       #3b82f6;
+  --color-icon-green:      #16a34a;
+  --color-icon-gray:       #6b7280;
+
+  /* Hero */
+  --color-hero-bg:         linear-gradient(145deg, #3b1f08, #7a4f2d, #c49a5a);
+  --color-hero-version-bg: rgba(255,255,255,0.15);
+  --color-hero-version-br: rgba(255,255,255,0.25);
+  --color-hero-sub:        rgba(255,255,255,0.6);
+
+  /* Sosmed cards */
+  --color-sosmed-card-bg:  #ffffff;
+  --color-sosmed-name:     #3D2C1E;
+  --color-sosmed-handle:   #8B7A69;
+
+  /* Footer logo */
+  --color-footer-logo-bg:  linear-gradient(135deg, #8A6234, #B08A5C);
+  --color-footer-logo-shadow: rgba(176,138,92,0.3);
+
+  /* Shadow */
+  --shadow-card:           rgba(61,44,30,0.06);
+  --shadow-card-md:        rgba(61,44,30,0.08);
+  
+  --bg-page: #F8F4EF;
+  --bg-header: rgba(248,244,239,0.92);
+
+  /* Brand / Gold */
+  --brand: #B08A5C;
+  --brand-light: #fdf0e0;
+  --brand-hover: #f5e0c8;
+
+  /* Text */
+  --text-dark: #3D2C1E;
+  --text-muted: #8B7A69;
+  --text-white: #fff;
+  --text-white-dim: rgba(255,255,255,0.6);
+
+  /* Border */
+  --border-brand: rgba(176,138,92,0.1);
+  --border-card: #f5ede3;
+
+  /* Card */
+  --card-bg: #fff;
+  --card-shadow: rgba(61,44,30,0.06);
+
+  /* Status Card (green gradient) */
+  --status-bg-from: #1a3a2a;
+  --status-bg-to: #2d6a4a;
+  --status-shadow: rgba(0,80,40,0.2);
+  --status-icon-bg: rgba(255,255,255,0.15);
+  --status-green: #4ade80;
+  --status-badge-bg: rgba(74,222,128,0.2);
+  --status-badge-border: rgba(74,222,128,0.4);
+
+  /* Icon variants */
+  --icon-brown-bg: #fdf0e0;
+  --icon-brown-color: #B08A5C;
+  --icon-blue-bg: #eff6ff;
+  --icon-blue-color: #3b82f6;
+  --icon-green-bg: #f0fdf4;
+  --icon-green-color: #16a34a;
+  --icon-orange-bg: #fff7ed;
+  --icon-orange-color: #ea580c;
+  --icon-purple-bg: #f5f3ff;
+  --icon-purple-color: #7c3aed;
+  --icon-gray-bg: #f9fafb;
+  --icon-gray-color: #6b7280;
+  --icon-red-bg: #fff1f2;
+  --icon-red-color: #e11d48;
+
+  /* Session badge */
+  --sesi-badge-bg: #f0fdf4;
+  --sesi-badge-border: #bbf7d0;
+  --sesi-badge-color: #16a34a;
+
+  /* Info box */
+  --info-bg: #eff6ff;
+  --info-color: #3b82f6;
+  
+  --bg-page: #F8F4EF;
+  --bg-header: rgba(248,244,239,.92);
+  --bg-bar: #fdf8f3;
+
+  /* Brand / Gold */
+  --brand: #B08A5C;
+  --brand-light: #fdf0e0;
+  --brand-hover: #f5e0c8;
+
+  /* Text */
+  --text-dark: #3D2C1E;
+  --text-mid: #5c3d28;
+  --text-sub: #7a6251;
+  --text-muted: #8B7A69;
+  --text-faint: #6B5A49;
+  --text-hint: #6b5a4a;
+  --text-white: #fff;
+  --text-white-dim: rgba(255,255,255,.7);
+
+  /* Border */
+  --border-main: #f0e6d8;
+  --border-card: #e8e1da;
+  --border-light: #eee;
+
+  /* Shadow */
+  --shadow-sm: rgba(0,0,0,.04);
+  --shadow-md: rgba(0,0,0,.05);
+  --shadow-lg: rgba(0,0,0,.08);
+  --shadow-header: rgba(0,0,0,.10);
+  --shadow-modal: rgba(0,0,0,.4);
+  --overlay-bg: rgba(0,0,0,0.3);
+  --overlay-dark: rgba(0,0,0,.75);
+
+  /* Hero gradient */
+  --hero-from: #3b1f08;
+  --hero-mid: #7a4f2d;
+  --hero-to: #c49a5a;
+  --hero-badge-bg: rgba(255,255,255,.15);
+  --hero-badge-border: rgba(255,255,255,.25);
+  --hero-pattern: rgba(255,255,255,0.05);
+
+  /* Card */
+  --card-bg: #fff;
+  --card-bg-alt: #FAF7F3;
+  --card-bg-hint: #f7f3ef;
+  --desc-bg-from: #fdf0e0;
+  --desc-bg-to: #fff8f0;
+  --desc-border: #f0dfc8;
+
+  /* Tab */
+  --tab-inactive-bg: #F3EEE8;
+  --tab-inactive-color: #6B5A49;
+  --tab-active-bg: #B08A5C;
+  --tab-active-color: #fff;
+
+  /* Riwayat date */
+  --date-color: #c4a882;
+  --type-color: #b0977a;
+  --loading-color: #b0977a;
+
+  /* Status — Pending */
+  --pending-border: #fcd34d;
+  --pending-bg: #fffbeb;
+  --pending-badge-bg: #fef3c7;
+  --pending-badge-color: #b45309;
+
+  /* Status — Approved */
+  --approved-border: #6ee7b7;
+  --approved-bg: #f0fdf4;
+  --approved-badge-bg: #d1fae5;
+  --approved-badge-color: #065f46;
+
+  /* Status — Rejected */
+  --rejected-border: #fca5a5;
+  --rejected-bg: #fff5f5;
+  --rejected-badge-bg: #fee2e2;
+  --rejected-badge-color: #991b1b;
+
+  /* Warn message */
+  --warn-color: #b45309;
+  --warn-bg: #fef3c7;
+  --warn-border: #fcd34d;
+
+  /* Flow dot */
+  --dot-color: #3D2C1E;
+
+  /* Misc */
+  --avatar-bg: #eee;
+  --dropdown-hover: #f6f1ec;
+  
+  --slip-modal-bg: #fdf8f3;
+  --slip-border: #f0e6d8;
+  --slip-label-color: #a07850;
+  --slip-muted: #b0977a;
+  --slip-company-muted: #9c7a57;
+  --slip-total-bg: #fdf0e0;
+  --slip-total-border: #f5c97a;
+  --slip-total-color: #b45309;
+  --slip-spinner-border: #9c7a579c;
+  --slip-section-border: #e0e0e0;
+  --slip-catatan-border: #ddd;
+  --slip-catatan-bg: #f9f9f9;
+  --slip-catatan-color: #888;
+  --slip-blue-bg: #f0f7ff;
+  --slip-blue-border: #2196F3;
+  --slip-blue-strong: #1a73e8;
+  --slip-blue-text: #555;
+  --slip-pdf-bg: #e53935;
+  --slip-pdf-active: #c62828;
+}
+
+/* ── DARK MODE ── */
+body.dark-mode {
+  --bg-primary:       #1a1a2e;
+  --bg-secondary:     #16162a;
+  --bg-card:          rgba(30, 30, 50, 0.9);
+  --bg-input:         rgba(20, 20, 35, 0.8);
+  --bg-hover:         rgba(255, 255, 255, 0.05);
+  
+  --text-primary:     #e0e0e0;
+  --text-secondary:   #b0b0c0;
+  --text-heading:     #f0f0f0;
+  --text-muted:       rgba(200, 200, 220, 0.5);
+  --text-inverse:     #1a1a2e;
+  
+  --border-color:     rgba(255, 255, 255, 0.1);
+  --border-light:     rgba(255, 255, 255, 0.15);
+  --shadow-color:     rgba(0, 0, 0, 0.4);
+  --shadow-heavy:     rgba(0, 0, 0, 0.6);
+  
+  --accent:           #c9a96e;
+  --accent-light:     #d4b87a;
+  --accent-dark:      #a08040;
+  --accent-glow:      rgba(201, 169, 110, 0.4);
+  
+  --success:          #4ade80;
+  --success-bg:       rgba(74, 222, 128, 0.1);
+  --warning:          #facc15;
+  --danger:           #f87171;
+  --info:             #60a5fa;
+  
+  /* Navbar dark */
+  --nav-color:        #2a2a4a;
+  --nav-color-shadow: rgba(0, 0, 0, 0.5);
+  --nav-fab-border:   #3a3a5a;
+  
+  --home-header-bg:         #2a2a4a;
+  --home-header-text:       #e0e0e0;
+  --home-avatar-bg:         #3a3a5a;
+  --home-avatar-border:     #4a4a6a;
+  --home-card-bg:           rgba(30, 30, 50, 0.9);
+  --home-card-border:       #c9a96e;
+  --home-menu-bg:           rgba(30, 30, 50, 0.9);
+  --home-menu-icon:         #c9a96e;
+  --home-menu-text:         #e0e0e0;
+  --home-time-color:        #c9a96e;
+  --home-divider:           rgba(255, 255, 255, 0.1);
+  
+  /* Notif & reload btn */
+  --home-btn-bg:            rgba(201, 169, 110, 0.15);
+  --home-btn-color:         #c9a96e;
+  
+  /* Laporan kemarin */
+  --lk-bg:                  #2a2a4a;
+  --lk-omzet-bg:            rgba(74, 222, 128, 0.15);
+  --lk-omzet-text:          #4ade80;
+  --lk-omzet-border:        rgba(74, 222, 128, 0.3);
+  --lk-kasbon-bg:           rgba(250, 204, 21, 0.15);
+  --lk-kasbon-text:         #facc15;
+  --lk-kasbon-border:       rgba(250, 204, 21, 0.3);
+  --lk-potongan-bg:         rgba(248, 113, 113, 0.15);
+  --lk-potongan-text:       #f87171;
+  --lk-potongan-border:     rgba(248, 113, 113, 0.3);
+  --lk-bonus-bg:            rgba(201, 169, 110, 0.15);
+  --lk-bonus-text:          #c9a96e;
+  --lk-bonus-border:        rgba(201, 169, 110, 0.3);
+  
+  /* Customer box */
+  --customer-list:          #7A5A35;
+  --cust-closing-bg:        rgba(248, 113, 113, 0.15);
+  --cust-closing-text:      #f87171;
+  --cust-closing-border:    rgba(248, 113, 113, 0.3);
+  --cust-konsinyasi-bg:    rgba(250, 204, 21, 0.15);
+  --cust-konsinyasi-text:  #facc15;
+  --cust-konsinyasi-border:rgba(250, 204, 21, 0.3);
+  --cust-cash-bg:          rgba(74, 222, 128, 0.15);
+  --cust-cash-text:        #4ade80;
+  --cust-cash-border:      rgba(74, 222, 128, 0.3);
+  --customer-done-bg:      rgba(74, 222, 128, 0.15);
+  --customer-done-border:  rgba(74, 222, 128, 0.3);
+  --customer-done-text:    #4ade80;
+  
+  /* Payment */
+  --payment-active-bg:      #c9a96e;
+  --payment-active-text:    #1a1a2e;
+  --payment-inactive-bg:    rgba(255, 255, 255, 0.05);
+  --payment-inactive-text:  #b0b0c0;
+  --payment-bg:           rgba(74,222,128,.12);
+  --payment-border:       rgba(74,222,128,.25);
+  --payment-chip-bg:      rgba(74,222,128,.18);
+  --payment-chip-border:  rgba(74,222,128,.30);
+  --payment-chip-text:    #4ade80;
+  
+  /* EXPIRED */
+  --expired-bg:           rgba(248,113,113,.12);
+  --expired-border:       rgba(248,113,113,.25);
+  --expired-chip-bg:      rgba(248,113,113,.18);
+  --expired-chip-border:  rgba(248,113,113,.30);
+  --expired-chip-text:    #f87171;
+  
+  /* FEE */
+  --fee-bg:               rgba(34,197,94,.12);
+  --fee-border:           rgba(34,197,94,.25);
+  --fee-chip-bg:          rgba(34,197,94,.18);
+  --fee-chip-border:      rgba(34,197,94,.30);
+  --fee-chip-text:        #4ade80;
+  
+  /* DISABLE */
+  --disable-bg:           rgba(239,68,68,.12);
+  --disable-border:       rgba(239,68,68,.25);
+  --disable-chip-bg:      rgba(239,68,68,.18);
+  --disable-chip-border:  rgba(239,68,68,.30);
+  --disable-chip-text:    #f87171;
+  
+  /* CLOSING */
+  --closing-bg:           rgba(59,130,246,.12);
+  --closing-chip-bg:      rgba(59,130,246,.18);
+  --closing-chip-text:    #60a5fa;
+  
+  /* SALDO */
+  --saldo-bg:             rgba(250,204,21,.12);
+  --saldo-chip-bg:        rgba(250,204,21,.18);
+  --saldo-chip-text:      #facc15;
+  
+  /* Extra card */
+  --extra-card-bg:          rgba(30, 30, 50, 0.6);
+  --extra-item-bg:          rgba(30, 30, 50, 0.8);
+  --extra-today-bg:         rgba(201, 169, 110, 0.15);
+  --extra-today-border:     rgba(201, 169, 110, 0.3);
+  --extra-today-text:       #c9a96e;
+  --extra-total-bg:         linear-gradient(135deg, #c9a96e, #a08040);
+  --extra-total-border:     rgba(201, 169, 110, 0.5);
+  --extra-total-text:       #1a1a2e;
+  --extra-low-bg:           rgba(248, 113, 113, 0.15);
+  --extra-low-border:       rgba(248, 113, 113, 0.3);
+  --extra-low-text:         #f87171;
+  --extra-warning-bg:       rgba(250, 204, 21, 0.15);
+  --extra-warning-border:   rgba(250, 204, 21, 0.3);
+  --extra-warning-text:     #facc15;
+  --extra-good-bg:          rgba(74, 222, 128, 0.15);
+  --extra-good-border:      rgba(74, 222, 128, 0.3);
+  --extra-good-text:        #4ade80;
+  
+  /* Popup */
+  --popup-btn-bg:           rgba(30, 30, 50, 0.8);
+  --popup-btn-text:         #e0e0e0;
+  --popup-btn-icon:         #c9a96e;
+  
+  /* Dots */
+  --dot-gold:               #facc15;
+  --dot-red:                #f87171;
+  --dot-orange:             #facc15;
+  --dot-green:              #4ade80;
+  --dot-blue:               #c9a96e;
+  
+  /* Produktif */
+  --analysis-produktif-bg:      rgba(74, 222, 128, 0.15);
+  --analysis-produktif-text:    #4ade80;
+  --analysis-produktif-border:  #4ade80;
+  --analysis-produktif-shadow:  rgba(74, 222, 128, 0.25);
+  
+  /* Stabil */
+  --analysis-stabil-bg:         rgba(250, 204, 21, 0.15);
+  --analysis-stabil-text:       #facc15;
+  --analysis-stabil-border:     #facc15;
+  --analysis-stabil-shadow:     rgba(250, 204, 21, 0.25);
+  
+  /* Non Produktif */
+  --analysis-non-bg:            rgba(248, 113, 113, 0.15);
+  --analysis-non-text:          #f87171;
+  --analysis-non-border:        #f87171;
+  --analysis-non-shadow:        rgba(248, 113, 113, 0.25);
+  
+  /* CASH */
+  --cash-bg:        rgba(96,165,250,.15);
+  --cash-border:    rgba(96,165,250,.30);
+  
+  /* LAINNYA */
+  --lainnya-bg:     rgba(192,132,252,.15);
+  --lainnya-border: rgba(192,132,252,.30);
+
+  --customer-page-bg:            #2a2a4a;
+
+  --customer-stat-bg:            rgba(201,169,110,.12);
+  --customer-stat-title:         #b0b0c0;
+
+  --customer-search-bg:          rgba(30,30,50,.9);
+  --customer-search-icon:        #c9a96e;
+  --customer-search-text:        #e0e0e0;
+  --customer-search-placeholder: #8f8fa8;
+
+  --customer-suggest-bg:         #252540;
+
+  --hari-menu-bg:                #252540;
+  --hari-menu-hover:             rgba(255,255,255,.05);
+
+  --popup-overlay-bg:            rgba(0,0,0,.65);
+  --popup-content-bg:            #1f1f35;
+  --popup-handle-bg:             #4a4a6a;
+
+  --foto-border:                 #4a4a6a;
+  --foto-bg:                     rgba(30,30,50,.8);
+
+  --customer-name:               #f0f0f0;
+  --customer-address:            #b0b0c0;
+  --customer-distance:           #8f8fa8;
+  --customer-empty:              #8f8fa8;
+
+  --customer-note-bg:            #f87171;
+  --customer-note-shadow:        rgba(248,113,113,.35);
+
+  --customer-new-bg:             #4ade80;
+  --customer-new-shadow:         rgba(74,222,128,.35);
+
+  --customer-photo-bg:           #2a2a4a;
+
+  --catatan-textarea-bg:         rgba(30,30,50,.8);
+  --catatan-update-color:        #b0b0c0;
+  
+  /* Analisis Page */
+  --analisis-page-bg:            #16162a;
+  
+  --analisis-header-gradient:    linear-gradient(135deg, #2a2a4a, #1f1f35);
+  
+  --analisis-wrapper-bg:         rgba(30,30,50,.9);
+  --analisis-wrapper-shadow:     rgba(0,0,0,.35);
+  
+  --analisis-total-bg:           rgba(255,255,255,.04);
+  --analisis-total-label:        #b0b0c0;
+  --analisis-total-value:        #c9a96e;
+  
+  --summary-green-bg:            rgba(74,222,128,.12);
+  --summary-yellow-bg:           rgba(250,204,21,.12);
+  --summary-red-bg:              rgba(248,113,113,.12);
+  
+  --analisis-group-bg:           rgba(30,30,50,.85);
+  --analisis-group-border:       rgba(255,255,255,.08);
+  --analisis-group-shadow:       rgba(0,0,0,.30);
+  
+  --analisis-group-green-bg:     rgba(74,222,128,.08);
+  --analisis-group-yellow-bg:    rgba(250,204,21,.08);
+  --analisis-group-red-bg:       rgba(248,113,113,.08);
+  
+  --analisis-group-subtitle:     #b0b0c0;
+  
+  --analisis-customer-border:    rgba(255,255,255,.06);
+  
+  --customer-score-bg:           rgba(255,255,255,.06);
+  --score-green:  #4ade80;
+  --score-yellow: #facc15;
+  --score-red:    #f87171;
+  
+  --analisis-loading:            #8f8fa8;
+  --analisis-empty:              #8f8fa8;
+  
+  --analisis-grey-header:        rgba(255,255,255,.05);
+  --analisis-grey-text:          #8f8fa8;
+  
+  --analisis-search-border:      #c9a96e;
+  
+  --analisis-btn-bg:             #c9a96e;
+  --analisis-btn-loading:        #d4b87a;
+  --analisis-btn-success:        #4ade80;
+  
+  --analisis-tooltip-bg:         #4ade80;
+  --analisis-tooltip-text:       #1a1a2e;
+  
+  /* Operasional Page */
+  --operasional-page-bg:           var(--bg-primary);
+  
+  --operasional-header-bg:         #1f1f35;
+  --operasional-header-shadow:     rgba(0,0,0,.35);
+  
+  --operasional-title:             #f0f0f0;
+  
+  --operasional-filter-bg:         rgba(30,30,50,.9);
+  --operasional-filter-shadow:     rgba(0,0,0,.35);
+  
+  --operasional-circle-bg:         #c9a96e;
+  --operasional-circle-hover:      #facc15;
+  --operasional-circle-active:     #4ade80;
+  
+  --operasional-line:              rgba(255,255,255,.12);
+  
+  --operasional-card-bg:           rgba(30,30,50,.9);
+  --operasional-card-hover:        rgba(201,169,110,.12);
+  
+  --operasional-box-bg:            rgba(255,255,255,.04);
+  --operasional-box-label:         #b0b0c0;
+  --operasional-box-value:         #f0f0f0;
+  
+  --operasional-detail-border:     rgba(255,255,255,.08);
+  --operasional-detail-title:      #e0e0e0;
+  --operasional-detail-text:       #b0b0c0;
+  --operasional-detail-empty:      #8f8fa8;
+  
+  --operasional-refresh-bg:        rgba(96,165,250,.12);
+  --operasional-refresh-text:      #60a5fa;
+  --operasional-refresh-active:    rgba(96,165,250,.22);
+  
+  --operasional-col-bg:            rgba(255,255,255,.03);
+  --operasional-col-left-bg:       rgba(96,165,250,.08);
+  
+  --operasional-section-title:     #60a5fa;
+  --operasional-section-border:    rgba(96,165,250,.18);
+  
+  --operasional-row-label:         #8f8fa8;
+  --operasional-row-value:         #e0e0e0;
+  
+  --operasional-divider:           rgba(255,255,255,.08);
+  
+  --operasional-bottom-bg:         linear-gradient(135deg,#111827,#1f2937);
+  --operasional-bottom-label:      rgba(255,255,255,.65);
+  --operasional-bottom-value:      #ffffff;
+  
+  /* Box Status */
+  --operasional-omzet-bg:          rgba(74,222,128,.12);
+  --operasional-omzet-border:      rgba(74,222,128,.25);
+  --operasional-omzet-text:        #4ade80;
+  
+  --operasional-kasbon-bg:         rgba(251,146,60,.12);
+  --operasional-kasbon-border:     rgba(251,146,60,.25);
+  --operasional-kasbon-text:       #fb923c;
+  
+  --operasional-potongan-bg:       rgba(168,85,247,.12);
+  --operasional-potongan-border:   rgba(168,85,247,.25);
+  --operasional-potongan-text:     #c084fc;
+  
+  --operasional-bonus-bg:          rgba(250,204,21,.12);
+  --operasional-bonus-border:      rgba(250,204,21,.25);
+  --operasional-bonus-text:        #facc15;
+  
+  /* Popup Filter */
+  --operasional-popup-input-bg:    rgba(255,255,255,.05);
+  --operasional-popup-input-focus: rgba(255,255,255,.08);
+  --operasional-popup-label:       #e0e0e0;
+  
+  --operasional-picker-bg:         rgba(255,255,255,.05);
+  --operasional-picker-item-bg:    rgba(255,255,255,.05);
+  --operasional-picker-active-bg:  #c9a96e;
+  --operasional-picker-active-text:#1a1a2e;
+
+  /* Brand */
+  --color-brand-dark:     #c9a96e;
+  --color-brand-primary:  #a08040;
+  --color-brand-mid:      #c9a96e;
+  --color-brand-light:    #d4b87a;
+  --color-brand-pale:     #2a2a4a;
+
+  /* Background */
+  --color-bg-page:        #1a1a2e;
+  --color-bg-body:        #16162a;
+  --color-bg-card:        rgba(30, 30, 50, 0.9);
+  --color-bg-sep:         rgba(255,255,255,0.08);
+  --color-bg-storage-bar: rgba(255,255,255,0.08);
+
+  /* Text */
+  --color-text-primary:   #f0f0f0;
+  --color-text-secondary: #b0b0c0;
+  --color-text-muted:     #8f8fa8;
+  --color-text-dark:      #e0e0e0;
+  --color-text-gray:      #b0b0c0;
+
+  /* Icon backgrounds */
+  --color-icon-brown-bg:  rgba(201,169,110,.15);
+  --color-icon-blue-bg:   rgba(96,165,250,.15);
+  --color-icon-purple-bg: rgba(192,132,252,.15);
+  --color-icon-green-bg:  rgba(74,222,128,.15);
+  --color-icon-orange-bg: rgba(250,204,21,.12);
+  --color-icon-gray-bg:   rgba(255,255,255,.05);
+
+  /* Icon foregrounds */
+  --color-icon-brown:     #c9a96e;
+  --color-icon-blue:      #60a5fa;
+  --color-icon-purple:    #c084fc;
+  --color-icon-green:     #4ade80;
+  --color-icon-orange:    #facc15;
+  --color-icon-gray:      #b0b0c0;
+
+  /* Status / Semantic */
+  --color-status-online:  #4ade80;
+  --color-danger:         #f87171;
+  --color-danger-light:   #ef4444;
+  --color-danger-bg:      rgba(248,113,113,.12);
+  --color-danger-bg-hover:rgba(248,113,113,.20);
+  --color-clear-btn-bg:   rgba(234,88,12,.15);
+
+  /* Arrow */
+  --color-arrow:          #8f8fa8;
+
+  /* Crop modal */
+  --color-crop-bg:        #16162a;
+  --color-crop-workspace:#10101d;
+
+  /* Overlay */
+  --color-overlay-dark:   rgba(0, 0, 0, 0.85);
+  --color-overlay-logout: rgba(0, 0, 0, 0.65);
+
+  /* Shadow base */
+  --shadow-brown-1:       rgba(0, 0, 0, 0.35);
+  --shadow-brown-2:       rgba(0, 0, 0, 0.25);
+  --shadow-brown-card:    rgba(0, 0, 0, 0.20);
+  --shadow-brown-card-2:  rgba(0, 0, 0, 0.15);
+  --shadow-brand-glow:    rgba(201,169,110,.25);
+  --shadow-brand-dark:    rgba(0,0,0,.35);
+  --shadow-brand-dark-2:  rgba(0,0,0,.20);
+  
+  --aks-bg-backdrop: rgba(0,0,0,.6);
+
+  --aks-drawer-bg: #1E1812;
+  --aks-handle: #4a3b2f;
+
+  --aks-text: #e7d9cc;
+  --aks-text-soft: #a08f7e;
+
+  --aks-accent: #c8a06b;
+
+  --aks-border: #2c241d;
+
+  --aks-item-bg: #252018;
+  --aks-item-active: #2E2820;
+
+  --aks-icon-bg: linear-gradient(135deg, #3a2f24, #2a221a);
+
+  --aks-close-bg: #2a221a;
+  --aks-close-active: #3a2f24;
+
+  --aks-toggle-bg: #4a3b2f;
+  --aks-thumb: #f5f1ec;
+
+  --aks-select-border: #2c241d;
+
+  --aks-reset-border: #2c241d;
+  --aks-reset-bg: #1E1812;
+  
+  --color-bg-page:         #1A1410;
+  --color-bg-card:         #2A2118;
+  --color-bg-sep:          #332820;
+  --color-bg-desc:         linear-gradient(135deg, #2A1E10, #241A0E);
+  --color-bg-desc-border:  #3A2818;
+  --color-bg-back-btn:     #2E2218;
+  --color-bg-back-active:  #3A2A18;
+  --color-bg-header:       rgba(26,20,16,0.94);
+
+  --color-text-primary:    #F0E6D8;
+  --color-text-secondary:  #A89880;
+  --color-text-desc:       #C8A878;
+  --color-text-footer:     #C8A878;
+  --color-text-muted:      #7A6A5A;
+  --color-text-link:       #D4B185;
+
+  --color-header-border:   rgba(176,138,92,0.15);
+  --color-arrow:           #4A3A2A;
+
+  --color-icon-brown-bg:   #2E2218;
+  --color-icon-blue-bg:    #1E2A3A;
+  --color-icon-green-bg:   #1A2E1E;
+  --color-icon-gray-bg:    #252525;
+
+  --color-sosmed-card-bg:  #2A2118;
+  --color-sosmed-name:     #F0E6D8;
+  --color-sosmed-handle:   #7A6A5A;
+
+  --shadow-card:           rgba(0,0,0,0.3);
+  --shadow-card-md:        rgba(0,0,0,0.4);
+  
+  --bg-page: #1A1410;
+  --bg-header: rgba(26,20,16,0.92);
+
+  /* Brand / Gold */
+  --brand: #C79A61;
+  --brand-light: #2B2219;
+  --brand-hover: #382C20;
+
+  /* Text */
+  --text-dark: #F3E7D7;
+  --text-muted: #B59B7C;
+  --text-white: #FFFFFF;
+  --text-white-dim: rgba(255,255,255,0.65);
+
+  /* Border */
+  --border-brand: rgba(199,154,97,0.15);
+  --border-card: #33281F;
+
+  /* Card */
+  --card-bg: #241C16;
+  --card-shadow: rgba(0,0,0,0.35);
+
+  /* Status Card (green gradient) */
+  --status-bg-from: #163222;
+  --status-bg-to: #215038;
+  --status-shadow: rgba(0,0,0,0.35);
+
+  --status-icon-bg: rgba(255,255,255,0.10);
+
+  --status-green: #4ADE80;
+
+  --status-badge-bg: rgba(74,222,128,0.15);
+  --status-badge-border: rgba(74,222,128,0.30);
+
+  /* Icon variants */
+  --icon-brown-bg: #2B2219;
+  --icon-brown-color: #D5AE7A;
+
+  --icon-blue-bg: #1A2433;
+  --icon-blue-color: #60A5FA;
+
+  --icon-green-bg: #1B2D23;
+  --icon-green-color: #4ADE80;
+
+  --icon-orange-bg: #332417;
+  --icon-orange-color: #FB923C;
+
+  --icon-purple-bg: #2B223A;
+  --icon-purple-color: #A78BFA;
+
+  --icon-gray-bg: #2A2623;
+  --icon-gray-color: #A1A1AA;
+
+  --icon-red-bg: #341D22;
+  --icon-red-color: #FB7185;
+
+  /* Session badge */
+  --sesi-badge-bg: #1B2D23;
+  --sesi-badge-border: #27563B;
+  --sesi-badge-color: #4ADE80;
+
+  /* Info box */
+  --info-bg: #1A2433;
+  --info-color: #60A5FA;
+  
+  --bg-page: #1A1410;
+  --bg-header: rgba(26,20,16,.92);
+  --bg-bar: #221A14;
+
+  /* Brand / Gold */
+  --brand: #C79A61;
+  --brand-light: #2B2219;
+  --brand-hover: #382C20;
+
+  /* Text */
+  --text-dark: #F3E7D7;
+  --text-mid: #D8C0A2;
+  --text-sub: #B89D7C;
+  --text-muted: #A88C6A;
+  --text-faint: #8E7964;
+  --text-hint: #8E7964;
+  --text-white: #FFFFFF;
+  --text-white-dim: rgba(255,255,255,.7);
+
+  /* Border */
+  --border-main: #34281F;
+  --border-card: #3B2D22;
+  --border-light: #46372A;
+
+  /* Shadow */
+  --shadow-sm: rgba(0,0,0,.20);
+  --shadow-md: rgba(0,0,0,.28);
+  --shadow-lg: rgba(0,0,0,.40);
+  --shadow-header: rgba(0,0,0,.45);
+  --shadow-modal: rgba(0,0,0,.75);
+
+  --overlay-bg: rgba(0,0,0,.45);
+  --overlay-dark: rgba(0,0,0,.85);
+
+  /* Hero gradient */
+  --hero-from: #241306;
+  --hero-mid: #5C3A1F;
+  --hero-to: #A8783F;
+
+  --hero-badge-bg: rgba(255,255,255,.10);
+  --hero-badge-border: rgba(255,255,255,.18);
+  --hero-pattern: rgba(255,255,255,.04);
+
+  /* Card */
+  --card-bg: #241C16;
+  --card-bg-alt: #2B221B;
+  --card-bg-hint: #31261D;
+
+  --desc-bg-from: #2B2219;
+  --desc-bg-to: #33281F;
+  --desc-border: #453426;
+
+  /* Tab */
+  --tab-inactive-bg: #2E241C;
+  --tab-inactive-color: #A88C6A;
+
+  --tab-active-bg: #C79A61;
+  --tab-active-color: #1A1410;
+
+  /* Riwayat date */
+  --date-color: #D2AE7B;
+  --type-color: #B89D7C;
+  --loading-color: #B89D7C;
+
+  /* Status — Pending */
+  --pending-border: #B8860B;
+  --pending-bg: #2E2612;
+  --pending-badge-bg: #473818;
+  --pending-badge-color: #FACC15;
+
+  /* Status — Approved */
+  --approved-border: #2F855A;
+  --approved-bg: #16281D;
+  --approved-badge-bg: #1F3B2A;
+  --approved-badge-color: #4ADE80;
+
+  /* Status — Rejected */
+  --rejected-border: #B91C1C;
+  --rejected-bg: #2A1717;
+  --rejected-badge-bg: #3A1D1D;
+  --rejected-badge-color: #FB7185;
+
+  /* Warn message */
+  --warn-color: #FACC15;
+  --warn-bg: #2E2612;
+  --warn-border: #B8860B;
+
+  /* Flow dot */
+  --dot-color: #DCC8AF;
+
+  /* Misc */
+  --avatar-bg: #34281F;
+  --dropdown-hover: #31261D;
+    
+  /* Slip Gaji Dark Mode */
+  
+  --slip-modal-bg: #241C16;
+  
+  --slip-border: #3B2D22;
+  
+  --slip-label-color: #C79A61;
+  --slip-muted: #A88C6A;
+  --slip-company-muted: #8E7964;
+  
+  /* Total Gaji */
+  --slip-total-bg: #332417;
+  --slip-total-border: #C79A61;
+  --slip-total-color: #F3C77A;
+  
+  /* Loading */
+  --slip-spinner-border: rgba(199,154,97,.45);
+  
+  /* Divider */
+  --slip-section-border: #3B2D22;
+  
+  /* Catatan */
+  --slip-catatan-border: #46372A;
+  --slip-catatan-bg: #2B221B;
+  --slip-catatan-color: #A88C6A;
+  
+  /* Info Box Biru */
+  --slip-blue-bg: #1A2433;
+  --slip-blue-border: #60A5FA;
+  --slip-blue-strong: #93C5FD;
+  --slip-blue-text: #C7D2FE;
+  
+  /* Tombol PDF */
+  --slip-pdf-bg: #DC2626;
+  --slip-pdf-active: #B91C1C;
+
+}

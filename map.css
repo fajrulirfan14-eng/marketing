@@ -1,0 +1,444 @@
+.map-popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: #0007;
+  align-items: center;
+  justify-content: center;
+}
+.map-popup-container {
+  width: 95%;
+  max-width: 480px;
+  height: 88vh;
+  max-height: 860px;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 8px 32px #0005;
+  touch-action: none;
+}
+.map-popup-container #mapFullHome {
+  height: 100%;
+  width: 100%;
+}
+.map-popup-container #mapFullRolling {
+  height: 100%;
+  width: 100%;
+}
+.map-popup-container #mapFullRouting {
+  height: 100%;
+  width: 100%;
+}
+.btn-pilih-lokasi {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 32px;
+  background: #4caf50;
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px #0004;
+  z-index: 10;
+  cursor: pointer;
+}
+.btn-tutup-map {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+  font-size: 18px;
+  box-shadow: 0 2px 8px #0003;
+  cursor: pointer;
+  z-index: 10;
+}
+.map-pin-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  font-size: 32px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.map-btn-tampil-pin {
+  background: #fff;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px #0003;
+  cursor: pointer;
+  color: #333;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px;
+}
+
+.map-dropdown-pin {
+  display: none;
+  position: absolute;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #0003;
+  overflow: hidden;
+  min-width: 180px;
+  z-index: 999;
+}
+
+.map-dropdown-pin-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.map-dropdown-pin-item:hover {
+  background: #f5f5f5;
+}
+
+.map-dropdown-pin-hapus {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #e53935;
+}
+
+.map-dropdown-pin-hapus:hover {
+  background: #fff5f5;
+}
+
+.map-pin-customer {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px #0005;
+  cursor: pointer;
+}
+
+.map-btn-tilt {
+  width: 44px;
+  height: 44px;
+  background: #fff;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px #0003;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
+  margin: 4px;
+}
+
+.map-pin-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.map-pin-label {
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-rincian-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: transparent;
+  pointer-events: none;
+}
+
+.map-rincian-card {
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 -4px 24px #0003;
+  pointer-events: all;
+  position: relative;
+}
+
+.map-rincian-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #f0f0f0;
+  border: 0;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.map-rincian-foto {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.map-rincian-nama {
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 4px;
+}
+
+.map-rincian-alamat {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.map-rincian-kemarin {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 16px;
+}
+
+.map-rincian-btn-routing {
+  width: 100%;
+  padding: 14px;
+  background: #1a73e8;
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* ===== KOMPAS ===== */
+.map-btn-kompas {
+  width: 48px;
+  height: 48px;
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px #0004;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px;
+  padding: 0;
+  transition: box-shadow 0.2s;
+}
+
+.map-btn-kompas.kompas-aktif {
+  box-shadow: 0 0 0 3px #1a73e8, 0 2px 8px #0004;
+}
+
+.kompas-ring {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #f8f8f8;
+}
+
+.kompas-jarum {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s ease-out;
+  position: relative;
+  will-change: transform;
+}
+
+.kompas-n {
+  font-size: 13px;
+  font-weight: 800;
+  color: #e53935;
+  line-height: 1;
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  letter-spacing: -0.5px;
+}
+
+.kompas-jarum::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 9px solid #bbb;
+}
+
+.map-pin-user {
+  width: 50px;
+  height: 50px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.map-pin-user-off {
+  background-image: url('pinOf.png');
+}
+
+.map-pin-user-on {
+  background-image: url('pinOn.png');
+}
+
+.map-info-jarak {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+  box-shadow: 0 2px 10px #0003;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.map-info-jarak-dot {
+  color: #bbb;
+  font-size: 16px;
+}
+
+.map-rincian-jarak {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a73e8;
+  margin-bottom: 16px;
+  background: #e8f0fe;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+
+.map-dropdown-pin-item-aktif {
+  background: #e8f0fe;
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+.map-dropdown-pin-item-aktif:hover {
+  background: #d2e3fc;
+}
+
+.map-badge-customer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 4px;
+  position: relative;
+}
+
+.map-badge-jumlah {
+  background: #1a73e8;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px #0003;
+  cursor: pointer;
+  user-select: none;
+  min-width: 36px;
+  text-align: center;
+}
+
+.map-dropdown-hari-pin {
+  display: none;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #0003;
+  overflow: hidden;
+  min-width: 140px;
+  margin-top: 4px;
+  z-index: 999;
+}
+
+.map-dropdown-hari-pin-item {
+  padding: 10px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.map-dropdown-hari-pin-item:hover {
+  background: #f5f5f5;
+}
+
+.map-dropdown-hari-pin-aktif {
+  background: #e8f0fe;
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+/* Smooth rendering map container */
+#mapFullRouting {
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Cegah highlight tap pada kontrol map */
+.map-btn-kompas,
+.map-btn-tampil-pin,
+.map-badge-jumlah {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+/* Dropdown tidak trigger gesture map */
+.map-dropdown-pin,
+.map-dropdown-hari-pin {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
