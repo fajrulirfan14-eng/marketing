@@ -59,13 +59,13 @@ html, body {
   justify-content: center;
   pointer-events: none;
   z-index: 9999;
-  transform: translateY(-100px);
-  transition: transform 0.25s ease;
+  transform: translateY(-60px);
+  transition: none;
 }
 #ptrCard {
   margin-top: 12px;
-  width: 34px;
-  height: 34px;
+  width: 39px;
+  height: 39px;
   border-radius: 50%;
   background: #F7F3EE;
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
@@ -83,13 +83,13 @@ html, body {
 }
 #ptrCard svg {
   position: absolute;
-  top: 0; left: 0;
-  width: 34px; height: 34px;
+  top: 2px; left: 2px;
+  width: 35px; height: 35px;
 }
 #ptrCard svg circle {
   fill: none;
   stroke: #b3874f;
-  stroke-width: 3;
+  stroke-width: 6;
   stroke-linecap: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 100;

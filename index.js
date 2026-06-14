@@ -131,6 +131,7 @@ window.logout = async function(){
   let startY     = 0;
   let pulling    = false;
   let refreshing = false;
+  let hasPulled  = false;
 
   function isPopupOpen() {
     return [...document.querySelectorAll(
@@ -150,49 +151,72 @@ window.logout = async function(){
 
   window.addEventListener("touchstart", (e) => {
     if (refreshing || !canPull()) return;
-    startY  = e.touches[0].clientY;
-    pulling = true;
+    startY    = e.touches[0].clientY;
+    pulling   = true;
+    hasPulled = false;
   }, { passive: true });
 
   window.addEventListener("touchmove", (e) => {
     if (!pulling || refreshing) return;
     const deltaY = e.touches[0].clientY - startY;
+
     if (deltaY <= 0) {
-      pulling = false;
-      indicator.classList.remove("ptr-show");
+      // Blokir scroll naik HANYA jika sebelumnya sudah pernah tarik ke bawah
+      if (hasPulled) e.preventDefault();
+      indicator.style.transition = "transform 0.3s cubic-bezier(0.25,1,0.5,1)";
+      indicator.style.transform  = "translateY(-60px)";
       circle.style.strokeDashoffset = FULL_DASH;
       return;
     }
 
-    const progress = Math.min(deltaY / THRESHOLD, 1);
-    indicator.classList.add("ptr-show");
+    // Sudah tarik ke bawah — set flag & blokir scroll
+    hasPulled = true;
+    e.preventDefault();
+
+    const damped   = Math.min(deltaY * 0.45, 80);
+    const raw      = Math.min(deltaY / THRESHOLD, 1);
+    const progress = Math.pow(raw, 1.6); // easing: pelan di awal, cepat di akhir
+
+    indicator.style.transition = "none";
+    indicator.style.transform  = `translateY(${damped - 60}px)`;
     circle.style.strokeDashoffset = FULL_DASH - (FULL_DASH * 0.75 * progress);
-  }, { passive: true });
+  }, { passive: false });
 
   window.addEventListener("touchend", (e) => {
     if (!pulling || refreshing) return;
-    pulling = false;
+    pulling   = false;
+    hasPulled = false;
 
     const deltaY = e.changedTouches[0].clientY - startY;
     if (deltaY >= THRESHOLD) {
       refreshing = true;
+      // Snap ke posisi tetap saat loading
+      indicator.style.transition = "transform 0.3s cubic-bezier(0.25,1,0.5,1)";
+      indicator.style.transform  = "translateY(4px)";
       indicator.classList.add("ptr-loading");
 
       setTimeout(() => {
         window.showView?.(window.currentView || "home");
         setTimeout(() => {
-          indicator.classList.remove("ptr-show", "ptr-loading");
+          // Animasi balik ke atas
+          indicator.style.transition = "transform 0.4s cubic-bezier(0.25,1,0.5,1)";
+          indicator.style.transform  = "translateY(-60px)";
+          indicator.classList.remove("ptr-loading");
           circle.style.strokeDashoffset = FULL_DASH;
-          refreshing = false;
+          setTimeout(() => {
+            indicator.style.transition = "none";
+            refreshing = false;
+          }, 400);
         }, 600);
       }, 800);
     } else {
-      indicator.style.transition = "transform 0.3s ease";
-      indicator.classList.remove("ptr-show");
+      // Tidak sampai threshold — balik halus
+      indicator.style.transition = "transform 0.35s cubic-bezier(0.25,1,0.5,1)";
+      indicator.style.transform  = "translateY(-60px)";
       circle.style.strokeDashoffset = FULL_DASH;
       setTimeout(() => {
-        indicator.style.transition = "";
-      }, 300);
+        indicator.style.transition = "none";
+      }, 350);
     }
   }, { passive: true });
 })();
@@ -326,6 +350,53 @@ window.syncOfflineDataHarian = async function(){
     );
   }
 };
+window.syncPendingLokasi = async function() {
+  try {
+    if (!navigator.onLine) return;
+    const uid = window.auth?.currentUser?.uid;
+    if (!uid) return;
+    console.log("🔄 syncPendingLokasi start...");
+
+    const idb = await window.openAppDB();
+    const all = await new Promise((resolve, reject) => {
+      const tx  = idb.transaction("customerBaruDB", "readonly");
+      const req = tx.objectStore("customerBaruDB").getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => reject(req.error);
+    });
+
+    const pending = all.filter(x => x.type === "updateLokasi" && x.isSync === false);
+    console.log("📦 pending lokasi:", pending.length);
+
+    for (const item of pending) {
+      try {
+        const { customerId, payload } = item;
+        await window.updateDoc(
+          window.doc(window.db, "customer", customerId),
+          {
+            alamatCustomer : payload.alamatCustomer,
+            lokasiCustomer : new window.GeoPoint(payload.lokasiCustomer.lat, payload.lokasiCustomer.lng),
+            jarak          : payload.jarak,
+          }
+        );
+        // Update flag isSync
+        const idb2 = await window.openAppDB();
+        await new Promise((resolve, reject) => {
+          const tx = idb2.transaction("customerBaruDB", "readwrite");
+          tx.objectStore("customerBaruDB").put({ ...item, isSync: true, updatedAt: Date.now() });
+          tx.oncomplete = () => resolve();
+          tx.onerror    = () => reject(tx.error);
+        });
+        console.log("✅ lokasi synced:", customerId);
+      } catch(err) {
+        console.log("❌ sync lokasi gagal:", item.customerId, err);
+      }
+    }
+    console.log("✅ syncPendingLokasi selesai");
+  } catch(err) {
+    console.log("syncPendingLokasi error:", err);
+  }
+};
 window.syncCustomerHarian = async function(){
   try{
     if(!navigator.onLine){
@@ -359,7 +430,7 @@ window.syncCustomerHarian = async function(){
     const tx  = db.transaction("customerHarianDB", "readwrite");
     const store = tx.objectStore("customerHarianDB");
 
-    store.put({ id: uid, data });
+    store.put({ id: `${uid}_${hariAktif}`, data });
 
     console.log("syncCustomerHarian: tersimpan", data.length, "customer");
   }catch(err){
@@ -369,11 +440,10 @@ window.syncCustomerHarian = async function(){
 window.addEventListener(
   "online",
   function(){
-    console.log(
-      "Internet kembali, sync..."
-    );
+    console.log("Internet kembali, sync...");
     window.syncOfflineDataHarian();
     window.syncCustomerHarian?.();
+    window.syncPendingLokasi?.();
   }
 );
 window.getCustomerFromIndexDB = async function(idCustomer) {
@@ -1170,17 +1240,3 @@ window.applyDarkMode(window.isDarkMode());
 window.isDarkMode = function(){
   return localStorage.getItem("pref_dark") === "1";
 };
-
-// REGISTER SERVICE WORKER
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("service-worker.js")
-      .then(reg => {
-        console.log("✅ Service Worker aktif", reg);
-      })
-      .catch(err => {
-        console.log("❌ Service Worker gagal", err);
-      });
-  });
-}

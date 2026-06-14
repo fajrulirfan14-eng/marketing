@@ -91,61 +91,50 @@ window.initCustomerView = function() {
 };
 window.openMapRoutingHari = async function(hari) {
   try {
-    const db = await window.openAppDB();
-    const tx = db.transaction("customerHarianDB", "readonly");
-    const store = tx.objectStore("customerHarianDB");
-    const req = store.getAll();
+    const db  = await window.openAppDB();
+    const uid = window.auth.currentUser?.uid;
+    const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    let dataArray = [];
 
-    req.onsuccess = async function() {
-      const raw = req.result || [];
-      let dataArray = [];
-      raw.forEach(item => {
-        if (item?.data && Array.isArray(item.data)) {
-          dataArray.push(...item.data);
-        } else {
-          dataArray.push(item);
+    const hariList = hari === "Semua Hari" ? hariNama : [hari];
+    await Promise.all(hariList.map(h => new Promise(resolve => {
+      const tx  = db.transaction("customerHarianDB", "readonly");
+      const req = tx.objectStore("customerHarianDB").get(`${uid}_${h}`);
+      req.onsuccess = () => {
+        if (req.result?.data && Array.isArray(req.result.data)) {
+          dataArray.push(...req.result.data);
         }
-      });
+        resolve();
+      };
+      req.onerror = () => resolve();
+    })));
 
-      // Dedupe
-      const seen = new Set();
-      dataArray = dataArray.filter(x => {
-        const cid = x.idCustomer || x.id;
-        if (!cid || seen.has(cid)) return false;
-        seen.add(cid);
-        return true;
-      });
+    const seen = new Set();
+    dataArray = dataArray.filter(x => {
+      const cid = x.idCustomer || x.id;
+      if (!cid || seen.has(cid)) return false;
+      seen.add(cid);
+      return true;
+    });
 
-      // Filter hari
-      if (hari !== "Semua Hari") {
-        dataArray = dataArray.filter(x => x.hari === hari);
-      }
+    if (dataArray.length === 0) {
+      alert("Tidak ada customer untuk hari ini.");
+      return;
+    }
 
-      if (dataArray.length === 0) {
-        alert("Tidak ada customer untuk hari ini.");
-        return;
-      }
+    const lokasiValid = dataArray.find(x => {
+      const loc = window.normalizeGeoPoint(x.lokasiCustomer);
+      return loc?.lat && loc?.lng;
+    });
 
-      const lokasiValid = dataArray.find(x => {
-        const loc = window.normalizeGeoPoint(x.lokasiCustomer);
-        return loc?.lat && loc?.lng;
-      });
+    if (!lokasiValid) {
+      alert("Tidak ada customer dengan lokasi valid.");
+      return;
+    }
 
-      if (!lokasiValid) {
-        alert("Tidak ada customer dengan lokasi valid.");
-        return;
-      }
-
-      // Pakai openMapRouting biasa, tanpa autoStart
-      // Filter pin customerHarianDB akan restore otomatis via localStorage
-      localStorage.setItem("routingPinFilter", "customerHarianDB");
-      const cid = lokasiValid.idCustomer || lokasiValid.id;
-      window.openMapRouting(cid, "customerHarianDB", false);
-    };
-
-    req.onerror = function() {
-      alert("Gagal membuka data customer.");
-    };
+    localStorage.setItem("routingPinFilter", "customerHarianDB");
+    const cid = lokasiValid.idCustomer || lokasiValid.id;
+    window.openMapRouting(cid, "customerHarianDB", false);
   } catch(err) {
     console.log("openMapRoutingHari error:", err);
   }
@@ -218,54 +207,56 @@ window.loadCustomerFromIndexDB = async function(hari, keyword = "") {
   listEl.innerHTML = `<div class="customer-empty">Memuat...</div>`;
 
   try {
+    const uid = window.auth.currentUser?.uid;
+    if (!uid) return;
     const db = await window.openAppDB();
-    const tx = db.transaction("customerHarianDB", "readonly");
-    const store = tx.objectStore("customerHarianDB");
-    const req = store.getAll();
-    req.onsuccess = function () {
-      const raw = req.result || [];
-      let dataArray = [];
-      raw.forEach(item => {
-        if (item?.data && Array.isArray(item.data)) {
-          dataArray.push(...item.data);
-        } else {
-          dataArray.push(item);
-        }
-      });
 
-      // DEDUPE berdasarkan idCustomer
-      const seen = new Set();
-      dataArray = dataArray.filter(x => {
-        const cid = x.idCustomer || x.id;
-        if (!cid || seen.has(cid)) return false;
-        seen.add(cid);
-        return true;
+    // Jika semua hari — baca semua key milik uid, gabungkan
+    let dataArray = [];
+    if (hari === "Semua Hari") {
+      const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+      await Promise.all(hariNama.map(h => new Promise(resolve => {
+        const tx    = db.transaction("customerHarianDB", "readonly");
+        const req   = tx.objectStore("customerHarianDB").get(`${uid}_${h}`);
+        req.onsuccess = () => {
+          if (req.result?.data && Array.isArray(req.result.data)) {
+            dataArray.push(...req.result.data);
+          }
+          resolve();
+        };
+        req.onerror = () => resolve();
+      })));
+    } else {
+      // Baca hanya key spesifik hari ini
+      const cacheKey = `${uid}_${hari}`;
+      const raw = await new Promise(resolve => {
+        const tx  = db.transaction("customerHarianDB", "readonly");
+        const req = tx.objectStore("customerHarianDB").get(cacheKey);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => resolve(null);
       });
-      if (hari !== "Semua Hari") {
-        dataArray = dataArray.filter(x => x.hari === hari);
+      if (raw?.data && Array.isArray(raw.data)) {
+        dataArray = raw.data;
       }
+    }
 
-      // =========================
-      // FILTER SEARCH
-      // =========================
+    // DEDUPE berdasarkan idCustomer
+    const seen = new Set();
+    dataArray = dataArray.filter(x => {
+      const cid = x.idCustomer || x.id;
+      if (!cid || seen.has(cid)) return false;
+      seen.add(cid);
+      return true;
+    });
+
       if (keyword) {
-        const k = keyword.toLowerCase();
-        dataArray = dataArray.filter(x =>
-          (x.namaCustomer || "").toLowerCase().includes(k)
-        );
-      }
+      const k = keyword.toLowerCase();
+      dataArray = dataArray.filter(x =>
+        (x.namaCustomer || "").toLowerCase().includes(k)
+      );
+    }
 
-      // =========================
-      // RENDER
-      // =========================
-      window.renderCustomer(hari, keyword, dataArray);
-    };
-
-    req.onerror = function () {
-      console.log("Gagal load IndexedDB customer");
-      listEl.innerHTML = `<div class="customer-empty">Gagal memuat</div>`;
-    };
-
+    window.renderCustomer(hari, keyword, dataArray);
   } catch (err) {
     console.log(err);
     listEl.innerHTML = `<div class="customer-empty">Gagal memuat</div>`;

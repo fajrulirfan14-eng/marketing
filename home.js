@@ -307,21 +307,43 @@ window.initHomeView = async function(){
           // Filter customer dari hasil fetch yang harinya == hariAktif
           const customerHariIni = customerData.filter(c => c.hari === hariAktif);
 
-          // Gabungkan: customer hari lain dari existing + customer hari ini dari fetch
-          const customerHariLain = existingData.filter(c => c.hari !== hariAktif);
-          const mergedData = [...customerHariLain, ...customerHariIni];
-
-          // Simpan merged
+          // Clear semua key dulu, lalu simpan ulang per hari
+          const semuaKeys = Object.keys(existingMap);
           await new Promise((resolve, reject) => {
             const tx = idb.transaction("customerHarianDB", "readwrite");
             const store = tx.objectStore("customerHarianDB");
-            const req = store.put({
-              id: customerCacheKey,
-              data: mergedData,
-              updatedAt: Date.now()
+            // Hapus semua key yang mengandung uid ini
+            semuaKeys.forEach(k => {
+              if (k.startsWith(uid)) store.delete(k);
             });
-            req.onsuccess = () => resolve();
-            req.onerror = () => reject(req.error);
+            tx.oncomplete = () => resolve();
+            tx.onerror    = () => reject(tx.error);
+          });
+
+          // Kelompokkan semua existing per hari (selain hari ini)
+          const customerHariLain = existingData.filter(c => c.hari !== hariAktif);
+
+          // Simpan hari lain dengan key masing-masing
+          const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+          const perHari = {};
+          hariNama.forEach(h => perHari[h] = []);
+          customerHariLain.forEach(c => {
+            if (perHari[c.hari]) perHari[c.hari].push(c);
+          });
+
+          await new Promise((resolve, reject) => {
+            const tx = idb.transaction("customerHarianDB", "readwrite");
+            const store = tx.objectStore("customerHarianDB");
+            // Simpan hari lain
+            hariNama.forEach(h => {
+              if (h !== hariAktif && perHari[h].length > 0) {
+                store.put({ id: `${uid}_${h}`, data: perHari[h], updatedAt: Date.now() });
+              }
+            });
+            // Simpan hari ini (fresh dari Firestore)
+            store.put({ id: customerCacheKey, data: customerHariIni, updatedAt: Date.now() });
+            tx.oncomplete = () => resolve();
+            tx.onerror    = () => reject(tx.error);
           });
 
           console.log(`✅ Customer ${hariAktif} refreshed: ${customerHariIni.length} baru, ${customerHariLain.length} lama dipertahankan`);
@@ -599,8 +621,6 @@ window.updateHomeStats = async function() {
       });
       console.log("🏢 kantorRaw:", kantorRaw);
       const kantorData = kantorRaw?.data || kantorRaw;
-      console.log("🏢 kantorData:", kantorData);
-      console.log("💰 upahHunter raw:", kantorData?.target?.upahHunter);
       upahHunter = Number(kantorData?.upahHunter || 0);
     } catch(e) {
       console.log("Gagal load upahHunter:", e);

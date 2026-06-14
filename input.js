@@ -210,13 +210,30 @@ window.initInputView = async function(){
       }
     }
     const data = userData.data || userData;
-    const bawaBarang = data.bawaBarang || [];
     const varian = data.varian || [];
-    
+
+    // Merge bawaBarang + varian supaya isAktif selalu ada
+    const varianMap = {};
+    varian.forEach(v => {
+      const key = Object.keys(v)[0];
+      if (key) varianMap[key] = v[key];
+    });
+
+    const rawBawaBarang = data.bawaBarang || [];
+    const bawaBarang = rawBawaBarang.length > 0
+      ? rawBawaBarang.map(item => {
+          const key = Object.keys(item)[0];
+          if (!key) return item;
+          return { [key]: { ...varianMap[key], ...item[key] } };
+        })
+      : varian.map(v => {
+          const key = Object.keys(v)[0];
+          return { [key]: { ...v[key], bawa: 0 } };
+        });
+
     // GLOBAL
     window.globalBawaBarang = bawaBarang;
     window.globalVarian = varian;
-    // Load trikotomiResult dari IndexedDB
     try {
       const dbTri = await window.openAppDB();
       const triRaw = await new Promise(resolve => {
@@ -281,25 +298,20 @@ window.initInputView = async function(){
     const tx = db.transaction("customerHarianDB", "readonly");
     const store = tx.objectStore("customerHarianDB");
     const customerSnap = await new Promise((resolve, reject) => {
-      const req = store.getAll();
+      const cacheKey = `${uid}_${hariAktif}`;
+      const req = store.get(cacheKey);
       req.onsuccess = function() {
-        const raw = req.result || [];
+        const raw = req.result;
         let allCustomers = [];
-    
-        raw.forEach(item => {
-          if (Array.isArray(item.data)) {
-            // FORMAT SYNC (id: uid)
-            allCustomers.push(...item.data);
-          } else if (item.id !== uid) {
-            // FORMAT FLAT (id: idCustomer)
-            allCustomers.push(item);
-          }
-        });
-    
-        // FILTER HARI AKTIF
+
+        if (raw && Array.isArray(raw.data)) {
+          allCustomers = raw.data;
+        }
+
+        // FILTER HARI AKTIF (double check)
         allCustomers = allCustomers.filter(x => x.hari === hariAktif);
-    
-        // DEDUPE berdasarkan idCustomer
+
+        // DEDUPE berdasarkan id
         const seen = new Set();
         allCustomers = allCustomers.filter(x => {
           const cid = x.idCustomer || x.id;
@@ -704,6 +716,18 @@ window.initInputView = async function(){
                   <path d="M7.5 3.375c0-1.036.84-1.875 1.875-1.875h.375a3.75 3.75 0 0 1 3.75 3.75v1.875C13.5 8.161 14.34 9 15.375 9h1.875A3.75 3.75 0 0 1 21 12.75v3.375C21 17.16 20.16 18 19.125 18h-9.75A1.875 1.875 0 0 1 7.5 16.125V3.375Z" />
                   <path d="M15 5.25a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 17.25 7.5h-1.875A.375.375 0 0 1 15 7.125V5.25ZM4.875 6H6v10.125A3.375 3.375 0 0 0 9.375 19.5H16.5v1.125c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 0 1 3 20.625V7.875C3 6.839 3.84 6 4.875 6Z" />
                 </svg>
+              </button>
+              
+              <!-- LOKASI -->
+              <button class="input-lokasi-btn" onclick="
+                event.stopPropagation();
+                window.openPopupLokasiCustomer('${customerId}', '${(data.namaCustomer||'').replace(/'/g,"\\'")}');
+              " title="Input Alamat & Lokasi">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
+                  <path d="M15.75 8.25a.75.75 0 0 1 .75.75c0 1.12-.492 2.126-1.27 2.812a.75.75 0 1 1-.992-1.124A2.243 2.243 0 0 0 15 9a.75.75 0 0 1 .75-.75Z" />
+                  <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM4.575 15.6a8.25 8.25 0 0 0 9.348 4.425 1.966 1.966 0 0 0-1.84-1.275.983.983 0 0 1-.97-.822l-.073-.437c-.094-.565.25-1.11.8-1.267l.99-.282c.427-.123.783-.418.982-.816l.036-.073a1.453 1.453 0 0 1 2.328-.377L16.5 15h.628a2.25 2.25 0 0 1 1.983 1.186 8.25 8.25 0 0 0-6.345-12.4c.044.262.18.503.389.676l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 0 1-1.161.886l-.143.048a1.107 1.107 0 0 0-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 0 1-1.652.928l-.679-.906a1.125 1.125 0 0 0-1.906.172L4.575 15.6Z" clip-rule="evenodd" />
+                </svg>
+
               </button>
             
               <!-- MAP -->
@@ -1265,6 +1289,7 @@ window.initInputView = async function(){
     }
   
     const bawaBarang = window.globalBawaBarang || [];
+    console.log("bawaBarang:", bawaBarang);
     let html = "";
     ["Fee","Disable"].forEach(group=>{
       const keyGroup = group.toLowerCase();
@@ -2220,6 +2245,15 @@ window.initInputView = async function(){
     });
     if(existingData?.keterangan){
       const savedStatus = existingData.keterangan.status;
+      const savedFoto   = existingData.keterangan.foto;
+
+      // Jika ada status atau foto, tampilkan wrapper dulu
+      const hasLainnyaExisting = Object.keys(existingData?.lainnya || {}).length > 0;
+      if (hasLainnyaExisting) {
+        fotoWrapper.style.display   = "flex";
+        statusWrapper.style.display = "flex";
+      }
+
       if(savedStatus){
         const radio = barangEl.querySelector(`input[name="customerStatus"][value="${savedStatus}"]`);
         if(radio){
@@ -2228,13 +2262,13 @@ window.initInputView = async function(){
           window.popupStatus = savedStatus;
         }
       }
-      const savedFoto = existingData.keterangan.foto;
+
       if(savedFoto){
-        fotoWrapper.style.display = "flex";
-        fotoPreview.src = savedFoto;
-        fotoPreview.style.display = "block";
+        fotoPreview.src               = savedFoto;
+        fotoPreview.style.display     = "block";
         fotoPlaceholder.style.display = "none";
-        window.popupFotoLainnya = savedFoto;
+        window.popupFotoLainnya       = savedFoto;
+        fotoWrapper.style.display     = "flex";
       }
     }
     allInputs.forEach(input=>{
@@ -2430,7 +2464,7 @@ window.initInputView = async function(){
       saldoBarang[key] =
         bawa -
         Number(summary.closing?.[key] || 0) -
-        Number(summary.fee?.[key] || 0) -
+        Number(summary.fee?.[key]     || 0) -
         Number(summary.disable?.[key] || 0);
     });
   
@@ -2490,14 +2524,11 @@ window.initInputView = async function(){
       html += `</div></div>`;
     }
   
-    renderGroup("Expired", summary.expired, "expired");
-    renderGroup("Fee", summary.fee, "fee");
-    renderGroup("Disable", summary.disable, "disable");
-  
-    // ✅ FIX FINAL
-    renderGroup("Closing", summary.closing, "closing");
-  
-    renderGroup("Saldo Barang", saldoBarang, "saldo");
+    renderGroup("Expired",      summary.expired,  "expired");
+    renderGroup("Fee",          summary.fee,      "fee");
+    renderGroup("Disable",      summary.disable,  "disable");
+    renderGroup("Closing",      summary.closing,  "closing");
+    renderGroup("Saldo Barang", saldoBarang,      "saldo");
   
     popupHeaderDetailBody.innerHTML = html;
     popupHeaderDetailOverlay.classList.add("active");
@@ -2545,6 +2576,358 @@ window.initInputView = async function(){
       detailCurrentY = 0;
     }
   );
+  // ── POPUP LOKASI CUSTOMER ──────────────────────────────
+  window.openPopupLokasiCustomer = async function(customerId, namaCustomer) {
+    // Buat overlay
+    const existing = document.getElementById("popupLokasiOverlay");
+    if (existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "popupLokasiOverlay";
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:9999;
+      background:rgba(0,0,0,.45);backdrop-filter:blur(4px);
+      display:flex;align-items:flex-end;justify-content:center;
+      opacity:0;transition:opacity .25s ease;
+    `;
+
+    overlay.innerHTML = `
+      <div id="popupLokasiBox" style="
+        width:100%;max-width:540px;max-height:90dvh;
+        background:var(--card-bg,#fff);border-radius:28px 28px 0 0;
+        display:flex;flex-direction:column;overflow:hidden;
+        transform:translateY(100%);transition:transform .3s cubic-bezier(.32,1,.4,1);
+        box-shadow:0 -8px 40px rgba(0,0,0,.15);
+      ">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 14px;border-bottom:1px solid var(--border-color,#e8ddd0);flex-shrink:0;">
+          <div style="font-size:16px;font-weight:700;color:var(--text-primary,#2d2d2d);">Lokasi: ${namaCustomer}</div>
+          <button id="popupLokasiClose" style="width:34px;height:34px;border:none;background:var(--bg-soft,#f5ede3);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;stroke:#2d2d2d;stroke-width:2.2;stroke-linecap:round;">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <label style="font-size:11px;font-weight:700;color:var(--text-secondary,#7a6a5a);text-transform:uppercase;letter-spacing:.4px;">Alamat</label>
+            <textarea id="lokasiAlamatInput" rows="2" placeholder="Tulis alamat customer" style="
+              width:100%;padding:12px 14px;border:1.5px solid var(--border-color,#e8ddd0);
+              border-radius:12px;background:var(--input-bg,#faf6f2);color:var(--text-primary,#2d2d2d);
+              font-size:14px;font-family:inherit;outline:none;resize:none;box-sizing:border-box;
+            "></textarea>
+          </div>
+
+          <button id="lokasiAmbilBtn" style="
+            width:100%;padding:12px;border:1.5px solid var(--primary,#C9A67B);border-radius:12px;
+            background:var(--bg-soft,#f9f3ec);color:var(--primary-dark,#a8824e);
+            font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+            transition:background .2s;
+          ">
+            <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;stroke:currentColor;stroke-width:2;stroke-linecap:round;fill:none;">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+            </svg>
+            <span id="lokasiAmbilText">Ambil Lokasi GPS</span>
+          </button>
+
+          <div id="lokasiMapContainer" style="width:100%;height:220px;border-radius:14px;overflow:hidden;display:none;border:1.5px solid var(--border-color,#e8ddd0);"></div>
+
+          <div id="lokasiStatusText" style="font-size:13px;color:var(--text-secondary,#7a6a5a);text-align:center;"></div>
+        </div>
+
+        <div style="padding:14px 20px 24px;flex-shrink:0;border-top:1px solid var(--border-color,#e8ddd0);">
+          <button id="lokasiSimpanBtn" disabled style="
+            width:100%;padding:14px;border:none;border-radius:14px;
+            background:var(--primary,#C9A67B);color:#fff;
+            font-size:15px;font-weight:700;cursor:pointer;opacity:.5;
+            transition:opacity .2s,transform .15s;
+          ">Simpan</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => {
+      overlay.style.opacity = "1";
+      document.getElementById("popupLokasiBox").style.transform = "translateY(0)";
+    });
+
+    // Load data existing
+    let selectedLat = null, selectedLng = null, lokasiMap = null, lokasiMarker = null;
+
+    try {
+      const idb  = await window.openAppDB();
+      const uid  = window.auth.currentUser?.uid;
+      const hari = new Date().toLocaleDateString("id-ID", { weekday: "long" });
+
+      // Cari dari customerHarianDB
+      const hariNamaList = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+      const hariAktif    = hariNamaList[new Date().getDay()];
+      const key          = `${uid}_${hariAktif}`;
+
+      const raw = await new Promise(resolve => {
+        const tx  = idb.transaction("customerHarianDB", "readonly");
+        const req = tx.objectStore("customerHarianDB").get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => resolve(null);
+      });
+
+      const customer = raw?.data?.find(c => (c.idCustomer || c.id) === customerId);
+      if (customer?.alamatCustomer) {
+        document.getElementById("lokasiAlamatInput").value = customer.alamatCustomer;
+      }
+      if (customer?.lokasiCustomer) {
+        const loc = window.normalizeGeoPoint?.(customer.lokasiCustomer) || customer.lokasiCustomer;
+        if (loc?.lat && loc?.lng) {
+          selectedLat = loc.lat;
+          selectedLng = loc.lng;
+          document.getElementById("lokasiStatusText").textContent = `📍 ${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`;
+          document.getElementById("lokasiSimpanBtn").disabled = false;
+          document.getElementById("lokasiSimpanBtn").style.opacity = "1";
+          tampilkanPeta(loc.lat, loc.lng);
+        }
+      }
+    } catch(e) { console.log("load existing lokasi error:", e); }
+
+    function tampilkanPeta(lat, lng) {
+      const mapContainer = document.getElementById("lokasiMapContainer");
+      mapContainer.style.display = "block";
+      if (!lokasiMap) {
+        lokasiMap = new google.maps.Map(mapContainer, {
+          center: { lat, lng }, zoom: 17,
+          mapId: "3f6f47bf59913618a195fe2e",
+          zoomControl: true, mapTypeControl: false,
+          streetViewControl: false, fullscreenControl: false
+        });
+        lokasiMarker = new google.maps.Marker({
+          position: { lat, lng }, map: lokasiMap,
+          draggable: true,
+          animation: google.maps.Animation.DROP,
+        });
+        lokasiMarker.addListener("dragend", e => {
+          selectedLat = e.latLng.lat();
+          selectedLng = e.latLng.lng();
+          document.getElementById("lokasiStatusText").textContent = `📍 ${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`;
+        });
+      } else {
+        lokasiMap.setCenter({ lat, lng });
+        lokasiMarker.setPosition({ lat, lng });
+      }
+    }
+
+    // Ambil GPS
+    document.getElementById("lokasiAmbilBtn").onclick = function() {
+      const btn  = this;
+      const text = document.getElementById("lokasiAmbilText");
+      btn.disabled = true;
+      text.textContent = "Mengambil...";
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          selectedLat = pos.coords.latitude;
+          selectedLng = pos.coords.longitude;
+          btn.disabled = false;
+          text.textContent = "Ambil Lokasi GPS";
+          document.getElementById("lokasiStatusText").textContent = `📍 ${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`;
+          document.getElementById("lokasiSimpanBtn").disabled = false;
+          document.getElementById("lokasiSimpanBtn").style.opacity = "1";
+          tampilkanPeta(selectedLat, selectedLng);
+        },
+        err => {
+          btn.disabled = false;
+          text.textContent = "Gagal, coba lagi";
+          setTimeout(() => { text.textContent = "Ambil Lokasi GPS"; }, 2000);
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+    };
+
+    // Simpan
+    document.getElementById("lokasiSimpanBtn").onclick = async function() {
+      const btn    = this;
+      const alamat = document.getElementById("lokasiAlamatInput").value.trim();
+      if (!selectedLat || !selectedLng) return;
+
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      try {
+        // Hitung jarak dari kantorCabang
+        let jarak = 0;
+        try {
+          const user    = window.currentUser || {};
+          const idb     = await window.openAppDB();
+          const kantorRaw = await new Promise(resolve => {
+            const tx  = idb.transaction("kantorDB", "readonly");
+            const req = tx.objectStore("kantorDB").get(user.idCabang || "");
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror   = () => resolve(null);
+          });
+          const kantor = kantorRaw?.data || kantorRaw;
+          const lok    = kantor?.lokasiCabang;
+          if (lok) {
+            const cabangLat = lok._lat ?? lok.latitude  ?? lok.lat;
+            const cabangLng = lok._long ?? lok.longitude ?? lok.lng;
+            if (cabangLat && cabangLng) {
+              const toRad = v => v * Math.PI / 180;
+              const R = 6371;
+              const dLat = toRad(selectedLat - cabangLat);
+              const dLng = toRad(selectedLng - cabangLng);
+              const a = Math.sin(dLat/2)**2 + Math.cos(toRad(cabangLat)) * Math.cos(toRad(selectedLat)) * Math.sin(dLng/2)**2;
+              jarak = Number((R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2));
+            }
+          }
+        } catch(e) { console.log("hitung jarak error:", e); }
+
+        const updatePayload = {
+          alamatCustomer : alamat,
+          lokasiCustomer : new window.GeoPoint(selectedLat, selectedLng),
+          jarak,
+        };
+
+        // Simpan ke IndexedDB pending sync dulu
+        const syncKey = `lokasi_${customerId}`;
+        const idbSync = await window.openAppDB();
+        await new Promise((resolve, reject) => {
+          const tx    = idbSync.transaction("customerBaruDB", "readwrite");
+          tx.objectStore("customerBaruDB").put({
+            id        : syncKey,
+            customerId,
+            type      : "updateLokasi",
+            payload   : {
+              alamatCustomer : alamat,
+              lokasiCustomer : { lat: selectedLat, lng: selectedLng },
+              jarak,
+            },
+            isSync    : false,
+            updatedAt : Date.now()
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror    = () => reject(tx.error);
+        });
+
+        // Firestore update jika online
+        if (navigator.onLine) {
+          try {
+            await window.updateDoc(
+              window.doc(window.db, "customer", customerId),
+              {
+                alamatCustomer : alamat,
+                lokasiCustomer : new window.GeoPoint(selectedLat, selectedLng),
+                jarak,
+              }
+            );
+            // Update flag isSync
+            const idbSync2 = await window.openAppDB();
+            await new Promise((resolve, reject) => {
+              const tx    = idbSync2.transaction("customerBaruDB", "readwrite");
+              tx.objectStore("customerBaruDB").put({
+                id        : syncKey,
+                customerId,
+                type      : "updateLokasi",
+                payload   : {
+                  alamatCustomer : alamat,
+                  lokasiCustomer : { lat: selectedLat, lng: selectedLng },
+                  jarak,
+                },
+                isSync    : true,
+                updatedAt : Date.now()
+              });
+              tx.oncomplete = () => resolve();
+              tx.onerror    = () => reject(tx.error);
+            });
+            console.log("✅ lokasi synced ke Firestore");
+          } catch(err) {
+            console.log("❌ Firestore gagal, akan sync nanti:", err);
+          }
+        } else {
+          console.log("📴 Offline — lokasi disimpan lokal, sync nanti");
+        }
+
+        // Update IndexedDB customerHarianDB
+        const uid        = window.auth.currentUser?.uid;
+        const hariNamaList = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+        const hariAktif  = hariNamaList[new Date().getDay()];
+        const cacheKey   = `${uid}_${hariAktif}`;
+        const idb        = await window.openAppDB();
+        const existing   = await new Promise(resolve => {
+          const tx  = idb.transaction("customerHarianDB", "readonly");
+          const req = tx.objectStore("customerHarianDB").get(cacheKey);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror   = () => resolve(null);
+        });
+
+        if (existing && Array.isArray(existing.data)) {
+          const idx = existing.data.findIndex(c => (c.idCustomer || c.id) === customerId);
+          if (idx !== -1) {
+            existing.data[idx] = {
+              ...existing.data[idx],
+              alamatCustomer : alamat,
+              lokasiCustomer : { lat: selectedLat, lng: selectedLng },
+              jarak,
+            };
+            await new Promise((resolve, reject) => {
+              const tx  = idb.transaction("customerHarianDB", "readwrite");
+              tx.objectStore("customerHarianDB").put({ ...existing, updatedAt: Date.now() });
+              tx.oncomplete = () => resolve();
+              tx.onerror    = () => reject(tx.error);
+            });
+          }
+        }
+
+        // Update memory listCustomerData & customerDataMap
+        const entry = window.listCustomerData?.find(x => (x.idCustomer || x.id) === customerId);
+        if (entry) { entry.alamatCustomer = alamat; entry.lokasiCustomer = { lat: selectedLat, lng: selectedLng }; entry.jarak = jarak; }
+        if (window.customerDataMap?.[customerId]) {
+          window.customerDataMap[customerId].alamatCustomer = alamat;
+          window.customerDataMap[customerId].lokasiCustomer = { lat: selectedLat, lng: selectedLng };
+          window.customerDataMap[customerId].jarak = jarak;
+        }
+
+        btn.textContent = "Berhasil ✓";
+        setTimeout(() => closeLokasi(), 1200);
+      } catch(err) {
+        console.error("Gagal simpan lokasi:", err);
+        btn.disabled = false;
+        btn.textContent = "Gagal, coba lagi";
+        setTimeout(() => { btn.textContent = "Simpan"; btn.disabled = false; }, 2000);
+      }
+    };
+
+    function closeLokasi() {
+      const box = document.getElementById("popupLokasiBox");
+      const ov  = document.getElementById("popupLokasiOverlay");
+      if (!ov) return;
+      ov.style.opacity = "0";
+      if (box) box.style.transform = "translateY(100%)";
+      setTimeout(() => ov.remove(), 300);
+    }
+
+    document.getElementById("popupLokasiClose").onclick = closeLokasi;
+    overlay.addEventListener("click", e => { if (e.target === overlay) closeLokasi(); });
+
+    // Swipe close mobile
+    const box = document.getElementById("popupLokasiBox");
+    let swipeStartY = 0, swipeCurY = 0, swipeActive = false;
+    box.addEventListener("touchstart", e => {
+      if (box.scrollTop > 10) return;
+      swipeStartY = swipeCurY = e.touches[0].clientY;
+      swipeActive = true; box.style.transition = "none";
+    }, { passive: true });
+    box.addEventListener("touchmove", e => {
+      if (!swipeActive) return;
+      swipeCurY = e.touches[0].clientY;
+      const d = swipeCurY - swipeStartY;
+      if (d < 0) return;
+      box.style.transform = `translateY(${d * .9}px)`;
+    }, { passive: true });
+    box.addEventListener("touchend", () => {
+      if (!swipeActive) return;
+      swipeActive = false;
+      const d = swipeCurY - swipeStartY;
+      box.style.transition = "transform .28s ease";
+      if (d > 120) { closeLokasi(); } else { box.style.transform = ""; }
+    });
+  };
   window._inputViewCleanup = function(){
     if(window.catatanUnsubscribe){
       window.catatanUnsubscribe();

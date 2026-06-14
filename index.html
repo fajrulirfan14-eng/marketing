@@ -280,6 +280,10 @@
     <div class="input-page">
       <!-- HEADER -->
       <div class="input-header">
+        <!-- BACK BUTTON -->
+        <button class="input-back-btn" onclick="window.showView('home','back')">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
         <!-- HARI -->
         <div class="input-hari" id="inputHari">
           Senin
@@ -2354,9 +2358,14 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAqRO5D9ttXiGhxyYv1h8QQHxpoXLNO-AQ&libraries=places,marker,routes,geometry"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+    });
+  }
+</script>
 </head>
 
-<div id="devConsoleMount"></div>
-<script src="devconsole.js"></script>
 </body>
 </html>
