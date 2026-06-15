@@ -2789,22 +2789,41 @@ window.initInputView = async function(){
       const text = document.getElementById("lokasiAmbilText");
       btn.disabled = true;
       text.textContent = "Mengambil...";
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          selectedLat = pos.coords.latitude;
-          selectedLng = pos.coords.longitude;
-          btn.disabled = false;
-          text.textContent = "Ambil Lokasi GPS";
-          document.getElementById("lokasiStatusText").textContent = `📍 ${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`;
-          document.getElementById("lokasiSimpanBtn").disabled = false;
-          document.getElementById("lokasiSimpanBtn").style.opacity = "1";
-          tampilkanPeta(selectedLat, selectedLng);
-        },
-        err => {
+      function onGPSSuccess(pos) {
+        selectedLat = pos.coords.latitude;
+        selectedLng = pos.coords.longitude;
+        btn.disabled = false;
+        text.textContent = "Ambil Lokasi GPS";
+        document.getElementById("lokasiStatusText").textContent = `📍 ${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`;
+        document.getElementById("lokasiSimpanBtn").disabled = false;
+        document.getElementById("lokasiSimpanBtn").style.opacity = "1";
+        tampilkanPeta(selectedLat, selectedLng);
+      }
+
+      function onGPSError(err) {
+        console.error("GPS error:", err.code, err.message);
+        // Fallback: coba tanpa high accuracy
+        if (err.code === 1 || err.code === 2) {
+          navigator.geolocation.getCurrentPosition(
+            onGPSSuccess,
+            finalErr => {
+              console.error("GPS fallback error:", finalErr.code, finalErr.message);
+              btn.disabled = false;
+              text.textContent = "Gagal, coba lagi";
+              setTimeout(() => { text.textContent = "Ambil Lokasi GPS"; }, 2000);
+            },
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 }
+          );
+        } else {
           btn.disabled = false;
           text.textContent = "Gagal, coba lagi";
           setTimeout(() => { text.textContent = "Ambil Lokasi GPS"; }, 2000);
-        },
+        }
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        onGPSSuccess,
+        onGPSError,
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
       );
     };
