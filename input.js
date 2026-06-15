@@ -936,6 +936,25 @@ window.initInputView = async function(){
     `;
   }
   
+  window.compressImageInput = function(file, maxWidth = 800, quality = 0.75) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let w = img.width, h = img.height;
+          if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          canvas.toBlob(blob => resolve(blob), "image/jpeg", quality);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+  
   window.openPreviewFoto = function(src){
     const overlay = document.getElementById("previewFotoOverlay");
     const img = document.getElementById("previewFotoImg");
@@ -2632,6 +2651,24 @@ window.initInputView = async function(){
 
           <div id="lokasiMapContainer" style="width:100%;height:220px;border-radius:14px;overflow:hidden;display:none;border:1.5px solid var(--border-color,#e8ddd0);"></div>
 
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <label style="font-size:11px;font-weight:700;color:var(--text-secondary,#7a6a5a);text-transform:uppercase;letter-spacing:.4px;">Foto Customer</label>
+            <div id="lokasiPhotoPreview" style="
+              width:100%;height:110px;border:2px dashed var(--primary,#C9A67B);
+              border-radius:12px;background:var(--bg-soft,#f9f3ec);
+              display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+              cursor:pointer;overflow:hidden;position:relative;
+            ">
+              <svg viewBox="0 0 24 24" fill="none" style="width:28px;height:28px;stroke:var(--primary,#C9A67B);stroke-width:1.8;stroke-linecap:round;">
+                <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="13" r="3"/>
+                <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <span style="font-size:12px;color:var(--primary,#C9A67B);font-weight:600;">Ambil Foto</span>
+            </div>
+            <input type="file" id="lokasiPhotoInput" accept="image/*" capture="environment" style="display:none">
+          </div>
+
           <div id="lokasiStatusText" style="font-size:13px;color:var(--text-secondary,#7a6a5a);text-align:center;"></div>
         </div>
 
@@ -2714,6 +2751,37 @@ window.initInputView = async function(){
         lokasiMarker.setPosition({ lat, lng });
       }
     }
+    
+    // Setup foto
+    let lokasiPhotoBlob = null;
+    const lokasiPhotoPreview = document.getElementById("lokasiPhotoPreview");
+    const lokasiPhotoInput   = document.getElementById("lokasiPhotoInput");
+
+    // Load foto existing dari IndexedDB
+    try {
+      const idbF  = await window.openAppDB();
+      const uidF  = window.auth.currentUser?.uid;
+      const hariF = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"][new Date().getDay()];
+      const rawF  = await new Promise(resolve => {
+        const tx  = idbF.transaction("customerHarianDB", "readonly");
+        const req = tx.objectStore("customerHarianDB").get(`${uidF}_${hariF}`);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => resolve(null);
+      });
+      const custF = rawF?.data?.find(c => (c.idCustomer || c.id) === customerId);
+      if (custF?.foto) {
+        lokasiPhotoPreview.innerHTML = `<img src="${custF.foto}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:10px;">`;
+      }
+    } catch(e) {}
+
+    lokasiPhotoPreview.addEventListener("click", () => lokasiPhotoInput.click());
+    lokasiPhotoInput.addEventListener("change", async () => {
+      const file = lokasiPhotoInput.files[0];
+      if (!file) return;
+      lokasiPhotoBlob = await window.compressImageInput(file, 800, 0.75);
+      const url = URL.createObjectURL(lokasiPhotoBlob);
+      lokasiPhotoPreview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:10px;">`;
+    });
 
     // Ambil GPS
     document.getElementById("lokasiAmbilBtn").onclick = function() {
@@ -2784,6 +2852,18 @@ window.initInputView = async function(){
           jarak,
         };
 
+        // Upload foto jika ada
+        if (lokasiPhotoBlob && navigator.onLine) {
+          try {
+            const fileName   = `fotoCustomer/${customerId}_${Date.now()}.jpg`;
+            const storageRef = window.storageRef(window.storage, fileName);
+            await window.uploadBytes(storageRef, lokasiPhotoBlob);
+            updatePayload.foto = await window.getDownloadURL(storageRef);
+          } catch(e) {
+            console.error("upload foto lokasi gagal:", e?.code, e?.message, e);
+          }
+        }
+
         // Simpan ke IndexedDB pending sync dulu
         const syncKey = `lokasi_${customerId}`;
         const idbSync = await window.openAppDB();
@@ -2814,6 +2894,7 @@ window.initInputView = async function(){
                 alamatCustomer : alamat,
                 lokasiCustomer : new window.GeoPoint(selectedLat, selectedLng),
                 jarak,
+                ...(updatePayload.foto ? { foto: updatePayload.foto } : {})
               }
             );
             // Update flag isSync
@@ -2864,6 +2945,7 @@ window.initInputView = async function(){
               alamatCustomer : alamat,
               lokasiCustomer : { lat: selectedLat, lng: selectedLng },
               jarak,
+              ...(updatePayload.foto ? { foto: updatePayload.foto } : {})
             };
             await new Promise((resolve, reject) => {
               const tx  = idb.transaction("customerHarianDB", "readwrite");
