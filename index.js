@@ -96,7 +96,6 @@ onAuthStateChanged(auth, async(user)=>{
       const cache = localStorage.getItem("userCache");
       if(cache){
         window.currentUser = JSON.parse(cache);
-        console.log("Offline login");
       }else{
         window.location.href = "login.html";
         return;
@@ -117,9 +116,7 @@ window.logout = async function(){
     await signOut(auth);
     localStorage.clear();
     window.location.href = "login.html";
-  }catch(err){
-    console.log(err);
-  }
+  }catch(err){  }
 };
 // PULL TO REFRESH
 (function() {
@@ -355,7 +352,6 @@ window.syncPendingLokasi = async function() {
     if (!navigator.onLine) return;
     const uid = window.auth?.currentUser?.uid;
     if (!uid) return;
-    console.log("🔄 syncPendingLokasi start...");
 
     const idb = await window.openAppDB();
     const all = await new Promise((resolve, reject) => {
@@ -366,19 +362,40 @@ window.syncPendingLokasi = async function() {
     });
 
     const pending = all.filter(x => x.type === "updateLokasi" && x.isSync === false);
-    console.log("📦 pending lokasi:", pending.length);
 
     for (const item of pending) {
       try {
         const { customerId, payload } = item;
+
+        // Upload foto lokal jika ada dan belum di-upload
+        let fotoUrl = payload.foto || null;
+        if (!fotoUrl && payload.fotoLokal) {
+          try {
+            const base64   = payload.fotoLokal;
+            const arr      = base64.split(",");
+            const mime     = arr[0].match(/:(.*?);/)[1];
+            const bstr     = atob(arr[1]);
+            let n          = bstr.length;
+            const u8arr    = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const blob     = new Blob([u8arr], { type: mime });
+            const fileName = `fotoCustomer/${customerId}_${Date.now()}.jpg`;
+            const sRef     = window.storageRef(window.storage, fileName);
+            await window.uploadBytes(sRef, blob);
+            fotoUrl        = await window.getDownloadURL(sRef);
+          } catch(e) { console.log("sync foto gagal:", e); }
+        }
+
         await window.updateDoc(
           window.doc(window.db, "customer", customerId),
           {
             alamatCustomer : payload.alamatCustomer,
             lokasiCustomer : new window.GeoPoint(payload.lokasiCustomer.lat, payload.lokasiCustomer.lng),
             jarak          : payload.jarak,
+            ...(fotoUrl ? { foto: fotoUrl } : {})
           }
         );
+
         // Update flag isSync
         const idb2 = await window.openAppDB();
         await new Promise((resolve, reject) => {
@@ -387,9 +404,52 @@ window.syncPendingLokasi = async function() {
           tx.oncomplete = () => resolve();
           tx.onerror    = () => reject(tx.error);
         });
-        console.log("✅ lokasi synced:", customerId);
+
+        // Update customerHarianDB — ganti fotoLokal dengan URL Storage
+        if (fotoUrl) {
+          try {
+            const uid2      = window.auth?.currentUser?.uid;
+            const hariList  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+            const hariAktif = hariList[new Date().getDay()];
+            const idb3      = await window.openAppDB();
+            const existing3 = await new Promise(resolve => {
+              const tx  = idb3.transaction("customerHarianDB", "readonly");
+              const req = tx.objectStore("customerHarianDB").get(`${uid2}_${hariAktif}`);
+              req.onsuccess = () => resolve(req.result || null);
+              req.onerror   = () => resolve(null);
+            });
+            if (existing3?.data) {
+              const idx = existing3.data.findIndex(c => (c.idCustomer || c.id) === customerId);
+              if (idx !== -1) {
+                existing3.data[idx] = {
+                  ...existing3.data[idx],
+                  foto      : fotoUrl,
+                  fotoLokal : null  // hapus base64 lokal
+                };
+                const idb4 = await window.openAppDB();
+                await new Promise((resolve, reject) => {
+                  const tx = idb4.transaction("customerHarianDB", "readwrite");
+                  tx.objectStore("customerHarianDB").put({ ...existing3, updatedAt: Date.now() });
+                  tx.oncomplete = () => resolve();
+                  tx.onerror    = () => reject(tx.error);
+                });
+                // Update memory juga
+                if (window.customerDataMap?.[customerId]) {
+                  window.customerDataMap[customerId].foto      = fotoUrl;
+                  window.customerDataMap[customerId].fotoLokal = null;
+                }
+                if (window.listCustomerData) {
+                  const entry = window.listCustomerData.find(x => (x.idCustomer || x.id) === customerId);
+                  if (entry) { entry.foto = fotoUrl; entry.fotoLokal = null; }
+                }
+                // Dispatch event supaya UI update
+                window.dispatchIdbUpdate?.("customerHarianDB", customerId);
+              }
+            }
+          } catch(e) { console.log("update fotoLokal ke URL gagal:", e); }
+        }
       } catch(err) {
-        console.log("❌ sync lokasi gagal:", item.customerId, err);
+        console.log("sync lokasi gagal:", item.customerId, err);
       }
     }
     console.log("✅ syncPendingLokasi selesai");
@@ -400,7 +460,7 @@ window.syncPendingLokasi = async function() {
 window.syncCustomerHarian = async function(){
   try{
     if(!navigator.onLine){
-      console.log("❌ syncCustomerHarian: offline");
+      console.log("syncCustomerHarian: offline");
       return;
     }
 
@@ -431,8 +491,6 @@ window.syncCustomerHarian = async function(){
     const store = tx.objectStore("customerHarianDB");
 
     store.put({ id: `${uid}_${hariAktif}`, data });
-
-    console.log("syncCustomerHarian: tersimpan", data.length, "customer");
   }catch(err){
     console.log("syncCustomerHarian error", err);
   }
@@ -440,7 +498,6 @@ window.syncCustomerHarian = async function(){
 window.addEventListener(
   "online",
   function(){
-    console.log("Internet kembali, sync...");
     window.syncOfflineDataHarian();
     window.syncCustomerHarian?.();
     window.syncPendingLokasi?.();
@@ -955,7 +1012,6 @@ window.fetchUsersByCabang = async function () {
   try {
     const user = window.currentUser;
     if (!user || !user.uid) {
-      console.log("❌ fetchUsersByCabang: user belum ready");
       return [];
     }
     const userSnap = await window.getDoc(window.doc(window.db, "users", user.uid));
@@ -978,11 +1034,8 @@ window.fetchUsersByCabang = async function () {
       ["kurir", "hunter", "sales"].includes((u.role || "").toLowerCase())
     );
     window.globalUsersCache = filtered;
-    console.log("👤 Users filtered:", filtered.length, filtered);
-    console.log("👤 Kurir loaded:", data.length, data);
     return data;
   } catch (err) {
-    console.log("fetchUsersByCabang error", err);
     window.globalUsersCache = [];
     return [];
   }
@@ -1176,7 +1229,6 @@ window.fetchUsersByCabang = async function () {
     // Log ukuran
     const before = Math.round(img.src.length / 1024);
     const after  = Math.round(compressed.length / 1024);
-    console.log(`✂️ Crop: ${outW}×${outH}px | ${before}KB → ${after}KB`);
 
     // Simpan localStorage
     try {

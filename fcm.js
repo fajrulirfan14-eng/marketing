@@ -17,7 +17,6 @@ async function saveFcmToken(token) {
       { fcmToken: token },
       { merge: true }
     );
-    console.log("✅ FCM token tersimpan:", token);
   } catch (err) {
     console.error("❌ saveFcmToken:", err);
   }

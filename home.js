@@ -1,6 +1,5 @@
 
 window.initHomeView = async function(){
-  console.log("Home View");
   const user = window.currentUser;
   if(!user) return;
   if (typeof window.initFCM === 'function') {
@@ -619,7 +618,6 @@ window.updateHomeStats = async function() {
         r.onsuccess = () => resolve(r.result || null);
         r.onerror = () => resolve(null);
       });
-      console.log("🏢 kantorRaw:", kantorRaw);
       const kantorData = kantorRaw?.data || kantorRaw;
       upahHunter = Number(kantorData?.upahHunter || 0);
     } catch(e) {
