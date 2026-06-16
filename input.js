@@ -2769,8 +2769,10 @@ window.initInputView = async function(){
         req.onerror   = () => resolve(null);
       });
       const custF = rawF?.data?.find(c => (c.idCustomer || c.id) === customerId);
-      if (custF?.foto) {
-        lokasiPhotoPreview.innerHTML = `<img src="${custF.foto}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:10px;">`;
+      // Prioritas: base64 lokal > Storage URL
+      const fotoSrc = custF?.fotoLokal || custF?.foto || null;
+      if (fotoSrc) {
+        lokasiPhotoPreview.innerHTML = `<img src="${fotoSrc}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:10px;">`;
       }
     } catch(e) {}
 
@@ -2871,8 +2873,18 @@ window.initInputView = async function(){
           jarak,
         };
 
-        // Upload foto jika ada
-        if (lokasiPhotoBlob && navigator.onLine) {
+        // Konversi blob ke base64 untuk disimpan lokal
+        let fotoBase64 = null;
+        if (lokasiPhotoBlob) {
+          fotoBase64 = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.readAsDataURL(lokasiPhotoBlob);
+          });
+        }
+
+        // Upload foto jika online, simpan base64 sebagai fallback
+        if (fotoBase64 && navigator.onLine) {
           try {
             const fileName   = `fotoCustomer/${customerId}_${Date.now()}.jpg`;
             const storageRef = window.storageRef(window.storage, fileName);
@@ -2880,10 +2892,15 @@ window.initInputView = async function(){
             updatePayload.foto = await window.getDownloadURL(storageRef);
           } catch(e) {
             console.error("upload foto lokasi gagal:", e?.code, e?.message, e);
+            // Fallback: pakai base64 lokal
+            updatePayload.fotoLokal = fotoBase64;
           }
+        } else if (fotoBase64) {
+          // Offline: simpan base64 lokal saja
+          updatePayload.fotoLokal = fotoBase64;
         }
 
-        // Simpan ke IndexedDB pending sync dulu
+        // Simpan ke IndexedDB pending sync dulu (termasuk foto base64)
         const syncKey = `lokasi_${customerId}`;
         const idbSync = await window.openAppDB();
         await new Promise((resolve, reject) => {
@@ -2896,6 +2913,8 @@ window.initInputView = async function(){
               alamatCustomer : alamat,
               lokasiCustomer : { lat: selectedLat, lng: selectedLng },
               jarak,
+              ...(fotoBase64 && !updatePayload.foto ? { fotoLokal: fotoBase64 } : {}),
+              ...(updatePayload.foto ? { foto: updatePayload.foto } : {}),
             },
             isSync    : false,
             updatedAt : Date.now()
@@ -2907,15 +2926,28 @@ window.initInputView = async function(){
         // Firestore update jika online
         if (navigator.onLine) {
           try {
-            await window.updateDoc(
-              window.doc(window.db, "customer", customerId),
-              {
-                alamatCustomer : alamat,
-                lokasiCustomer : new window.GeoPoint(selectedLat, selectedLng),
-                jarak,
-                ...(updatePayload.foto ? { foto: updatePayload.foto } : {})
-              }
-            );
+            // Upload foto lokal jika ada dan belum di-upload
+        let fotoUrl = payload.foto || null;
+        if (!fotoUrl && payload.fotoLokal) {
+          try {
+            const res      = await fetch(payload.fotoLokal);
+            const blob     = await res.blob();
+            const fileName = `fotoCustomer/${customerId}_${Date.now()}.jpg`;
+            const sRef     = window.storageRef(window.storage, fileName);
+            await window.uploadBytes(sRef, blob);
+            fotoUrl        = await window.getDownloadURL(sRef);
+          } catch(e) { console.log("sync foto gagal:", e); }
+        }
+
+        await window.updateDoc(
+          window.doc(window.db, "customer", customerId),
+          {
+            alamatCustomer : payload.alamatCustomer,
+            lokasiCustomer : new window.GeoPoint(payload.lokasiCustomer.lat, payload.lokasiCustomer.lng),
+            jarak          : payload.jarak,
+            ...(fotoUrl ? { foto: fotoUrl } : {})
+          }
+        );
             // Update flag isSync
             const idbSync2 = await window.openAppDB();
             await new Promise((resolve, reject) => {
@@ -2964,7 +2996,8 @@ window.initInputView = async function(){
               alamatCustomer : alamat,
               lokasiCustomer : { lat: selectedLat, lng: selectedLng },
               jarak,
-              ...(updatePayload.foto ? { foto: updatePayload.foto } : {})
+              // Prioritas: URL Storage > base64 lokal > existing foto
+              foto: updatePayload.foto || fotoBase64 || existing.data[idx].foto || ""
             };
             await new Promise((resolve, reject) => {
               const tx  = idb.transaction("customerHarianDB", "readwrite");
