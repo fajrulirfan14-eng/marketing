@@ -621,6 +621,12 @@ function showView(viewName, trigger = "direct"){
     }
   }
 
+  // Cleanup home clock saat pindah dari home
+  if (viewName !== "home" && window.homeClock) {
+    clearInterval(window.homeClock);
+    window.homeClock = null;
+  }
+
   switch(viewName){
     case "home": window.initHomeView?.(); break;
     case "input": window.initInputView?.(); break;

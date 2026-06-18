@@ -13,6 +13,7 @@
   background-size: 800px 100%;
   animation: skShimmer 1.4s infinite linear;
   border-radius: 10px;
+  will-change: background-position;
 }
 #skeletonHomeCards   { padding: 0 15px }
 .sk-card-wrap        { background: var(--bg-card); border-radius: 24px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 12px var(--shadow-color) }
@@ -56,7 +57,6 @@
 
 .headerHome.has-cover::before {
   opacity: 1;
-  backdrop-filter: blur(2px);
 }
 .headerHome::after {
   content: "";
@@ -93,12 +93,10 @@
   z-index: 10;
   transition: background 0.3s ease, color 0.3s ease;
 }
-
 .home-notif-btn svg {
   width: 20px;
   height: 20px;
 }
-
 .notif-badge {
   position: absolute;
   top: -3px;
@@ -118,6 +116,57 @@
   transition: border-color 0.3s ease;
 }
 
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color, #e8ddd0);
+  cursor: pointer;
+  transition: background .15s;
+  position: relative;
+}
+.notif-item:hover { background: var(--bg-soft, #f9f3ec); }
+.notif-unread { background: rgba(201,166,123,.06); }
+.notif-foto {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.notif-foto-empty {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--bg-soft, #f5ede3);
+  flex-shrink: 0;
+}
+.notif-content { flex: 1; min-width: 0; }
+.notif-judul {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #2d2d2d);
+  margin-bottom: 3px;
+}
+.notif-pesan {
+  font-size: 13px;
+  color: var(--text-secondary, #7a6a5a);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notif-waktu {
+  font-size: 11px;
+  color: var(--text-tertiary, #b0a090);
+}
+.notif-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--primary, #C9A67B);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
 .home-reload-btn {
   position: absolute;
   top: 16px;
@@ -134,16 +183,13 @@
   z-index: 10;
   transition: background 0.3s ease, color 0.3s ease;
 }
-
 .home-reload-btn svg {
   width: 20px;
   height: 20px;
 }
-
 .home-reload-btn.loading svg {
   animation: reloadSpin 0.8s linear infinite;
 }
-
 @keyframes reloadSpin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
@@ -180,7 +226,7 @@
   position: relative;
   border: 5px solid var(--home-avatar-border);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  animation: floatRotate 4s ease-in-out infinite;
+  animation: none;
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 
@@ -533,8 +579,7 @@
   text-align: center;
   padding: 12px 10px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .payment-label {

@@ -1,4 +1,214 @@
 
+// ── NOTIFIKASI ────────────────────────────────────────────────────────────────
+window.initNotifikasi = async function() {
+  const btn     = document.getElementById("homeNotifBtn");
+  const badge   = document.getElementById("homeNotifBadge");
+  if (!btn) return;
+
+  const uid  = window.auth?.currentUser?.uid;
+  const role = (window.currentUser?.role || "").toLowerCase();
+  if (!uid) return;
+
+  // Load notifikasi dari Firestore
+  async function loadNotifikasi() {
+    try {
+      const q = window.query(
+        window.collection(window.db, "notifikasi"),
+        window.where("type", "==", "kurir")
+      );
+      const snap = await window.getDocs(q);
+      const all  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Filter yang uid ada di dibaca
+      const milik = all.filter(n => n.dibaca && uid in n.dibaca);
+      // Badge — belum dibaca
+      const belumDibaca = milik.filter(n => n.dibaca[uid] === false);
+      if (badge) {
+        if (belumDibaca.length > 0) {
+          badge.textContent = belumDibaca.length > 99 ? "99+" : belumDibaca.length;
+          badge.style.display = "flex";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+
+      return { belumDibaca, history: milik.filter(n => n.dibaca[uid] === true) };
+    } catch(e) {
+      return { belumDibaca: [], history: [] };
+    }
+  }
+
+  // Render popup
+  async function openPopupNotif() {
+    const existing = document.getElementById("popupNotifOverlay");
+    if (existing) existing.remove();
+
+    const { belumDibaca, history } = await loadNotifikasi();
+
+    const overlay = document.createElement("div");
+    overlay.id = "popupNotifOverlay";
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:9999;
+      background:rgba(0,0,0,.5);
+      display:flex;align-items:flex-end;justify-content:center;
+      opacity:0;transition:opacity .25s ease;
+    `;
+
+    function renderNotifItem(n, sudahDibaca) {
+      const createdAt = n.createdAt?.toDate
+        ? n.createdAt.toDate().toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
+        : n.createdAt ? new Date(n.createdAt).toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" }) : "-";
+      return `
+        <div class="notif-item ${sudahDibaca ? "notif-read" : "notif-unread"}" data-id="${n.id}">
+          ${n.foto ? `<img class="notif-foto" src="${n.foto}" alt="">` : `<div class="notif-foto-empty"></div>`}
+          <div class="notif-content">
+            <div class="notif-judul">${n.judul || "-"}</div>
+            <div class="notif-pesan">${n.pesan || "-"}</div>
+            <div class="notif-waktu">${createdAt}</div>
+          </div>
+          ${!sudahDibaca ? `<div class="notif-dot"></div>` : ""}
+        </div>
+      `;
+    }
+
+    overlay.innerHTML = `
+      <div id="popupNotifBox" style="
+        width:100%;max-width:540px;max-height:88dvh;
+        background:var(--card-bg,#fff);border-radius:28px 28px 0 0;
+        display:flex;flex-direction:column;
+        transform:translateY(100%);transition:transform .3s cubic-bezier(.32,1,.4,1);
+        box-shadow:0 -8px 40px rgba(0,0,0,.15);
+      ">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 0;flex-shrink:0;">
+          <div style="font-size:17px;font-weight:700;color:var(--text-primary,#2d2d2d);">Notifikasi</div>
+          <button id="popupNotifClose" style="width:34px;height:34px;border:none;background:var(--bg-soft,#f5ede3);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;stroke:#2d2d2d;stroke-width:2.2;stroke-linecap:round;">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Tab -->
+        <div style="display:flex;gap:0;padding:14px 20px 0;border-bottom:1.5px solid var(--border-color,#e8ddd0);flex-shrink:0;">
+          <button class="notif-tab active" data-tab="belum" style="flex:1;padding:8px 0;border:none;background:none;font-size:14px;font-weight:600;color:var(--primary,#C9A67B);border-bottom:2.5px solid var(--primary,#C9A67B);cursor:pointer;transition:.2s;">
+            Belum Dibaca <span style="background:var(--primary,#C9A67B);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;">${belumDibaca.length}</span>
+          </button>
+          <button class="notif-tab" data-tab="history" style="flex:1;padding:8px 0;border:none;background:none;font-size:14px;font-weight:600;color:var(--text-secondary,#7a6a5a);border-bottom:2.5px solid transparent;cursor:pointer;transition:.2s;">
+            History
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div id="notifContent" style="flex:1;overflow-y:auto;padding:4px 0 24px;">
+          <div id="notifTabBelum">
+            ${belumDibaca.length === 0
+              ? `<div style="text-align:center;padding:40px 20px;color:var(--text-secondary,#7a6a5a);font-size:14px;">Tidak ada notifikasi baru</div>`
+              : `<div style="padding:12px 20px 0;display:flex;justify-content:flex-end;">
+                  <button id="btnTandaiSemua" style="font-size:12px;font-weight:600;color:var(--primary,#C9A67B);background:none;border:none;cursor:pointer;text-decoration:underline;">Tandai semua dibaca</button>
+                </div>` + belumDibaca.map(n => renderNotifItem(n, false)).join("")
+            }
+          </div>
+          <div id="notifTabHistory" style="display:none;">
+            ${history.length === 0
+              ? `<div style="text-align:center;padding:40px 20px;color:var(--text-secondary,#7a6a5a);font-size:14px;">Belum ada history</div>`
+              : history.map(n => renderNotifItem(n, true)).join("")
+            }
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => {
+      overlay.style.opacity = "1";
+      document.getElementById("popupNotifBox").style.transform = "translateY(0)";
+    });
+
+    function closeNotif() {
+      overlay.style.opacity = "0";
+      document.getElementById("popupNotifBox").style.transform = "translateY(100%)";
+      setTimeout(() => overlay.remove(), 300);
+    }
+
+    document.getElementById("popupNotifClose").onclick = closeNotif;
+    overlay.addEventListener("click", e => { if (e.target === overlay) closeNotif(); });
+
+    // Tab switch
+    overlay.querySelectorAll(".notif-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        overlay.querySelectorAll(".notif-tab").forEach(t => {
+          t.style.color = "var(--text-secondary,#7a6a5a)";
+          t.style.borderBottom = "2.5px solid transparent";
+        });
+        tab.style.color = "var(--primary,#C9A67B)";
+        tab.style.borderBottom = "2.5px solid var(--primary,#C9A67B)";
+        document.getElementById("notifTabBelum").style.display   = tab.dataset.tab === "belum"   ? "block" : "none";
+        document.getElementById("notifTabHistory").style.display = tab.dataset.tab === "history" ? "block" : "none";
+      });
+    });
+
+    // Tandai satu notif saat klik
+    overlay.querySelectorAll(".notif-item.notif-unread").forEach(item => {
+      item.addEventListener("click", async () => {
+        const id = item.dataset.id;
+        try {
+          await window.updateDoc(
+            window.doc(window.db, "notifikasi", id),
+            { [`dibaca.${uid}`]: true }
+          );
+          item.classList.remove("notif-unread");
+          item.classList.add("notif-read");
+          item.querySelector(".notif-dot")?.remove();
+          await loadNotifikasi(); // refresh badge
+        } catch(e) {}
+      });
+    });
+
+    // Tandai semua dibaca
+    document.getElementById("btnTandaiSemua")?.addEventListener("click", async () => {
+      try {
+        await Promise.all(belumDibaca.map(n =>
+          window.updateDoc(
+            window.doc(window.db, "notifikasi", n.id),
+            { [`dibaca.${uid}`]: true }
+          )
+        ));
+        closeNotif();
+        await loadNotifikasi();
+        setTimeout(openPopupNotif, 350);
+      } catch(e) {}
+    });
+
+    // Swipe close
+    const box = document.getElementById("popupNotifBox");
+    let swipeY = 0, swipeCur = 0, swipeActive = false;
+    box.addEventListener("touchstart", e => {
+      if (box.scrollTop > 0) return;
+      swipeY = swipeCur = e.touches[0].clientY;
+      swipeActive = true; box.style.transition = "none";
+    }, { passive: true });
+    box.addEventListener("touchmove", e => {
+      if (!swipeActive) return;
+      swipeCur = e.touches[0].clientY;
+      const d = swipeCur - swipeY;
+      if (d < 0) return;
+      box.style.transform = `translateY(${d * .9}px)`;
+    }, { passive: true });
+    box.addEventListener("touchend", () => {
+      if (!swipeActive) return;
+      swipeActive = false;
+      const d = swipeCur - swipeY;
+      box.style.transition = "transform .28s ease";
+      if (d > 100) { closeNotif(); } else { box.style.transform = ""; }
+    });
+  }
+
+  // Init badge saat load
+  await loadNotifikasi();
+
+  // Klik tombol buka popup
+  btn.onclick = openPopupNotif;
+};
 window.initHomeView = async function(){
   const user = window.currentUser;
   if(!user) return;
@@ -178,25 +388,10 @@ window.initHomeView = async function(){
                   updatedAt: Date.now()
                 });
   
-              req.onsuccess = function () {
-                  console.group(`💾 IndexedDB saved → ${store}`);
-                  console.log("Key:", key);
-                  console.log("Updated At:",
-                    new Date().toLocaleString("id-ID")
-                  );
-                  console.log(
-                    "Total:",
-                    Array.isArray(data)
-                      ? data.length
-                      : 1
-                  );
-  
-                  console.groupEnd();
-                };
-  
+              req.onsuccess = function () {};
               req.onerror = function () {
                   console.log(
-                    `❌ IndexedDB save gagal → ${store}`,
+                    `IndexedDB save gagal → ${store}`,
                     req.error
                   );
                 };
@@ -224,7 +419,6 @@ window.initHomeView = async function(){
         window.globalBawaBarang = userData.bawaBarang || [];
         window.globalVarian = userData.varian || [];
         await saveToIndexDB("usersDB", uid, userData);
-        console.log("👤 User loaded:", userData);
         // FETCH KANTOR CABANG
         const idCabang = userData.idCabang || "";
         if (idCabang) {
@@ -235,16 +429,13 @@ window.initHomeView = async function(){
               const kantorData = kantorSnap.data();
               await saveToIndexDB("kantorDB", idCabang, kantorData);
               window.globalKantor = kantorData;
-              console.log("🏢 Kantor loaded:", kantorData);
             } else {
-              console.log("❌ Kantor tidak ditemukan:", idCabang);
+              console.log("Kantor tidak ditemukan:", idCabang);
             }
           } catch(err) {
-            console.log("❌ Gagal fetch kantorCabang:", err);
+            console.log("Gagal fetch kantorCabang:", err);
           }
-        } else {
-          console.log("❌ idCabang kosong, skip fetch kantor");
-        }        
+        } else { }        
         const customerQuery =
           window.query(
             window.collection(
@@ -344,26 +535,7 @@ window.initHomeView = async function(){
             tx.oncomplete = () => resolve();
             tx.onerror    = () => reject(tx.error);
           });
-
-          console.log(`✅ Customer ${hariAktif} refreshed: ${customerHariIni.length} baru, ${customerHariLain.length} lama dipertahankan`);
-
-        } catch(e) {
-          console.log("❌ Gagal simpan customerHarianDB:", e);
-        }
-        customerData.forEach((customer, index) => {
-          console.group(`📦 Customer ${
-              index + 1
-            } - ${
-              customer.namaCustomer ||
-              customer.id
-            }`
-          );
-          Object.entries(customer).forEach(([key, val]) => {
-              console.log(`${key}:`, val);
-            }
-          );
-          console.groupEnd();
-        });
+        } catch { }
       } catch (err) {
         console.log(err); alert("Gagal reload data");
       } finally {
@@ -372,10 +544,13 @@ window.initHomeView = async function(){
       }
     };
   }
+  window.initNotifikasi?.();
   updateDateTime();
-  if(!window.homeClock){
-    window.homeClock = setInterval(updateDateTime, 1000);
+  if(window.homeClock){
+    clearInterval(window.homeClock);
+    window.homeClock = null;
   }
+  window.homeClock = setInterval(updateDateTime, 1000);
   // Skeleton
   const sk = document.getElementById('skeletonHomeCards');
   if (customerWrapper) customerWrapper.style.display = 'none';
@@ -920,9 +1095,13 @@ window.openHomeCustomerPopup = async function() {
     document.body.style.overflow = "";
     btnLokasiHome.style.background = "#4caf50";
     btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
-    console.log("📍 Lokasi dipilih:", customerLat, customerLng);
+    // Destroy map setelah lokasi dipilih
+    window.customerMarkerHome?.setMap(null);
+    window.customerMarkerHome = null;
+    fullMap = null;
+    const mapDiv = document.getElementById("mapFullHome");
+    if (mapDiv) mapDiv.innerHTML = "";
   };
-
   // KLIK ✕ TUTUP MAP
   btnTutupMapHome.onclick = function() {
     mapPopupHome.style.display = "none";
@@ -930,8 +1109,15 @@ window.openHomeCustomerPopup = async function() {
     btnLokasiHome.disabled = false;
     btnLokasiSpinnerHome.style.display = "none";
     btnLokasiTextHome.innerText = "📍 Ambil Lokasi Sekarang";
+    // Destroy map instance supaya tidak memory leak
+    if (fullMap) {
+      window.customerMarkerHome?.setMap(null);
+      window.customerMarkerHome = null;
+      fullMap = null;
+      const mapDiv = document.getElementById("mapFullHome");
+      if (mapDiv) mapDiv.innerHTML = "";
+    }
   };
-
   // FOTO PREVIEW
   const fotoInputHome = document.getElementById("fotoInputHome");
   const fotoCardHome = document.getElementById("fotoCardHome");
@@ -1145,8 +1331,6 @@ window.openHomeCustomerPopup = async function() {
 
       // UPDATE idCustomer + foto URL ke Firestore
       await window.updateDoc(docRef, { idCustomer, foto });
-      console.log("☁️ Firestore saved, id:", idCustomer);
-
       // SAVE INDEXDB
       const idb = await window.openAppDB();
       const txIdb = idb.transaction("customerBaruDB", "readwrite");
@@ -1160,8 +1344,6 @@ window.openHomeCustomerPopup = async function() {
         ),
         createdAt: Date.now()
       });
-      console.log("💾 IndexDB saved");
-
       window.updateHomeStats();
       btnSimpanTextHome.innerText = "Sukses ✓";
       btnSimpanHome.style.background = "#4caf50";
@@ -1254,6 +1436,9 @@ window.openHomeCustomerPopup = async function() {
         setTimeout(() => {
           popup.classList.remove("active");
           content.style.transform = "";
+          window.fotoBase64Home = null;
+          customerLat = null;
+          customerLng = null;
         }, 250);
       } else {
         content.style.transform = "";
