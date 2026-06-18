@@ -1,8 +1,4 @@
-/* ============================================
-   INPUT.CSS - TTN MARKETING
-   ============================================ */
 
-/* ── INPUT PAGE ── */
 .input-page {
   height: 100%;
   display: flex;
@@ -87,9 +83,7 @@
   height: 32px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1124,7 +1118,7 @@
 .popup-warning-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1132,9 +1126,7 @@
   opacity: 0;
   pointer-events: none;
   transition: 0.25s;
-  backdrop-filter: blur(4px);
 }
-
 .popup-warning-overlay.active {
   opacity: 1;
   pointer-events: auto;

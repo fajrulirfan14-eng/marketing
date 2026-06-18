@@ -74,32 +74,25 @@ window.initInputView = async function(){
   };
   document.addEventListener("click", window._analysisDocClickHandler);
 
+  // Clone semua analysis-item supaya listener lama tidak numpuk
+  document.querySelectorAll(".analysis-item").forEach(item => {
+    const newItem = item.cloneNode(true);
+    item.parentNode.replaceChild(newItem, item);
+  });
+
   document.querySelectorAll(".analysis-item").forEach(item => {
     item.addEventListener("click", (e) => {
       e.stopPropagation();
       const action = item.dataset.action;
 
-      // Filter biasa — toggle
       if (["keterangan", "fee_disable", "penyesuaian", "produktif", "stabil", "non_produktif"].includes(action)) {
         window.inputFilterMode = window.inputFilterMode === action ? "all" : action;
         localStorage.setItem("inputFilterMode", window.inputFilterMode);
         updateFilterUI();
         renderCustomerList();
-        // Tidak tutup dropdown
         return;
       }
 
-      // Tampilan bersih/lengkap — bukan filter
-      if (action === "tampilan") {
-        window.inputTampilanBersih = !window.inputTampilanBersih;
-        localStorage.setItem("inputTampilanBersih", window.inputTampilanBersih);
-        applyTampilanBersih(window.inputTampilanBersih);
-        updateFilterUI();
-        // Tidak tutup dropdown
-        return;
-      }
-
-      // Tampilan bersih/lengkap — bukan filter
       if (action === "tampilan") {
         window.inputTampilanBersih = !window.inputTampilanBersih;
         localStorage.setItem("inputTampilanBersih", window.inputTampilanBersih);
@@ -244,9 +237,7 @@ window.initInputView = async function(){
       if (triRaw?.trikotomiResult) {
         window.trikotomiResult = triRaw.trikotomiResult;
       }
-    } catch(e) {
-      console.log("Gagal load trikotomiResult:", e);
-    }
+    } catch(e) {  }
     if(navigator.onLine){
       window.syncOfflineDataHarian?.();
       await window.syncCustomerHarian?.();
@@ -384,9 +375,7 @@ window.initInputView = async function(){
           r.onerror = ()=> resolve();
         })
       ));
-    }catch(e){
-      console.log("preload dataHarianMap error", e);
-    }
+    }catch(e){  }
 
     const customerList = [];
     for(const docSnap of customerSnap.docs){
@@ -776,7 +765,7 @@ window.initInputView = async function(){
               entry.statusBadge = st === "pending" ? "PN" : st === "tutup" ? "TP" : st === "putus" ? "PT" : "";
             }
           }
-        } catch(e) { console.log("idbUpdated reload error:", e); }
+        } catch { }
 
         // Re-render & refresh badge
         renderCustomerList();
@@ -876,9 +865,7 @@ window.initInputView = async function(){
             }
           }
           }
-        }catch(err){
-          console.log("refreshBadge error", err);
-        }
+        } catch { }
 
         // Tambah badge trikotomi
         const trikotomiStatus = (window.trikotomiResult || {})[customerId];
@@ -2799,7 +2786,7 @@ window.initInputView = async function(){
           tampilkanPeta(loc.lat, loc.lng);
         }
       }
-    } catch(e) { console.log("load existing lokasi error:", e); }
+    } catch { }
 
     function tampilkanPeta(lat, lng) {
       const mapContainer = document.getElementById("lokasiMapContainer");
@@ -2897,13 +2884,11 @@ window.initInputView = async function(){
       }
 
       function onGPSError(err) {
-        console.error("GPS error:", err.code, err.message);
         // Fallback: coba tanpa high accuracy
         if (err.code === 1 || err.code === 2) {
           navigator.geolocation.getCurrentPosition(
             onGPSSuccess,
             finalErr => {
-              console.error("GPS fallback error:", finalErr.code, finalErr.message);
               btn.disabled = false;
               text.textContent = "Gagal, coba lagi";
               setTimeout(() => { text.textContent = "Ambil Lokasi GPS"; }, 2000);
@@ -2959,7 +2944,7 @@ window.initInputView = async function(){
               jarak = Number((R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2));
             }
           }
-        } catch(e) { console.log("hitung jarak error:", e); }
+        } catch { }
 
         const updatePayload = {
           alamatCustomer : alamat,
@@ -2985,7 +2970,6 @@ window.initInputView = async function(){
             await window.uploadBytes(storageRef, lokasiPhotoBlob);
             updatePayload.foto = await window.getDownloadURL(storageRef);
           } catch(e) {
-            console.error("upload foto lokasi gagal:", e?.code, e?.message, e);
             // Fallback: pakai base64 lokal
             updatePayload.fotoLokal = fotoBase64;
           }
@@ -3020,25 +3004,25 @@ window.initInputView = async function(){
         // Firestore update jika online
         if (navigator.onLine) {
           try {
-              // Upload foto lokal jika ada dan belum di-upload
-          let fotoUrl = payload.foto || null;
-          if (!fotoUrl && payload.fotoLokal) {
-            try {
-              // fotoLokal adalah base64 string, konversi ke blob langsung
-              const base64    = payload.fotoLokal;
-              const arr       = base64.split(",");
-              const mime      = arr[0].match(/:(.*?);/)[1];
-              const bstr      = atob(arr[1]);
-              let n           = bstr.length;
-              const u8arr     = new Uint8Array(n);
-              while (n--) u8arr[n] = bstr.charCodeAt(n);
-              const blob      = new Blob([u8arr], { type: mime });
-              const fileName  = `fotoCustomer/${customerId}_${Date.now()}.jpg`;
-              const sRef      = window.storageRef(window.storage, fileName);
-              await window.uploadBytes(sRef, blob);
-              fotoUrl         = await window.getDownloadURL(sRef);
-            } catch { }
-          }
+            // Upload foto lokal jika ada dan belum di-upload
+            let fotoUrl = updatePayload.foto || null;
+            if (!fotoUrl && fotoBase64) {
+              try {
+                const base64   = fotoBase64;
+                const arr      = base64.split(",");
+                const mime     = arr[0].match(/:(.*?);/)[1];
+                const bstr     = atob(arr[1]);
+                let n          = bstr.length;
+                const u8arr    = new Uint8Array(n);
+                while (n--) u8arr[n] = bstr.charCodeAt(n);
+                const blob     = new Blob([u8arr], { type: mime });
+                const fileName = `fotoCustomer/${customerId}_${Date.now()}.jpg`;
+                const sRef     = window.storageRef(window.storage, fileName);
+                await window.uploadBytes(sRef, blob);
+                fotoUrl        = await window.getDownloadURL(sRef);
+                updatePayload.foto = fotoUrl;
+              } catch { }
+            }
 
             await window.updateDoc(
               window.doc(window.db, "customer", customerId),
@@ -3049,7 +3033,7 @@ window.initInputView = async function(){
                 ...(fotoUrl ? { foto: fotoUrl } : {})
               }
             );
-            // Update flag isSync
+
             const idbSync2 = await window.openAppDB();
             await new Promise((resolve, reject) => {
               const tx    = idbSync2.transaction("customerBaruDB", "readwrite");
@@ -3061,6 +3045,7 @@ window.initInputView = async function(){
                   alamatCustomer : alamat,
                   lokasiCustomer : { lat: selectedLat, lng: selectedLng },
                   jarak,
+                  ...(fotoUrl ? { foto: fotoUrl } : {})
                 },
                 isSync    : true,
                 updatedAt : Date.now()
@@ -3068,8 +3053,8 @@ window.initInputView = async function(){
               tx.oncomplete = () => resolve();
               tx.onerror    = () => reject(tx.error);
             });
-          } catch(err) {  }
-        } else {  }
+          } catch { }
+        }
 
         // Update IndexedDB customerHarianDB
         const uid        = window.auth.currentUser?.uid;
@@ -3117,7 +3102,6 @@ window.initInputView = async function(){
         btn.textContent = "Berhasil ✓";
         setTimeout(() => closeLokasi(), 1200);
       } catch(err) {
-        console.error("Gagal simpan lokasi:", err);
         btn.disabled = false;
         btn.textContent = "Gagal, coba lagi";
         setTimeout(() => { btn.textContent = "Simpan"; btn.disabled = false; }, 2000);
@@ -3130,6 +3114,16 @@ window.initInputView = async function(){
       if (!ov) return;
       ov.style.opacity = "0";
       if (box) box.style.transform = "translateY(100%)";
+      // Destroy map supaya tidak memory leak
+      if (lokasiMarker) {
+        lokasiMarker.setMap(null);
+        lokasiMarker = null;
+      }
+      if (lokasiMap) {
+        const mapContainer = document.getElementById("lokasiMapContainer");
+        if (mapContainer) mapContainer.innerHTML = "";
+        lokasiMap = null;
+      }
       setTimeout(() => ov.remove(), 300);
     }
 
@@ -3228,18 +3222,16 @@ async function syncQueueToFirestore() {
       } catch (err) { }
     }
 
-  } catch (err) {
-    console.log("syncQueueToFirestore error:", err);
-  } finally {
-    // Selalu reset flag meski error
+  } catch { } finally {
     window.syncQueueRunning = false;
   }
 }
-window.addEventListener("online", () => {
-  syncQueueToFirestore();
-});
-window.addEventListener("load", () => {
-  if (navigator.onLine) {
-    syncQueueToFirestore();
-  }
-});
+let _syncDebounceTimer = null;
+function syncQueueDebounced() {
+  clearTimeout(_syncDebounceTimer);
+  _syncDebounceTimer = setTimeout(() => {
+    if (navigator.onLine) syncQueueToFirestore();
+  }, 1500);
+}
+window.addEventListener("online", syncQueueDebounced);
+window.addEventListener("load",   syncQueueDebounced);

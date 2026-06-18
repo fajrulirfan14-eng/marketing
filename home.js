@@ -1439,6 +1439,14 @@ window.openHomeCustomerPopup = async function() {
           window.fotoBase64Home = null;
           customerLat = null;
           customerLng = null;
+          // Destroy map
+          if (window.customerMarkerHome) {
+            window.customerMarkerHome.setMap(null);
+            window.customerMarkerHome = null;
+          }
+          fullMap = null;
+          const mapDiv = document.getElementById("mapFullHome");
+          if (mapDiv) mapDiv.innerHTML = "";
         }, 250);
       } else {
         content.style.transform = "";
