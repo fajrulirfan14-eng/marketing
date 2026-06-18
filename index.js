@@ -285,18 +285,10 @@ window.syncOfflineDataHarian = async function(){
       item => item?.isSync === false
     );
 
-    console.log(
-      "Pending sync dataHarian:",
-      pendingData.length
-    );
-
     for(const item of pendingData){
       try{
-        const today =
-          item.tanggal;
-
-        const customerId =
-          item.idCustomer;
+        const today = item.tanggal;
+        const customerId = item.idCustomer;
 
         const docRef = window.doc(
           window.db,
@@ -312,40 +304,15 @@ window.syncOfflineDataHarian = async function(){
           { merge:true }
         );
 
-        // update sync status
-        const txUpdate =
-          db.transaction(
-            "dataHarianDB",
-            "readwrite"
-          );
-
-        const storeUpdate =
-          txUpdate.objectStore(
-            "dataHarianDB"
-          );
-
+        const txUpdate = db.transaction("dataHarianDB", "readwrite");
+        const storeUpdate = txUpdate.objectStore("dataHarianDB");
         item.isSync = true;
         item.syncedAt = Date.now();
-
         storeUpdate.put(item);
 
-        console.log(
-          "Sync success:",
-          customerId
-        );
-      }catch(syncErr){
-        console.log(
-          "Sync gagal:",
-          syncErr
-        );
-      }
+      } catch { }
     }
-  }catch(err){
-    console.log(
-      "syncOfflineDataHarian error",
-      err
-    );
-  }
+  } catch { }
 };
 window.syncPendingLokasi = async function() {
   try {
@@ -383,7 +350,7 @@ window.syncPendingLokasi = async function() {
             const sRef     = window.storageRef(window.storage, fileName);
             await window.uploadBytes(sRef, blob);
             fotoUrl        = await window.getDownloadURL(sRef);
-          } catch(e) { console.log("sync foto gagal:", e); }
+          } catch { }
         }
 
         await window.updateDoc(
@@ -446,30 +413,17 @@ window.syncPendingLokasi = async function() {
                 window.dispatchIdbUpdate?.("customerHarianDB", customerId);
               }
             }
-          } catch(e) { console.log("update fotoLokal ke URL gagal:", e); }
+          } catch { }
         }
-      } catch(err) {
-        console.log("sync lokasi gagal:", item.customerId, err);
-      }
+      } catch { }
     }
-    console.log("✅ syncPendingLokasi selesai");
-  } catch(err) {
-    console.log("syncPendingLokasi error:", err);
-  }
+  } catch { }
 };
 window.syncCustomerHarian = async function(){
   try{
-    if(!navigator.onLine){
-      console.log("syncCustomerHarian: offline");
-      return;
-    }
-
+    if(!navigator.onLine) return;
     const uid = window.auth?.currentUser?.uid;
-    console.log("🔄 syncCustomerHarian start, uid:", uid);
-    if(!uid){
-      console.log("❌ syncCustomerHarian: uid kosong");
-      return;
-    }
+    if(!uid) return;
 
     const hariNama  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
     const hariAktif = hariNama[new Date().getDay()];
@@ -491,9 +445,7 @@ window.syncCustomerHarian = async function(){
     const store = tx.objectStore("customerHarianDB");
 
     store.put({ id: `${uid}_${hariAktif}`, data });
-  }catch(err){
-    console.log("syncCustomerHarian error", err);
-  }
+  } catch { }
 };
 window.addEventListener(
   "online",
@@ -1023,10 +975,7 @@ window.fetchUsersByCabang = async function () {
     const userSnap = await window.getDoc(window.doc(window.db, "users", user.uid));
     const userData = userSnap.exists() ? userSnap.data() : {};
     const idCabang = userData.idCabang;
-    if (!idCabang) {
-      console.log("❌ fetchUsersByCabang: idCabang kosong");
-      return [];
-    }
+    if (!idCabang) return [];
     const q = window.query(
       window.collection(window.db, "users"),
       window.where("idCabang", "==", idCabang)
@@ -1294,7 +1243,7 @@ window.applyDarkMode = function(val){
     window.AndroidBridge.setStatusBarColor(val ? true : false);
   }
 };
-window.applyDarkMode(window.isDarkMode());
 window.isDarkMode = function(){
   return localStorage.getItem("pref_dark") === "1";
 };
+window.applyDarkMode(window.isDarkMode());
