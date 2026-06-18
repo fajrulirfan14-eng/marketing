@@ -1986,11 +1986,45 @@ window.initInputView = async function(){
           }
     
           if (window.popupFotoLainnya) {
+          try {
+            let fotoBlob = null;
+
+            if (typeof window.popupFotoLainnya === "string") {
+              // Sudah base64 — konversi ke blob
+              const base64 = window.popupFotoLainnya;
+              const arr    = base64.split(",");
+              const mime   = arr[0].match(/:(.*?);/)[1];
+              const bstr   = atob(arr[1]);
+              let n        = bstr.length;
+              const u8arr  = new Uint8Array(n);
+              while (n--) u8arr[n] = bstr.charCodeAt(n);
+              fotoBlob = new Blob([u8arr], { type: mime });
+            } else {
+              // File object — compress dulu
+              const base64Compressed = await compressImage(window.popupFotoLainnya);
+              const arr    = base64Compressed.split(",");
+              const mime   = arr[0].match(/:(.*?);/)[1];
+              const bstr   = atob(arr[1]);
+              let n        = bstr.length;
+              const u8arr  = new Uint8Array(n);
+              while (n--) u8arr[n] = bstr.charCodeAt(n);
+              fotoBlob = new Blob([u8arr], { type: mime });
+            }
+
+            if (fotoBlob) {
+              const fileName = `fotoKeterangan/${getCustomerId(data)}_${Date.now()}.jpg`;
+              const sRef     = window.storageRef(window.storage, fileName);
+              await window.uploadBytes(sRef, fotoBlob, { contentType: "image/jpeg" });
+              payload.keterangan.foto = await window.getDownloadURL(sRef);
+            }
+          } catch(e) {
+            // Fallback base64 kalau upload gagal
             payload.keterangan.foto =
               typeof window.popupFotoLainnya === "string"
                 ? window.popupFotoLainnya
                 : await compressImage(window.popupFotoLainnya);
           }
+        }
         }
     
         // dataKemarin logic
@@ -3204,20 +3238,61 @@ async function syncQueueToFirestore() {
           item.tanggal
         );
 
-        await window.setDoc(docRef, item.payload || item, { merge: true });
+        // Upload foto keterangan jika masih base64
+        const payload = { ...(item.payload || item) };
+        let fotoUrl = null;
+        if (payload?.keterangan?.foto?.startsWith("data:image")) {
+          try {
+            const base64   = payload.keterangan.foto;
+            const arr      = base64.split(",");
+            const mime     = arr[0].match(/:(.*?);/)[1];
+            const bstr     = atob(arr[1]);
+            let n          = bstr.length;
+            const u8arr    = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const blob     = new Blob([u8arr], { type: mime });
+            const fileName = `fotoKeterangan/${item.idCustomer}_${Date.now()}.jpg`;
+            const sRef     = window.storageRef(window.storage, fileName);
+            await window.uploadBytes(sRef, blob);
+            fotoUrl = await window.getDownloadURL(sRef);
+            // Kirim URL ke Firestore, bukan base64
+            payload.keterangan.foto = fotoUrl;
+          } catch { }
+        }
 
-        // Update sync status — buka transaksi baru setelah await selesai
+        await window.setDoc(docRef, payload, { merge: true });
+
+        // Update IndexedDB — simpan URL + pertahankan base64 lokal
         const db2 = await window.openAppDB();
         await new Promise((resolve, reject) => {
-          const tx2 = db2.transaction("dataHarianDB", "readwrite");
+          const tx2   = db2.transaction("dataHarianDB", "readwrite");
           const store2 = tx2.objectStore("dataHarianDB");
-          const req2 = store2.put({
+          const updatedItem = {
             ...item,
-            isSync: true,
-            syncedAt: Date.now()
-          });
+            isSync   : true,
+            syncedAt : Date.now()
+          };
+          // Kalau foto berhasil diupload, simpan URL + pertahankan base64 lokal
+          if (fotoUrl) {
+            updatedItem.keterangan = {
+              ...(item.keterangan || {}),
+              foto     : fotoUrl,
+              fotoLokal: item.keterangan?.foto || null
+            };
+            if (updatedItem.payload?.keterangan) {
+              updatedItem.payload = {
+                ...updatedItem.payload,
+                keterangan: {
+                  ...updatedItem.payload.keterangan,
+                  foto     : fotoUrl,
+                  fotoLokal: updatedItem.payload.keterangan.foto || null
+                }
+              };
+            }
+          }
+          const req2 = store2.put(updatedItem);
           req2.onsuccess = () => resolve();
-          req2.onerror = () => reject(req2.error);
+          req2.onerror   = () => reject(req2.error);
         });
       } catch (err) { }
     }
