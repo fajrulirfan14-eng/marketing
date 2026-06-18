@@ -47,10 +47,7 @@ window.initOperasionalView = async function () {
     allLaporan.forEach(item => {
       laporanMap[item.id] = item;
     });
-  } catch(e) {
-    console.log("Gagal load laporanMarketingDB:", e);
-  }
-
+  } catch { }
   list.innerHTML = dummy.map((item, index) => {
   
     const today = new Date();
@@ -228,9 +225,7 @@ async function buildJumlahUpah(d) {
         });
         const kantorData = kantorRaw?.data || kantorRaw || {};
         upahHarian = Number(kantorData?.upahHarian || 0);
-      } catch(e) {
-        console.log("Gagal load kantorDB:", e);
-      }
+      } catch { }
     }
 
     const bonus = Number(d?.distribusi?.keuangan?.bonus?.jumlahBonus || 0);
@@ -238,10 +233,7 @@ async function buildJumlahUpah(d) {
     const total = upahHarian + bonus - potongan;
 
     return total.toLocaleString("id-ID");
-  } catch(e) {
-    console.log("buildJumlahUpah error:", e);
-    return "-";
-  }
+  } catch { return "-"; }
 }
 function buildKiriHTML(d) {
   // ORDER
@@ -338,9 +330,6 @@ function buildKananHTML(d) {
 window.refreshOperasionalDetail = async function (index, btn) {
   const data = window.operasionalDummyData?.[index];
   if (!data) return;
-
-  console.log("🔄 refreshOperasionalDetail dipanggil, index:", index);
-
   // Konversi tanggal dari format "Senin, 1 Januari 2026" ke "yyyy-mm-dd"
   const year = window.operasionalFilter.tahun;
   const month = String(window.operasionalFilter.bulan + 1).padStart(2, "0");
@@ -389,10 +378,7 @@ window.refreshOperasionalDetail = async function (index, btn) {
       }
       return;
     }
-    console.log("✅ Laporan fetched:", tanggalId);
-
     const d = snap.data();
-
     // Update IndexedDB
     try {
       const idb = await window.openAppDB();
@@ -405,11 +391,7 @@ window.refreshOperasionalDetail = async function (index, btn) {
         ...d,
         cachedAt: Date.now()
       });
-      console.log("💾 laporanMarketing cached:", tanggalId);
-    } catch(e) {
-      console.log("Gagal cache laporanMarketing:", e);
-    }
-
+    } catch { }
     // Update memory map
     if (!window.operasionalLaporanMap) window.operasionalLaporanMap = {};
     window.operasionalLaporanMap[tanggalId] = {
@@ -419,7 +401,6 @@ window.refreshOperasionalDetail = async function (index, btn) {
       ...d,
       cachedAt: Date.now()
     };
-    console.log("🎨 Re-render detail:", tanggalId);
     // Re-render detail pakai buildKiriHTML & buildKananHTML
     const detailEl = btn.closest(".operasional-detail");
     if (detailEl) {
@@ -451,7 +432,6 @@ window.refreshOperasionalDetail = async function (index, btn) {
     }
 
   } catch (err) {
-    console.log("Refresh operasional error:", err);
     const detailEl = btn.closest(".operasional-detail");
     const kiriEl = detailEl?.querySelector(".operasional-col.kiri");
     if (kiriEl) {

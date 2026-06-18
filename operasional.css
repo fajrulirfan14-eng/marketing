@@ -1,15 +1,10 @@
 .operasional-page{
-  height:100vh;
+  min-height:100%;
   display:flex;
   flex-direction:column;
-  overflow-y:auto;
   background:var(--operasional-page-bg);
 }
-
 .operasional-header{
-  position:sticky;
-  top:0;
-  z-index:100;
   background:var(--operasional-header-bg);
   display:flex;
   align-items:center;
@@ -18,7 +13,6 @@
   box-shadow:0 4px 14px var(--operasional-header-shadow);
   margin-bottom:15px;
 }
-
 .operasional-title{
   font-size:24px;
   font-weight:700;
