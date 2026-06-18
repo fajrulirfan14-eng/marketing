@@ -284,6 +284,15 @@
         <button class="input-back-btn" onclick="window.showView('home','back')">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
+        <!-- TABEL BUTTON -->
+        <button class="input-tabel-btn" onclick="window.showView('inputTabel','direct')">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M3 15h18"/>
+            <path d="M9 3v18"/>
+          </svg>
+        </button>
         <!-- HARI -->
         <div class="input-hari" id="inputHari">
           Senin
@@ -613,6 +622,23 @@
         <!-- AUTO RENDER FORM -->
         <div id="stokContainer">
         </div>      </div>
+    </div>
+  </div>
+  
+  <!-- ===== INPUT TABEL VIEW ===== -->
+  <div class="view" id="view-inputTabel">
+    <div class="input-page">
+      <!-- HEADER -->
+      <div class="input-header">
+        <button class="input-back-btn" onclick="window.showView('input','back')">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="input-hari" id="inputTabelHari">Masih dalam pengembangan</div>
+      </div>
+      <!-- TABEL WRAPPER -->
+      <div class="input-tabel-wrapper" id="inputTabelWrapper">
+        <div id="inputTabelPreview"></div>
+      </div>
     </div>
   </div>
   

@@ -514,6 +514,10 @@ window.addEventListener("orientationchange",
 function showView(viewName, trigger = "direct"){
   currentView = viewName;
   window.currentView = viewName;
+  // Update hash tanpa trigger hashchange
+  if (location.hash !== "#" + viewName) {
+    history.replaceState(null, "", "#" + viewName);
+  }
   document.querySelectorAll(".view").forEach(view=>{
     view.classList.remove("active","anim-slide-up","anim-slide-right","anim-slide-left");
   });
@@ -559,6 +563,7 @@ function showView(viewName, trigger = "direct"){
   const hideNavbarViews = [
     "customer",
     "input",
+    "inputTabel",
     "analisis",
     "rolling",
     "tentang",
@@ -588,6 +593,7 @@ function showView(viewName, trigger = "direct"){
     case "home": window.initHomeView?.(); break;
     case "input": window.initInputView?.(); break;
     case "customer": window.initCustomerView?.(); break;
+    case "inputTabel": window.initInputTabelView?.(); break;
     case "analisis": window.initAnalisisView?.(); break;
     case "profil": window.initProfilView?.(); break;
     case "rolling": window.initRollingView?.(); break;
@@ -693,52 +699,71 @@ function closeActivePopup(){
   }
   return false;
 }
+// Blocker supaya back tidak keluar ke login.html
+history.pushState({ app: true }, "");
+history.pushState({ app: true }, "");
+history.pushState({ app: true }, "");
+// ── ANDROID BACK via hashchange ──────────────────
+// Set hash awal
+location.hash = "home";
 
-// ANDROID BACK BUTTON
-history.pushState({app:true},"");
-window.addEventListener("popstate",
-  function(){
-    if(closeActivePopup()){
-      history.pushState({app:true}, "");
-      return;
-    }
-    if(currentView !== "home"){
+let _backLocked = false;
 
-      const backToProfilViews = [
-        "tentang", "keamanan", "perjanjian",
-        "slip", "rollingcustomer", "peraturan"
-      ];
+function _handleBack() {
+  if (_backLocked) return;
+  _backLocked = true;
 
-      // Simpan dulu SEBELUM showView mengubah currentView
-      const backTarget = backToProfilViews.includes(currentView) ? "profil" : "home";
-
-      showView(backTarget, "back");
-
-      // Update nav item & FAB
-      document.querySelectorAll(".nav-item").forEach(i => {
-        if (i.dataset.label) {
-          i.innerHTML =
-            `<i class="${i.dataset.icon}"></i>` +
-            `<span>${i.dataset.label}</span>`;
-        }
-        i.classList.remove("active");
-      });
-
-      const targetNav = document.querySelector(`.nav-item[data-view="${backTarget}"]`);
-      if (targetNav) {
-        targetNav.innerHTML =
-          `<span class="nav-placeholder"></span>` +
-          `<span>${targetNav.dataset.label}</span>`;
-        targetNav.classList.add("active");
-        window._moveFab?.(targetNav);
-      }
-
-      history.pushState({app:true}, "");
-      return;
-    }
-    window.close();
+  if (closeActivePopup()) {
+    history.replaceState(null, "", "#" + currentView);
+    // Push state baru supaya back berikutnya tetap ada
+    setTimeout(() => {
+      history.pushState({ app: true }, "", "#" + currentView);
+      _backLocked = false;
+    }, 300);
+    return;
   }
-);
+  if (currentView !== "home") {
+    const backToProfilViews = [
+      "tentang", "keamanan", "perjanjian",
+      "slip", "rollingcustomer", "peraturan"
+    ];
+    const backToInputViews = ["inputTabel"];
+
+    const backTarget = backToProfilViews.includes(currentView)
+      ? "profil"
+      : backToInputViews.includes(currentView)
+      ? "input"
+      : "home";
+
+    showView(backTarget, "back");
+
+    document.querySelectorAll(".nav-item").forEach(i => {
+      if (i.dataset.label) {
+        i.innerHTML =
+          `<i class="${i.dataset.icon}"></i>` +
+          `<span>${i.dataset.label}</span>`;
+      }
+      i.classList.remove("active");
+    });
+    const targetNav = document.querySelector(`.nav-item[data-view="${backTarget}"]`);
+    if (targetNav) {
+      targetNav.innerHTML =
+        `<span class="nav-placeholder"></span>` +
+        `<span>${targetNav.dataset.label}</span>`;
+      targetNav.classList.add("active");
+      window._moveFab?.(targetNav);
+    }
+  }
+
+  setTimeout(() => {
+    history.replaceState(null, "", "#" + currentView);
+    _backLocked = false;
+  }, 300);
+}
+
+window.addEventListener("hashchange", function() {
+  _handleBack();
+});
 document.addEventListener("backbutton",
   function(e){
     if(closeActivePopup()){
@@ -753,8 +778,14 @@ document.addEventListener("backbutton",
         "slip", "rollingcustomer"
       ];
 
-      const backTarget = backToProfilViews.includes(currentView) ? "profil" : "home";
-      showView(backTarget);
+      const backToInputViews = ["inputTabel"];
+
+      const backTarget = backToProfilViews.includes(currentView)
+        ? "profil"
+        : backToInputViews.includes(currentView)
+        ? "input"
+        : "home";
+      showView(backTarget, "back");
 
       // Update FAB & active state
       document.querySelectorAll(".nav-item").forEach(i => {
@@ -886,7 +917,7 @@ function initNavbar() {
   let navbarEl     = document.getElementById("navbarBottom");
 
   const hideNavbarViews = [
-    "customer","input","analisis","rolling",
+    "customer","input","inputTabel","analisis","rolling",
     "tentang","keamanan","perjanjian","slip",
     "rollingcustomer","chatAi","peraturan"
   ];
