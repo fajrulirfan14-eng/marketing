@@ -143,9 +143,14 @@ window.logout = async function(){
   function canPull() {
     if (isPopupOpen()) return false;
     const app = document.getElementById("app");
-    return app.scrollTop <= 0;
+    if (app.scrollTop > 0) return false;
+    // Cek scroll di dalam view aktif juga
+    const activeView = document.querySelector(".view.active");
+    if (activeView && activeView.scrollTop > 0) return false;
+    // Cek scroll di view aktif langsung
+    if (activeView && activeView.scrollTop > 0) return false;
+    return true;
   }
-
   window.addEventListener("touchstart", (e) => {
     if (refreshing || !canPull()) return;
     startY    = e.touches[0].clientY;
@@ -508,7 +513,7 @@ window.addEventListener("orientationchange",
 // "navbar" | "direct" | "back"
 function showView(viewName, trigger = "direct"){
   currentView = viewName;
-
+  window.currentView = viewName;
   document.querySelectorAll(".view").forEach(view=>{
     view.classList.remove("active","anim-slide-up","anim-slide-right","anim-slide-left");
   });
