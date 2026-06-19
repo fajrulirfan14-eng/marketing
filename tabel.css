@@ -73,28 +73,9 @@
 .input-tabel-inner {
   width: 100%;
   height: 100%;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 20px;
-  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
 }
-
-/* ── TABEL ── */
-.input-tabel {
-  border-collapse: collapse;
-  white-space: nowrap;
-  font-size: 11px;
-}
-
-.input-tabel th,
-.input-tabel td {
-  border: 1px solid var(--border-color);
-  padding: 7px 10px;
-  text-align: center;
-  color: var(--text-primary);
-  vertical-align: middle;
-}
-
 .th-nama {
   background: var(--accent);
   color: #fff;
