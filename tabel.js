@@ -11,12 +11,12 @@ window.initInputTabelView = function() {
     .map(item => Object.keys(item)[0]);
 
   const groups = [
-    { key: "kemarin",    label: "Data Kemarin" },
-    { key: "return",     label: "Return"       },
-    { key: "expired",    label: "Expired"      },
-    { key: "konsinyasi", label: "Konsinyasi"   },
-    { key: "cash",       label: "Cash"         },
-    { key: "lainnya",    label: "Lainnya"      },
+    { key: "kemarin",    label: "Data Kemarin", cls: "kemarin"    },
+    { key: "return",     label: "Return",       cls: "return"     },
+    { key: "expired",    label: "Expired",      cls: "expired"    },
+    { key: "konsinyasi", label: "Konsinyasi",   cls: "konsinyasi" },
+    { key: "cash",       label: "Cash",         cls: "cash"       },
+    { key: "lainnya",    label: "Lainnya",      cls: "lainnya"    },
   ];
 
   const vCount = activeVarians.length || 1;
@@ -25,14 +25,14 @@ window.initInputTabelView = function() {
     <tr>
       <th class="th-nama" rowspan="2">Nama Customer</th>
       ${groups.map(g =>
-        `<th class="th-group" colspan="${vCount}">${g.label}</th>`
+        `<th class="th-group th-group-${g.cls}" colspan="${vCount}">${g.label}</th>`
       ).join("")}
       <th class="th-ket" rowspan="2">Ket</th>
       <th class="th-pay" rowspan="2">Pembayaran</th>
     </tr>
     <tr>
-      ${groups.map(() =>
-        activeVarians.map(v => `<th class="th-varian">${v}</th>`).join("")
+      ${groups.map(g =>
+        activeVarians.map(v => `<th class="th-varian th-varian-${g.cls}">${v}</th>`).join("")
       ).join("")}
     </tr>
   </thead>`;
@@ -67,33 +67,38 @@ window.initInputTabelView = function() {
 
       // Data Kemarin
       activeVarians.forEach(v => {
-        const qty = Number(cust.dataKemarin?.[v]?.qty || 0);
-        tbodyHtml += `<td class="${qty > 0 ? "td-highlight" : ""}">${qty || "-"}</td>`;
+        const qty     = Number(cust.dataKemarin?.[v]?.qty || 0);
+        const konVal  = Number(dh?.konsinyasi?.[v] || 0);
+        const isDiff  = dh && dh.konsinyasi && konVal !== qty;
+        tbodyHtml += `<td class="td-kemarin ${qty > 0 ? "td-highlight" : ""} ${isDiff ? "td-kemarin-diff" : ""}">${qty || "-"}</td>`;
       });
       // Return
       activeVarians.forEach(v => {
         const val = dh?.return?.[v];
-        tbodyHtml += `<td>${val ?? "-"}</td>`;
+        tbodyHtml += `<td class="td-return">${val ?? "-"}</td>`;
       });
       // Expired
       activeVarians.forEach(v => {
         const val = dh?.expired?.[v];
-        tbodyHtml += `<td>${val ?? "-"}</td>`;
+        tbodyHtml += `<td class="td-expired">${val ?? "-"}</td>`;
       });
       // Konsinyasi
       activeVarians.forEach(v => {
-        const val = dh?.konsinyasi?.[v];
-        tbodyHtml += `<td>${val ?? "-"}</td>`;
+        const val      = dh?.konsinyasi?.[v];
+        const kemarin  = Number(cust.dataKemarin?.[v]?.qty || 0);
+        const konVal   = Number(val || 0);
+        const isDiff   = dh && (val !== undefined) && konVal !== kemarin;
+        tbodyHtml += `<td class="td-konsinyasi ${isDiff ? "td-konsinyasi-diff" : ""}">${val ?? "-"}</td>`;
       });
       // Cash
       activeVarians.forEach(v => {
         const val = dh?.cash?.[v];
-        tbodyHtml += `<td>${val ?? "-"}</td>`;
+        tbodyHtml += `<td class="td-cash">${val ?? "-"}</td>`;
       });
       // Lainnya
       activeVarians.forEach(v => {
         const val = dh?.lainnya?.[v];
-        tbodyHtml += `<td>${val ?? "-"}</td>`;
+        tbodyHtml += `<td class="td-lainnya">${val ?? "-"}</td>`;
       });
 
       tbodyHtml += `<td class="td-ket ${ket.cls}">${ket.text}</td>`;

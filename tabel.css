@@ -155,8 +155,97 @@
 }
 
 .input-tabel tbody tr:nth-child(even) td {
-  background: var(--bg-hover);
+  filter: brightness(0.94);
 }
-.input-tabel tbody tr:nth-child(even) .td-nama {
-  background: var(--bg-hover);
+
+/* ── GROUP COLORS ── */
+
+/* Data Kemarin */
+.th-group-kemarin {
+  background: var(--saldo-bg, #e8f5e9);
+  color: var(--saldo-chip-text, #2e7d32);
+}
+.th-varian-kemarin {
+  background: var(--saldo-chip-bg, #c8ebca);
+  color: var(--saldo-chip-text, #2e7d32);
+}
+.td-kemarin {
+  background: var(--saldo-bg, #e8f5e9);
+}
+
+/* Return */
+.th-group-return {
+  background: var(--saldo-bg, #fff8e1);
+  color: var(--saldo-chip-text, #8f6a00);
+}
+.th-varian-return {
+  background: var(--saldo-chip-bg, #ffe8a3);
+  color: #8f6a00;
+}
+.td-return {
+  background: #fffde7;
+}
+
+/* Expired */
+.th-group-expired {
+  background: var(--expired-bg, #fce4ec);
+  color: var(--expired-chip-text, #c62828);
+}
+.th-varian-expired {
+  background: var(--expired-chip-bg, #ffc9c5);
+  color: var(--expired-chip-text, #c62828);
+}
+.td-expired {
+  background: var(--expired-bg, #fce4ec);
+}
+
+/* Konsinyasi */
+.th-group-konsinyasi {
+  background: var(--payment-bg, #e8f5e9);
+  color: var(--payment-chip-text, #1b5e20);
+}
+.th-varian-konsinyasi {
+  background: var(--payment-chip-bg, #c8ebca);
+  color: var(--payment-chip-text, #1b5e20);
+}
+.td-konsinyasi {
+  background: var(--payment-bg, #e8f5e9);
+}
+
+/* Cash */
+.th-group-cash {
+  background: var(--closing-bg, #e3f2fd);
+  color: var(--closing-chip-text, #0d47a1);
+}
+.th-varian-cash {
+  background: var(--closing-chip-bg, #c4ebff);
+  color: var(--closing-chip-text, #0d47a1);
+}
+.td-cash {
+  background: var(--closing-bg, #e3f2fd);
+}
+
+/* Lainnya */
+.th-group-lainnya {
+  background: var(--fee-bg, #f3e5f5);
+  color: var(--fee-chip-text, #6a1b9a);
+}
+.th-varian-lainnya {
+  background: var(--fee-chip-bg, #e5c6ec);
+  color: var(--fee-chip-text, #6a1b9a);
+}
+.td-lainnya {
+  background: var(--fee-bg, #f3e5f5);
+}
+
+/* highlight berbeda */
+.td-konsinyasi-diff {
+  background: #fff3cd !important;
+  color: #856404;
+  font-weight: 700;
+}
+.td-kemarin-diff {
+  background: #fff3cd !important;
+  color: #856404;
+  font-weight: 700;
 }
