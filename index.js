@@ -122,7 +122,7 @@ window.logout = async function(){
 (function() {
   const indicator = document.getElementById("pullRefreshIndicator");
   const circle    = document.getElementById("ptrCircle");
-  const THRESHOLD = 80;
+  const THRESHOLD = 250;
   const FULL_DASH = 226;
 
   let startY     = 0;
@@ -175,13 +175,14 @@ window.logout = async function(){
     hasPulled = true;
     e.preventDefault();
 
-    const damped   = Math.min(deltaY * 0.45, 80);
+    const damped   = Math.min(deltaY * 0.45, 100);
     const raw      = Math.min(deltaY / THRESHOLD, 1);
-    const progress = Math.pow(raw, 1.6); // easing: pelan di awal, cepat di akhir
+    const progress = Math.pow(raw, 1.4);
 
     indicator.style.transition = "none";
     indicator.style.transform  = `translateY(${damped - 60}px)`;
-    circle.style.strokeDashoffset = FULL_DASH - (FULL_DASH * 0.75 * progress);
+    // Circle penuh (100%) saat threshold tercapai
+    circle.style.strokeDashoffset = FULL_DASH - (FULL_DASH * progress);
   }, { passive: false });
 
   window.addEventListener("touchend", (e) => {
