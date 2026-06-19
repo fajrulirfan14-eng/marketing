@@ -338,6 +338,7 @@ window.initInputView = async function(){
       progressTextEl.innerText   = `${doneCount} / ${totalCount} Toko`;
       progressFillEl.style.width = (totalCount === 0 ? 0 : (doneCount/totalCount)*100) + "%";
     }
+    window._updateProgressFromDOM = updateProgressFromDOM;
     function getCustomerId(d){
       return d.idCustomer || d.id || "";
     }
@@ -461,10 +462,9 @@ window.initInputView = async function(){
     
     let customerHtml =
       "";
-    function renderCustomerList(){
+    window._renderCustomerList = function renderCustomerList(){
     
       let customerHtml = "";
-    
       customerList.forEach(data => {
     
         // =========================
@@ -732,7 +732,8 @@ window.initInputView = async function(){
         `;
       });
       listCustomerEl.innerHTML = customerHtml;
-    }
+    };
+    const renderCustomerList = window._renderCustomerList;
     // Listen IDB update — auto re-render tanpa reload
     if (window._idbUpdateHandler) {
       document.removeEventListener("idbUpdated", window._idbUpdateHandler);
@@ -1269,7 +1270,7 @@ window.initInputView = async function(){
         }
 
         // Re-render supaya badge catatan muncul/hilang
-        renderCustomerList();
+        window._renderCustomerList?.();
 
         // Re-attach long press
         document.querySelectorAll(".input-customer-item").forEach(item => {
@@ -2167,7 +2168,7 @@ window.initInputView = async function(){
         }
 
         // Re-render list
-        renderCustomerList();
+        window._renderCustomerList?.();
 
         // Re-attach long press setelah re-render
         document.querySelectorAll(".input-customer-item").forEach(item => {
@@ -2183,7 +2184,7 @@ window.initInputView = async function(){
           item.addEventListener("touchmove", () => clearTimeout(pressTimer));
         });
 
-        updateProgressFromDOM();
+        window._updateProgressFromDOM?.();
 
         if (window[`refreshBadge_${customerId}`]) {
           window[`refreshBadge_${customerId}`]();
@@ -2206,38 +2207,25 @@ window.initInputView = async function(){
       }
     }
     function checkWarningValidation(groupData){
-      let showWarning = false;
+      // Warning hanya jika konsinyasi berbeda dengan data kemarin
       const kemarinData = {};
       Object.keys(dataKemarin).forEach(key=>{
         const qty = dataKemarin[key]?.qty || 0;
-        if(qty > 0){
-          kemarinData[key] = qty;
-        }
+        if(qty > 0) kemarinData[key] = qty;
       });
-  
-      const kemarinKeys = Object.keys(kemarinData);
-      const returnKeys = Object.keys(groupData.return);
-      if(returnKeys.length > 0){
-        const sameReturnKey = kemarinKeys.length === returnKeys.length && kemarinKeys.every(key=> returnKeys.includes(key));
-        if(!sameReturnKey){
-          showWarning = true;
-        }
-      }
+
       const konsinyasiKeys = Object.keys(groupData.konsinyasi);
-      if(konsinyasiKeys.length > 0){
-        const sameKonsinyasi =
-          kemarinKeys.length ===
-          konsinyasiKeys.length &&
-  
-          kemarinKeys.every(key=>
-            konsinyasiKeys.includes(key) &&
-            Number(groupData.konsinyasi[key]) === Number(kemarinData[key])
-          );
-        if(!sameKonsinyasi){
-          showWarning = true;
-        }
-      }
-      return showWarning;
+      if(konsinyasiKeys.length === 0) return false;
+
+      const kemarinKeys = Object.keys(kemarinData);
+      const sameKonsinyasi =
+        kemarinKeys.length === konsinyasiKeys.length &&
+        kemarinKeys.every(key =>
+          konsinyasiKeys.includes(key) &&
+          Number(groupData.konsinyasi[key]) === Number(kemarinData[key])
+        );
+
+      return !sameKonsinyasi;
     }
     function checkLainnyaInput(){
       let hasValue = false;
