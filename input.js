@@ -2811,10 +2811,11 @@ window.initInputView = async function(){
 
     function tampilkanPeta(lat, lng) {
       const mapContainer = document.getElementById("lokasiMapContainer");
+      if (!mapContainer) return;
       mapContainer.style.display = "block";
 
       // Offline fallback — tampilkan koordinat saja
-      if (!navigator.onLine && !lokasiMap) {
+      if (!navigator.onLine || typeof google === "undefined") {
         mapContainer.style.display = "flex";
         mapContainer.style.alignItems = "center";
         mapContainer.style.justifyContent = "center";
@@ -2901,7 +2902,10 @@ window.initInputView = async function(){
         document.getElementById("lokasiStatusText").textContent = `📍 ${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`;
         document.getElementById("lokasiSimpanBtn").disabled = false;
         document.getElementById("lokasiSimpanBtn").style.opacity = "1";
-        tampilkanPeta(selectedLat, selectedLng);
+        // Tampilkan peta hanya jika online, offline cukup koordinat
+        try {
+          tampilkanPeta(selectedLat, selectedLng);
+        } catch { }
       }
 
       function onGPSError(err) {
