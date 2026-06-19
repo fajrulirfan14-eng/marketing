@@ -240,7 +240,6 @@ window.initInputView = async function(){
     } catch(e) {  }
     if(navigator.onLine){
       window.syncOfflineDataHarian?.();
-      await window.syncCustomerHarian?.();
     }
     let isToday = false;
     const rawUpdate =

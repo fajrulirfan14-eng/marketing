@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="home.css">
 <link rel="stylesheet" href="profil.css">
 <link rel="stylesheet" href="input.css">
+<link rel="stylesheet" href="tabel.css">
 <link rel="stylesheet" href="customer.css">
 <link rel="stylesheet" href="analisis.css">
 <link rel="stylesheet" href="rolling.css">
@@ -516,6 +517,34 @@
     </div>
   </div>
   
+  <!-- ===== INPUT TABEL VIEW ===== -->
+  <div class="view" id="view-inputTabel">
+    <div class="input-tabel-page">
+
+      <!-- HEADER -->
+      <div class="input-tabel-header">
+        <button class="input-tabel-back-btn" onclick="window.showView('input','back')">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="input-tabel-title">Tabel Input</div>
+      </div>
+
+      <!-- TABEL CONTAINER -->
+      <div class="input-tabel-container" id="inputTabelContainer">
+        <div class="input-tabel-card">
+          <div class="input-tabel-scroller" id="inputTabelScroller">
+            <div class="input-tabel-inner" id="inputTabelInner">
+              <table class="input-tabel" id="inputTabelEl">
+                <!-- AUTO RENDER -->
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
   <!-- ===== CUSTOMER VIEW ===== -->
   <div class="view" id="view-customer">
     <div class="customer-page">
@@ -622,23 +651,6 @@
         <!-- AUTO RENDER FORM -->
         <div id="stokContainer">
         </div>      </div>
-    </div>
-  </div>
-  
-  <!-- ===== INPUT TABEL VIEW ===== -->
-  <div class="view" id="view-inputTabel">
-    <div class="input-page">
-      <!-- HEADER -->
-      <div class="input-header">
-        <button class="input-back-btn" onclick="window.showView('input','back')">
-          <i class="fa-solid fa-arrow-left"></i>
-        </button>
-        <div class="input-hari" id="inputTabelHari">Masih dalam pengembangan</div>
-      </div>
-      <!-- TABEL WRAPPER -->
-      <div class="input-tabel-wrapper" id="inputTabelWrapper">
-        <div id="inputTabelPreview"></div>
-      </div>
     </div>
   </div>
   
@@ -2366,7 +2378,8 @@
 
 <script type="module" src="index.js"></script>
 <script type="module" src="home.js"></script>
-<script src="input.js"></script>
+<script type="module" src="input.js"></script>
+<script type="module" src="tabel.js"></script>
 <script src="customer.js"></script>
 <script src="analisis.js"></script>
 <script src="rolling.js"></script>
