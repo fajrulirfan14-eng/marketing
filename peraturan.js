@@ -110,6 +110,12 @@
 
   // ─── INIT ─────────────────────────────────────
   window.initPeraturanView = async function () {
+    // Pakai cache kalau sudah ada
+    if (_data.length > 0) {
+      renderPeraturan(_data);
+      renderStats(_data);
+      return;
+    }
     renderLoadingState();
 
     // Ambil data kantor dari IndexedDB
@@ -169,7 +175,9 @@
     }
     renderPeraturan(_data);
     renderStats(_data);
-    renderSheetList(_data);
+    if (!document.getElementById("ppSheetList")?.children.length) {
+      renderSheetList(_data);
+    }
   };
 
   function renderLoadingState() {
@@ -361,24 +369,71 @@
 
   window.openDaftarBab = function () {
     document.getElementById("ppOverlay")?.classList.add("active");
-    document.getElementById("ppSheet")?.classList.add("open");
+    const sheet = document.getElementById("ppSheet");
+    if (!sheet) return;
+    sheet.classList.add("open");
+    sheet.style.transform = "";
+
+    // Pasang swipe sekali saja
+    if (sheet._swipeAttached) return;
+    sheet._swipeAttached = true;
+
+    let startY = 0, curY = 0, active = false, locked = false;
+
+    sheet.addEventListener("touchstart", e => {
+      startY = curY = e.touches[0].clientY;
+      active = true;
+      locked = false;
+      sheet.style.transition = "none";
+    }, { passive: true });
+
+    sheet.addEventListener("touchmove", e => {
+      if (!active || locked) return;
+      curY = e.touches[0].clientY;
+      const dy = curY - startY;
+      const dx = Math.abs(e.touches[0].clientX - (e.touches[0].clientX || 0));
+
+      // Lock jika scroll vertikal ke atas atau sheet sedang scroll
+      if (sheet.scrollTop > 0) { locked = true; sheet.style.transform = ""; return; }
+      if (dy < 0) { locked = true; sheet.style.transform = ""; return; }
+
+      e.preventDefault();
+      sheet.style.transform = `translateY(${dy}px)`;
+    }, { passive: false });
+
+    sheet.addEventListener("touchend", () => {
+      if (!active || locked) { active = false; return; }
+      active = false;
+      const dy = curY - startY;
+      sheet.style.transition = "";
+      if (dy > 100) {
+        closeDaftarBab();
+      } else {
+        sheet.style.transform = "";
+      }
+    }, { passive: true });
   };
 
   window.closeDaftarBab = function () {
     document.getElementById("ppOverlay")?.classList.remove("active");
-    document.getElementById("ppSheet")?.classList.remove("open");
+    const sheet = document.getElementById("ppSheet");
+    if (!sheet) return;
+    sheet.style.transform = "";
+    sheet.classList.remove("open");
   };
 
   window.scrollToBab = function (babId) {
     closeDaftarBab();
-    // Buka bab jika belum terbuka
     const card = document.getElementById("bab-" + babId);
-    if (card && !card.classList.contains("open")) {
-      card.classList.add("open");
-    }
-    setTimeout(() => {
-      card?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 300);
+    if (!card) return;
+    if (!card.classList.contains("open")) card.classList.add("open");
+
+    const sheet = document.getElementById("ppSheet");
+    const onTransitionEnd = () => {
+      sheet.removeEventListener("transitionend", onTransitionEnd);
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    sheet.addEventListener("transitionend", onTransitionEnd, { once: true });
   };
 
   // ─── HELPERS ──────────────────────────────────

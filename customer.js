@@ -49,7 +49,7 @@ window.initCustomerView = function() {
 
   if (btnMapHari) {
     btnMapHari.onclick = function() {
-      window.openMapRoutingHari(selectedHari);
+      window.openMapView();
     };
   }
   document.addEventListener("click", function(e) {
@@ -185,7 +185,7 @@ window.renderCustomer = function(hari, keyword = "", dataArray = []) {
             </svg>
           </button>
           <button class="customer-icon-btn"
-            onclick="window.openMapCustomerFromCache('${data.idCustomer}')">
+            onclick="window.openMapCustomerFromCache('${data.idCustomer || data.id}')">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
               <path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
             </svg>
@@ -255,7 +255,7 @@ window.loadCustomerFromIndexDB = async function(hari, keyword = "") {
         (x.namaCustomer || "").toLowerCase().includes(k)
       );
     }
-
+    window._customerViewData = dataArray;
     window.renderCustomer(hari, keyword, dataArray);
   } catch (err) {
     console.log(err);
@@ -263,7 +263,7 @@ window.loadCustomerFromIndexDB = async function(hari, keyword = "") {
   }
 };
 window.openMapCustomerFromCache = async function(idCustomer) {
-  window.openMapRouting(idCustomer, "customerHarianDB");
+  window.openMapFromInput(idCustomer);
 };
 window.openCatatanCustomer = function(data) {
   const popup = document.getElementById("popupCatatanCustomer");
@@ -454,8 +454,13 @@ window.inputCustomer = function() {
         <input type="text" id="alamatCustomer" placeholder="Blok dan desa">
       </div>
       <button type="button" class="btn-lokasi" id="btnLokasi">
+        <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;stroke:currentColor;stroke-width:2;stroke-linecap:round;fill:none;">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+        </svg>
         <span id="btnLokasiText">Ambil Lokasi Sekarang</span>
       </button>
+      <div id="customerLokasiMapContainer" style="width:100%;height:220px;border-radius:14px;overflow:hidden;display:none;border:1.5px solid var(--border-color,#e8ddd0);margin-top:8px;"></div>
+      <div id="customerLokasiStatus" style="font-size:13px;color:var(--text-secondary);text-align:center;display:none;margin-top:4px;"></div>
       <div class="foto-wrapper">
         <label class="foto-card" id="fotoCard">
           <input type="file" accept="image/*" capture="environment" id="fotoInput" hidden>
@@ -483,134 +488,152 @@ window.inputCustomer = function() {
   let lokasiSuccess   = false;
   let fullMapCustomer = null;
 
-  const mapPopup        = document.getElementById("mapPopupHome");
-  const btnSelectLoc    = document.getElementById("btnSelectLocationHome");
-  const btnTutupMap     = document.getElementById("btnTutupMapHome");
+  let lokasiMap    = null;
+  let lokasiMarker = null;
 
   function openMapCustomer(lat, lng) {
-    mapPopup.style.display = "flex";
-    document.body.style.overflow = "hidden";
+    const existingMap = document.getElementById("customerMapOverlay");
+    if (existingMap) existingMap.remove();
 
-    if (!fullMapCustomer) {
-      fullMapCustomer = new google.maps.Map(
-        document.getElementById("mapFullHome"), {
-          center: { lat, lng },
-          zoom: 18,
-          mapId: "3f6f47bf59913618a195fe2e",
-          tilt: 0,
-          zoomControl: true,
-          mapTypeControl: true,
-          streetViewControl: true,
-          fullscreenControl: false
-        }
-      );
+    const mapOverlay = document.createElement("div");
+    mapOverlay.id = "customerMapOverlay";
+    mapOverlay.style.cssText = `
+      position:fixed;inset:0;z-index:99999;
+      background:rgba(0,0,0,.45);backdrop-filter:blur(4px);
+      display:flex;align-items:flex-end;justify-content:center;
+      opacity:0;transition:opacity .25s ease;
+    `;
+    mapOverlay.innerHTML = `
+      <div id="customerMapBox" style="
+        width:100%;max-width:540px;
+        background:var(--bg-primary);border-radius:24px 24px 0 0;
+        display:flex;flex-direction:column;overflow:hidden;
+        transform:translateY(100%);transition:transform .3s cubic-bezier(.32,1,.4,1);
+        box-shadow:0 -8px 40px rgba(0,0,0,.15);
+      ">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-color);flex-shrink:0;">
+          <button id="customerMapTutup" style="width:34px;height:34px;border:none;border-radius:10px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+          <div style="font-size:15px;font-weight:700;color:var(--text-heading);">Pilih Lokasi</div>
+          <button id="customerMapPilih" style="padding:8px 18px;border:none;border-radius:20px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Pilih</button>
+        </div>
+        <div id="customerMapEl" style="height:55dvh;"></div>
+        <div style="padding:10px 20px 24px;font-size:12px;color:var(--text-secondary);text-align:center;">
+          Seret pin untuk memilih lokasi yang tepat
+        </div>
+      </div>
+    `;
+    document.body.appendChild(mapOverlay);
 
-      if (!window.customerMarkerHome) {
-        window.customerMarkerHome = new google.maps.Marker({
-          position: { lat, lng },
-          map: fullMapCustomer,
-          draggable: true,
-          animation: google.maps.Animation.DROP,
-          icon: {
-            url: "pin.png",
-            scaledSize: new google.maps.Size(40, 40),
-            anchor: new google.maps.Point(20, 40)
-          }
-        });
-      } else {
-        window.customerMarkerHome.setPosition({ lat, lng });
-        window.customerMarkerHome.setMap(fullMapCustomer);
-      }
+    requestAnimationFrame(() => {
+      mapOverlay.style.opacity = "1";
+      document.getElementById("customerMapBox").style.transform = "translateY(0)";
+    });
 
-      // Long press handler
-      const mapDiv = document.getElementById("mapFullHome");
-      let lpTimer = null, lpMoved = false;
-      mapDiv.addEventListener("touchstart", e => {
-        if (e.touches.length !== 1) return;
-        lpMoved = false;
-        const touch = e.touches[0];
-        lpTimer = setTimeout(() => {
-          if (lpMoved) return;
-          const mapRect = mapDiv.getBoundingClientRect();
-          const overlay = new google.maps.OverlayView();
-          overlay.draw = function(){};
-          overlay.setMap(fullMapCustomer);
-          google.maps.event.addListenerOnce(overlay, "add", () => {
-            const proj   = overlay.getProjection();
-            const point  = new google.maps.Point(touch.clientX - mapRect.left, touch.clientY - mapRect.top);
-            const latLng = proj.fromContainerPixelToLatLng(point);
-            if (latLng) {
-              window.customerMarkerHome.setPosition(latLng);
-              fullMapCustomer.panTo(latLng);
-            }
-            overlay.setMap(null);
-          });
-        }, 600);
-      }, { passive: true });
-      mapDiv.addEventListener("touchmove",  () => { lpMoved = true; clearTimeout(lpTimer); }, { passive: true });
-      mapDiv.addEventListener("touchend",   () => clearTimeout(lpTimer), { passive: true });
+    const mapEl = document.getElementById("customerMapEl");
+    lokasiMap = new google.maps.Map(mapEl, {
+      center: { lat, lng }, zoom: 18,
+      mapId: "3f6f47bf59913618a195fe2e",
+      zoomControl: true, mapTypeControl: false,
+      streetViewControl: false, fullscreenControl: false,
+      gestureHandling: "greedy",
+    });
+    lokasiMarker = new google.maps.Marker({
+      position: { lat, lng }, map: lokasiMap,
+      draggable: true,
+      animation: google.maps.Animation.DROP,
+    });
 
-      // Tombol kembali ke GPS
-      const btnMyLoc = document.createElement("button");
-      btnMyLoc.innerHTML = `<img src="https://maps.gstatic.com/tactile/mylocation/mylocation-sprite-2x.png" style="width:18px;height:18px;">`;
-      btnMyLoc.style.cssText = `width:40px;height:40px;background:#fff;border:0;border-radius:4px;box-shadow:0 2px 6px #0003;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:10px;`;
-      btnMyLoc.onclick = () => {
-        fullMapCustomer.panTo({ lat, lng });
-        fullMapCustomer.setZoom(18);
-        window.customerMarkerHome.setPosition({ lat, lng });
-      };
-      fullMapCustomer.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(btnMyLoc);
+    function closeMap() {
+      mapOverlay.style.opacity = "0";
+      document.getElementById("customerMapBox").style.transform = "translateY(100%)";
+      setTimeout(() => { mapOverlay.remove(); lokasiMap = null; lokasiMarker = null; }, 300);
+    }
 
+    document.getElementById("customerMapTutup").onclick = closeMap;
+    mapOverlay.addEventListener("click", e => { if (e.target === mapOverlay) closeMap(); });
+
+    document.getElementById("customerMapPilih").onclick = () => {
+      const pos = lokasiMarker.getPosition();
+      customerLat   = pos.lat();
+      customerLng   = pos.lng();
+      lokasiSuccess = true;
+      closeMap();
+      btnLokasi.classList.add("success");
+      btnLokasiText.innerText = "✓ Lokasi Dipilih";
+    };
+
+    // Swipe close
+    const box = document.getElementById("customerMapBox");
+    let sy = 0, cy2 = 0, sa = false;
+    box.addEventListener("touchstart", e => { sy = cy2 = e.touches[0].clientY; sa = true; box.style.transition = "none"; }, { passive: true });
+    box.addEventListener("touchmove", e => { if (!sa) return; cy2 = e.touches[0].clientY; const d = cy2 - sy; if (d > 0) box.style.transform = `translateY(${d}px)`; }, { passive: true });
+    box.addEventListener("touchend", () => { if (!sa) return; sa = false; const d = cy2 - sy; box.style.transition = "transform .28s ease"; if (d > 100) closeMap(); else box.style.transform = ""; });
+  }
+
+  let lokasiMapInline = null;
+  let lokasiMarkerInline = null;
+
+  function tampilkanPetaInline(lat, lng) {
+    const mapContainer = document.getElementById("customerLokasiMapContainer");
+    const statusEl     = document.getElementById("customerLokasiStatus");
+    if (!mapContainer) return;
+
+    mapContainer.style.display = "block";
+    if (statusEl) {
+      statusEl.style.display  = "block";
+      statusEl.textContent    = `📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    }
+
+    if (!lokasiMapInline) {
+      lokasiMapInline = new google.maps.Map(mapContainer, {
+        center: { lat, lng }, zoom: 17,
+        mapId: "3f6f47bf59913618a195fe2e",
+        zoomControl: true, mapTypeControl: false,
+        streetViewControl: false, fullscreenControl: false,
+        gestureHandling: "greedy",
+      });
+      lokasiMarkerInline = new google.maps.Marker({
+        position: { lat, lng }, map: lokasiMapInline,
+        draggable: true,
+        animation: google.maps.Animation.DROP,
+      });
+      lokasiMarkerInline.addListener("dragend", e => {
+        customerLat = e.latLng.lat();
+        customerLng = e.latLng.lng();
+        if (statusEl) statusEl.textContent = `📍 ${customerLat.toFixed(6)}, ${customerLng.toFixed(6)}`;
+      });
     } else {
-      fullMapCustomer.setCenter({ lat, lng });
-      window.customerMarkerHome.setPosition({ lat, lng });
-      window.customerMarkerHome.setMap(fullMapCustomer);
+      lokasiMapInline.setCenter({ lat, lng });
+      lokasiMarkerInline.setPosition({ lat, lng });
     }
   }
 
   btnLokasi.onclick = function() {
     btnLokasi.disabled = true;
-    btnLokasiText.innerText = "Mengambil...";
+    document.getElementById("btnLokasiText").innerText = "Mengambil...";
     navigator.geolocation.getCurrentPosition(
       pos => {
+        customerLat   = pos.coords.latitude;
+        customerLng   = pos.coords.longitude;
+        lokasiSuccess = true;
         btnLokasi.disabled = false;
-        btnLokasiText.innerText = "Ambil Lokasi Sekarang";
-        openMapCustomer(pos.coords.latitude, pos.coords.longitude);
+        btnLokasi.classList.add("success");
+        document.getElementById("btnLokasiText").innerText = "✓ Lokasi Didapat";
+        tampilkanPetaInline(customerLat, customerLng);
       },
       () => {
         btnLokasi.disabled = false;
         btnLokasi.classList.add("error");
-        btnLokasiText.innerText = "Gagal, Coba Lagi";
+        document.getElementById("btnLokasiText").innerText = "Gagal, Coba Lagi";
         setTimeout(() => {
           btnLokasi.classList.remove("error");
-          btnLokasiText.innerText = "Ambil Lokasi Sekarang";
+          document.getElementById("btnLokasiText").innerText = "Ambil Lokasi Sekarang";
         }, 2000);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  };
-
-  btnSelectLoc.onclick = function(e) {
-    e.stopPropagation();
-    const pos  = window.customerMarkerHome.getPosition();
-    customerLat   = pos.lat();
-    customerLng   = pos.lng();
-    lokasiSuccess = true;
-    mapPopup.style.display   = "none";
-    document.body.style.overflow = "";
-    btnLokasi.classList.add("success");
-    btnLokasiText.innerText = "✓ Lokasi Dipilih";
-    fullMapCustomer = null; // reset agar map dibuat ulang saat dibuka lagi
-    window.customerMarkerHome = null;
-  };
-
-  btnTutupMap.onclick = function() {
-    mapPopup.style.display       = "none";
-    document.body.style.overflow = "";
-    btnLokasi.disabled           = false;
-    btnLokasiText.innerText      = "Ambil Lokasi Sekarang";
-    fullMapCustomer = null;
-    window.customerMarkerHome = null;
   };
   const fotoInput = document.getElementById("fotoInput");
   const fotoCard = document.getElementById("fotoCard");

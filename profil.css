@@ -35,9 +35,8 @@
 .profil-hero-gradient {
   position: absolute;
   inset: 0;
-  background: var(--color-brand-pale);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
 }
-
 .profil-hero-pattern {
   position: absolute;
   inset: 0;
@@ -69,7 +68,7 @@
   align-items: center;
   gap: 6px;
   padding: 7px 13px;
-  background: rgba(0, 0, 0, 0.38);
+  background: var(--nav-color-shadow);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -354,8 +353,6 @@
   position: relative;
   box-shadow:
     rgba(121, 85, 72, 0.40) 0px -5px,
-    rgba(121, 85, 72, 0.30) 0px -10px,
-    rgba(121, 85, 72, 0.20) 0px -15px,
     rgba(121, 85, 72, 0.10) 0px -20px,
     rgba(121, 85, 72, 0.05) 0px -25px;
   z-index: 2;

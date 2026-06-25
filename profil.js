@@ -1,6 +1,5 @@
 
 window.initProfilView = async function() {
-  console.log("👤 Profil View");
   const user = window.currentUser;
   if (!user) return;
   const LS_KEY        = 'ttn_cover_photo';
@@ -25,12 +24,14 @@ window.initProfilView = async function() {
     });
   }
 
-  document.addEventListener('click', (e) => {
-    if (!document.getElementById('coverEditWrap')?.contains(e.target)) {
-      coverDropdown?.classList.remove('open');
-    }
-  });
-
+  if (!window._profilDropdownListener) {
+    window._profilDropdownListener = true;
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('coverEditWrap')?.contains(e.target)) {
+        document.getElementById('coverDropdown')?.classList.remove('open');
+      }
+    });
+  }
   if (btnGanti && !btnGanti.dataset.listener) {
     btnGanti.dataset.listener = 'true';
     btnGanti.addEventListener('click', () => {
@@ -81,13 +82,44 @@ window.initProfilView = async function() {
   setText("profilAvatar",      initial);
   setText("profilName",        user.nama || "-");
   setText("profilEmail",       user.email || "-");
-  setText("profilBadge",       user.role || "-");
   setText("profilNamaDetail",  user.nama || "-");
   setText("profilEmailDetail", user.email || "-");
   setText("profilTelpon",      user.noTelpon || "-");
   setText("profilJabatan",     user.role || "-");
   setText("profilCabang",      user.kantorCabang || "-");
-
+  // Status dot online/offline
+  const statusDot = document.querySelector(".profil-avatar-status");
+  if (statusDot) {
+    const isOnline = navigator.onLine;
+    statusDot.style.background = isOnline ? "var(--color-status-online)" : "#9e9e9e";
+    statusDot.title = isOnline ? "Online" : "Offline";
+  }
+  if (!window._profilOnlineListener) {
+    window._profilOnlineListener = true;
+    window.addEventListener("online",  () => {
+      const dot = document.querySelector(".profil-avatar-status");
+      if (dot) dot.style.background = "var(--color-status-online)";
+    });
+    window.addEventListener("offline", () => {
+      const dot = document.querySelector(".profil-avatar-status");
+      if (dot) dot.style.background = "#9e9e9e";
+    });
+  }
+  // Hide menu sesuai role
+  const role = (user.role || "").toLowerCase();
+  const hideMenuLabel = ["Slip Gaji", "Rolling Customer"];
+  const hideMenuRole  = ["hunter", "sales"];
+  document.querySelectorAll(".profil-menu-item").forEach(item => {
+    const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
+    if (hideMenuLabel.includes(label)) {
+      const shouldHide = hideMenuRole.includes(role);
+      item.style.display = shouldHide ? "none" : "";
+      const sep = item.nextElementSibling;
+      if (sep?.classList.contains("profil-card-sep")) {
+        sep.style.display = shouldHide ? "none" : "";
+      }
+    }
+  });
   // STORAGE USAGE
   await loadStorageInfo();
   const logoutModal = document.getElementById("logoutModal");
@@ -173,8 +205,6 @@ async function loadStorageInfo() {
   const pemakaianEl = document.getElementById("storagePemakaian");
   const kuotaEl     = document.getElementById("storageKuota");
   const barFillEl   = document.getElementById("storageBarFill");
-  const detailEl    = document.getElementById("storageDetail");
-
   try {
     const storeNames = [
       "customerHarianDB",
@@ -182,7 +212,12 @@ async function loadStorageInfo() {
       "kantorDB",
       "customerBaruDB",
       "dataHarianDB",
-      "laporanMarketingDB"
+      "laporanMarketingDB",
+      "customerLainDB",
+      "customerHunterDB",
+      "customerSalesDB",
+      "customerSalesLainDB",
+      "slipGajiDB",
     ];
 
     const db = await window.openAppDB();
@@ -206,7 +241,7 @@ async function loadStorageInfo() {
     }
 
     let usedMB  = "-";
-    let quotaMB = "-";
+    let sisaMB  = "-";
     let persen  = 0;
 
     if (navigator.storage?.estimate) {
@@ -214,15 +249,16 @@ async function loadStorageInfo() {
       const used  = estimate.usage  || 0;
       const quota = estimate.quota  || 0;
       usedMB  = (used  / 1024 / 1024).toFixed(2) + " MB";
-      quotaMB = (quota / 1024 / 1024).toFixed(0)  + " MB";
+      const sisaBytes = quota - used;
+      sisaMB = sisaBytes > 1024 * 1024 * 1024
+        ? (sisaBytes / 1024 / 1024 / 1024).toFixed(1) + " GB"
+        : (sisaBytes / 1024 / 1024).toFixed(2) + " MB";
       persen  = quota > 0 ? Math.min((used / quota) * 100, 100) : 0;
     }
 
-    if (pemakaianEl) pemakaianEl.innerText    = usedMB;
-    if (kuotaEl)     kuotaEl.innerText        = quotaMB;
-    if (barFillEl)   barFillEl.style.width    = `${persen.toFixed(1)}%`;
-    if (detailEl)    detailEl.innerText       = `${totalRecords} record total · ${storeDetails.join(", ") || "-"}`;
-
+    if (pemakaianEl) pemakaianEl.innerText = usedMB;
+    if (kuotaEl)     kuotaEl.innerText     = sisaMB;
+    if (barFillEl)   barFillEl.style.width = `${persen.toFixed(1)}%`;
   } catch(e) {
     console.log("loadStorageInfo error:", e);
     if (pemakaianEl) pemakaianEl.innerText = "Tidak tersedia";
@@ -415,11 +451,17 @@ async function showCleanerOverlay() {
   const now       = new Date();
   const cutoff    = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}`;
-
+  
   const storesWithDate = [
-    { name: "dataHarianDB",       field: "tanggal"  },
-    { name: "laporanMarketingDB", field: "tanggal"  },
-    { name: "slipGajiDB",         field: "bulanKey" },
+    { name: "customerHarianDB",    field: "updatedAt", isTimestamp: true },
+    { name: "dataHarianDB",        field: "tanggal"  },
+    { name: "laporanMarketingDB",  field: "tanggal"  },
+    { name: "slipGajiDB",          field: "bulanKey" },
+    { name: "customerBaruDB",      field: "tanggal"  },
+    { name: "customerSalesDB",     field: "tanggal"  },
+    { name: "customerLainDB",      field: "tanggal"  },
+    { name: "customerHunterDB",    field: "tanggal"  },
+    { name: "customerSalesLainDB", field: "tanggal"  },
   ];
 
   let toDelete = [];
@@ -440,7 +482,13 @@ async function showCleanerOverlay() {
       for (const item of all) {
         const val = item[field];
         if (!val) continue;
-        const monthKey = String(val).substring(0, 7);
+        let monthKey;
+        if (typeof val === "number") {
+          const d = new Date(val);
+          monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+        } else {
+          monthKey = String(val).substring(0, 7);
+        }
         if (monthKey < cutoffKey) {
           toDelete.push({ storeName: name, id: item.id });
         }
@@ -451,7 +499,6 @@ async function showCleanerOverlay() {
   }
 
   // ─── 6. ANIMASI 4 FASE ───
-
   // FASE 1: Scan
   setStep(0);
   setLabel("Memindai penyimpanan...", "Mencari data kedaluwarsa");
@@ -476,17 +523,17 @@ async function showCleanerOverlay() {
   let deleted = 0;
 
   if (total > 0) {
+    const dbDel = await window.openAppDB();
     for (const { storeName, id } of toDelete) {
       try {
-        const db = await window.openAppDB();
-        const tx    = db.transaction(storeName, "readwrite");
+        const tx    = dbDel.transaction(storeName, "readwrite");
         const store = tx.objectStore(storeName);
         await new Promise((resolve) => {
           const req = store.delete(id);
           req.onsuccess = () => resolve();
           req.onerror   = () => resolve();
         });
-      } catch { /* skip error */ }
+      } catch { }
 
       deleted++;
       const pct = 55 + (deleted / total) * 38;
@@ -518,81 +565,29 @@ async function showCleanerOverlay() {
   doneBtn.style.display = "block";
   doneBtn.onclick = () => {
     overlay.classList.remove("visible");
-    setTimeout(() => {
-      if (typeof loadStorageInfo === "function") loadStorageInfo();
-    }, 400);
+    setTimeout(() => loadStorageInfo(), 400);
   };
 }
 
-// Tombol pengaturan
-document.querySelectorAll(".profil-menu-item").forEach(item => {
-  const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
-  if (label === "Tentang Aplikasi") {
-    item.addEventListener("click", () => {
-      window.showView("tentang");
-    });
-  }
-});
-document.querySelectorAll(".profil-menu-item").forEach(item => {
+if (!window._profilMenuListener) {
+  window._profilMenuListener = true;
+  const MENU_MAP = {
+    "Tentang Aplikasi"    : () => window.showView("tentang"),
+    "Keamanan Akun"       : () => window.showView("keamanan"),
+    "Perjanjian Kerja"    : () => window.showView("perjanjian"),
+    "Peraturan Perusahaan": () => window.showView("peraturan"),
+    "SOP"                 : () => window.showView("sop"),
+    "Rolling Customer"    : () => window.showView("rollingcustomer"),
+    "Aksesbilitas"        : () => window.openAksesibilitas(),
+    "Slip Gaji"           : () => { window.showView("slip"); setTimeout(() => window.initSlipView?.(), 50); },
+  };
+  document.querySelectorAll(".profil-menu-item").forEach(item => {
     const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
-    if (label === "Keamanan Akun") {
-      item.addEventListener("click", () => {
-        window.showView("keamanan");
-      });
+    if (MENU_MAP[label]) {
+      item.addEventListener("click", MENU_MAP[label]);
     }
   });
-document.querySelectorAll(".profil-menu-item").forEach(item => {
-    const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
-    if (label === "Perjanjian Kerja") {
-      item.addEventListener("click", () => {
-        window.showView("perjanjian");
-      });
-    }
-  });
-document.querySelectorAll(".profil-menu-item").forEach(item => {
-    const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
-    if (label === "Peraturan Perusahaan") {
-      item.addEventListener("click", () => {
-        window.showView("peraturan");
-      });
-    }
-  });
-document.querySelectorAll(".profil-menu-item").forEach(item => {
-    const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
-    if (label === "SOP") {
-      item.addEventListener("click", () => {
-        window.showView("sop");
-      });
-    }
-  });
-document.querySelectorAll(".profil-menu-item").forEach(item => {
-    const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
-      if (label === "Slip Gaji") {
-        item.addEventListener("click", () => {
-          window.showView("slip");
-          setTimeout(() => {
-            window.initSlipView?.();
-          }, 50);
-        });
-      }
-  });
-document.querySelectorAll(".profil-menu-item").forEach(item => {
-    const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
-    if (label === "Rolling Customer") {
-      item.addEventListener("click", () => {
-        window.showView("rollingcustomer");
-      });
-    }
-  });
-document.querySelectorAll(".profil-menu-item").forEach(item => {
-  const label = item.querySelector(".profil-menu-left span")?.innerText?.trim();
-  if (label === "Aksesbilitas") {
-    item.addEventListener("click", () => {
-      window.openAksesibilitas();
-    });
-  }
-});
-
+}
 
 /* ─── AKSESIBILITAS PANEL ─── */
 window.openAksesibilitas = function() {
@@ -842,13 +837,58 @@ window.openAksesibilitas = function() {
 
   // ── Events ──
   function closePanel() {
+    drawer.style.transition = "";
+    drawer.style.transform  = "";
     panel.classList.remove("open");
-    setTimeout(() => panel.style.display = "none", 380);
+    setTimeout(() => {
+      panel.style.display = "none";
+      drawer.style.transform = "";
+    }, 380);
   }
-
   document.getElementById("aksClose").addEventListener("click", closePanel);
   document.getElementById("aksBackdrop").addEventListener("click", closePanel);
-  
+  // Swipe kanan untuk tutup
+  const drawer = document.getElementById("aksDrawer");
+  let swipeStartX = 0, swipeStartY = 0, swipeActive = false, swipeLocked = false;
+
+  drawer.addEventListener("touchstart", e => {
+    swipeStartX = e.touches[0].clientX;
+    swipeStartY = e.touches[0].clientY;
+    swipeActive = true;
+    swipeLocked = false;
+  }, { passive: true });
+
+  drawer.addEventListener("touchmove", e => {
+    if (!swipeActive || swipeLocked) return;
+    const dx = e.touches[0].clientX - swipeStartX;
+    const dy = Math.abs(e.touches[0].clientY - swipeStartY);
+
+    // Kalau lebih banyak scroll vertikal — lock, jangan swipe
+    if (dy > Math.abs(dx) && dy > 8) {
+      swipeLocked = true;
+      drawer.style.transition = "";
+      drawer.style.transform = "";
+      return;
+    }
+
+    if (dx > 0) {
+      e.preventDefault();
+      drawer.style.transition = "none";
+      drawer.style.transform = `translateX(${dx}px)`;
+    }
+  }, { passive: false });
+
+  drawer.addEventListener("touchend", e => {
+    if (!swipeActive || swipeLocked) return;
+    swipeActive = false;
+    const dx = e.changedTouches[0].clientX - swipeStartX;
+    drawer.style.transition = "";
+    if (dx > 80) {
+      closePanel();
+    } else {
+      drawer.style.transform = "";
+    }
+  }, { passive: true });
   // Stepper change
   function updateStepper(id, newVal) {
     const setting = SETTINGS.find(s => s.id === id);
@@ -982,11 +1022,11 @@ window.openAksesibilitas = function() {
 };
 // ── Font Size Config — ubah di sini ──
 const FONT_CONFIG = {
-  min:       -3,    // batas bawah (px)
-  max:        3,    // batas atas (px)
-  step:       0.3,  // per klik tombol −/+
-  snapStep:   0.3,  // snap saat drag (sama dengan step biasanya)
-  decimals:   1,    // angka di belakang koma untuk display & calc
+  min:       -2,
+  max:        2,
+  step:       0.2,
+  snapStep:   0.2,
+  decimals:   1,
 };
 // ── Animasi config ──
 function applyAnimasi(val) {
@@ -996,7 +1036,6 @@ function applyAnimasi(val) {
     document.documentElement.classList.remove("no-anim");
   }
 }
-
 (function initAnimasi() {
   const saved = localStorage.getItem("pref_anim");
   if (saved === "0") applyAnimasi(false);
@@ -1018,14 +1057,70 @@ function applyFontSizeDelta(delta) {
     body, body * {
       font-size: calc(1em ${op} ${absDelta}px) !important;
     }
+
+    /* List item padding */
+    .extra-item,
+    .home-customer-box,
+    .rolling-customer-item,
+    .laporan-harian-item,
+    .customer-sales-item,
+    .profil-card-item,
+    .profil-menu-item,
+    .aks-item,
+    .kantor-list-item,
+    .notif-item {
+      padding: calc(0.75em ${op} ${absDelta}px) !important;
+    }
+
+    /* Input & button tinggi */
+    .hunter-popup-group input,
+    .rolling-data-input,
+    .data-awal-input,
+    .customer-sales-search-input,
+    .map-search-input {
+      height: calc(42px ${op} ${absDelta}px) !important;
+    }
+    .hunter-btn-simpan,
+    .hunter-btn-lokasi,
+    .rolling-btn-update {
+      height: calc(52px ${op} ${absDelta}px) !important;
+    }
+
+    /* Avatar */
+    .avatar {
+      width: calc(100px ${op} ${absDelta}px) !important;
+      height: calc(100px ${op} ${absDelta}px) !important;
+    }
+    .profil-avatar {
+      width: calc(100px ${op} ${absDelta}px) !important;
+      height: calc(100px ${op} ${absDelta}px) !important;
+    }
+
+    /* Icon box */
+    .profil-card-icon,
+    .aks-item-icon,
+    .home-customer-plus,
+    .home-sales-plus,
+    .home-kantor-btn,
+    .home-map-btn,
+    .home-notif-btn,
+    .home-reload-btn {
+      width: calc(36px ${op} ${absDelta}px) !important;
+      height: calc(36px ${op} ${absDelta}px) !important;
+    }
+
+    /* Rolling avatar */
+    .rolling-avatar,
+    .customer-sales-avatar {
+      width: calc(42px ${op} ${absDelta}px) !important;
+      height: calc(42px ${op} ${absDelta}px) !important;
+    }
   `;
 }
-
 (function initFontSize() {
-  const saved = parseInt(localStorage.getItem("pref_font_val") || "0");
+  const saved = parseFloat(localStorage.getItem("pref_font_val") || "0");
   if (saved !== 0) applyFontSizeDelta(saved);
 })();
-
 function _showAksesPanel() {
   const panel = document.getElementById("aksesPanel");
   panel.style.display = "block";
@@ -1033,4 +1128,3 @@ function _showAksesPanel() {
     requestAnimationFrame(() => panel.classList.add("open"));
   });
 }
-

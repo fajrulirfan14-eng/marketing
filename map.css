@@ -1,444 +1,429 @@
-.map-popup-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 999999;
-  background: #0007;
-  align-items: center;
-  justify-content: center;
+/* ── PIN USER ── */
+.map-pin-user {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  will-change: transform;
+  transform: translateZ(0);
+  transition: src .2s;
 }
-.map-popup-container {
-  width: 95%;
-  max-width: 480px;
-  height: 88vh;
-  max-height: 860px;
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 8px 32px #0005;
-  touch-action: none;
-}
-.map-popup-container #mapFullHome {
-  height: 100%;
-  width: 100%;
-}
-.map-popup-container #mapFullRolling {
-  height: 100%;
-  width: 100%;
-}
-.map-popup-container #mapFullRouting {
-  height: 100%;
-  width: 100%;
-}
-.btn-pilih-lokasi {
-  position: absolute;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 14px 32px;
-  background: #4caf50;
-  color: #fff;
-  border: 0;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  box-shadow: 0 4px 16px #0004;
-  z-index: 10;
-  cursor: pointer;
-}
-.btn-tutup-map {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 36px;
-  height: 36px;
-  background: #fff;
-  border: 0;
+/* ── WARNA PIN PER HARI ── */
+.hari-minggu  { background: #e53935; }
+.hari-senin   { background: #1a73e8; }
+.hari-selasa  { background: #43a047; }
+.hari-rabu    { background: #fb8c00; }
+.hari-kamis   { background: #8e24aa; }
+.hari-jumat   { background: #00897b; }
+.hari-sabtu   { background: #e91e63; }
+/* ── PIN MARKER ── */
+.map-pin-harian {
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  font-size: 18px;
-  box-shadow: 0 2px 8px #0003;
-  cursor: pointer;
-  z-index: 10;
-}
-.map-pin-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -100%);
-  font-size: 32px;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.map-btn-tampil-pin {
-  background: #fff;
-  border: 0;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px #0003;
-  cursor: pointer;
-  color: #333;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 4px;
-}
-
-.map-dropdown-pin {
-  display: none;
-  position: absolute;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px #0003;
-  overflow: hidden;
-  min-width: 180px;
-  z-index: 999;
-}
-
-.map-dropdown-pin-item {
-  padding: 12px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.map-dropdown-pin-item:hover {
-  background: #f5f5f5;
-}
-
-.map-dropdown-pin-hapus {
-  padding: 12px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #e53935;
-}
-
-.map-dropdown-pin-hapus:hover {
-  background: #fff5f5;
-}
-
-.map-pin-customer {
-  width: 28px;
-  height: 28px;
   border: 2px solid #fff;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  box-shadow: 0 2px 6px #0005;
   cursor: pointer;
+  transition: transform .2s ease;
 }
-
-.map-btn-tilt {
-  width: 44px;
-  height: 44px;
-  background: #fff;
-  border: 0;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px #0003;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  color: #333;
-  margin: 4px;
-}
-
-.map-pin-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.map-pin-label {
-  background: rgba(0,0,0,0.65);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-bottom: 3px;
-  white-space: nowrap;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.map-rincian-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999999;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: transparent;
-  pointer-events: none;
-}
-
-.map-rincian-card {
-  background: #fff;
-  border-radius: 16px 16px 0 0;
-  padding: 20px;
-  width: 100%;
-  max-width: 480px;
-  box-shadow: 0 -4px 24px #0003;
-  pointer-events: all;
-  position: relative;
-}
-
-.map-rincian-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: #f0f0f0;
-  border: 0;
+.map-pin-lain {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: transform .2s ease;
+}
+/* ── PIN HUNTER ── */
+.map-pin-new {
   width: 32px;
   height: 32px;
   cursor: pointer;
-  font-size: 14px;
+  transition: transform .2s ease;
 }
-
-.map-rincian-foto {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.map-rincian-nama {
-  font-size: 16px;
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 4px;
-}
-
-.map-rincian-alamat {
-  font-size: 13px;
-  color: #888;
-  margin-bottom: 8px;
-}
-
-.map-rincian-kemarin {
-  font-size: 13px;
-  color: #555;
-  margin-bottom: 16px;
-}
-
-.map-rincian-btn-routing {
-  width: 100%;
-  padding: 14px;
-  background: #1a73e8;
-  color: #fff;
-  border: 0;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
+.map-pin-new-lain {
+  width: 28px;
+  height: 28px;
   cursor: pointer;
+  transition: transform .2s ease;
 }
-/* ===== KOMPAS ===== */
-.map-btn-kompas {
-  width: 48px;
-  height: 48px;
-  background: #fff;
-  border: 0;
+/* ── PIN SALES ── */
+.map-pin-sales {
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  box-shadow: 0 2px 8px #0004;
+  border: 2px solid #FFD700;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 6px;
-  padding: 0;
-  transition: box-shadow 0.2s;
+  transition: transform .2s ease;
 }
-
-.map-btn-kompas.kompas-aktif {
-  box-shadow: 0 0 0 3px #1a73e8, 0 2px 8px #0004;
-}
-
-.kompas-ring {
-  width: 36px;
-  height: 36px;
+.map-pin-sales-lain {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 2px solid #ddd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  background: #f8f8f8;
+  border: 2px solid #FFD700;
+  cursor: pointer;
+  transition: transform .2s ease;
+  opacity: 0.6;
 }
 
-.kompas-jarum {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s ease-out;
-  position: relative;
-  will-change: transform;
+/* ── POPUP ── */
+#mapPopup{position:fixed;inset:0;z-index:99999}
+#mapPopupInner{width:100%;height:100%;position:relative;overflow:hidden}
+#mapPopupFull{width:100%;height:100%}
+
+/* ── TOMBOL BACK & SETTING ── */
+#mapPopupClose,
+.map-btn-setting{
+  position:absolute;top:16px;
+  width:40px;height:40px;border:none;border-radius:50%;
+  background:var(--bg-primary);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+#mapPopupClose{left:16px;z-index:10}
+#mapPopupClose svg{width:18px;height:18px;stroke:#333}
+.map-btn-setting{right:16px;z-index:40}
+
+/* ── TOMBOL LOKASI & PIN ── */
+.map-btn-lokasiku,
+.map-btn-pin{
+  position:absolute;right:12px;z-index:10;
+  width:48px;height:48px;border:none;border-radius:12px;
+  background:var(--bg-primary);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:
+}
+.map-btn-lokasiku{bottom:200px}
+.map-btn-pin{bottom:180px;color:#555}
+.map-btn-lokasiku:active,.map-btn-pin:active{transform:scale(0.93)}
+
+/* ── PIN BOTTOM SHEET ── */
+.map-pin-sheet{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--bg-primary);border-radius:20px 20px 0 0;
+  padding:12px 20px 32px;
+  z-index:20;transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.32,1,.4,1);
+}
+.map-pin-sheet.active{transform:translateY(0)}
+.map-pin-sheet-drag{width:36px;height:4px;background:var(--border-color);border-radius:999px;margin:0 auto 16px}
+.map-pin-sheet-close{
+  position:absolute;top:12px;right:14px;
+  width:30px;height:30px;border:none;border-radius:50%;
+  background:var(--bg-hover);color:var(--text-secondary);
+  font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.map-pin-sheet-body{display:flex;flex-direction:row;align-items:center;gap:14px}
+.map-pin-sheet-foto{width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid}
+.map-pin-sheet-info{flex:1;display:flex;flex-direction:column;gap:4px}
+.map-pin-sheet-nama{font-size:17px;font-weight:700;color:var(--text-heading);text-align:left}
+.map-pin-sheet-row{font-size:12px;color:var(--text-secondary);font-weight:500}
+.map-pin-sheet-row span{font-weight:600;color:var(--text-primary)}
+.map-pin-sheet-btn{
+  width:100%;padding:13px;margin-top:16px;border:none;border-radius:14px;
+  background:var(--accent);color:#fff;
+  font-family:"Poppins",sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;transition:background .2s,transform .15s;
+}
+.map-pin-sheet-btn:active{background:var(--accent-dark);transform:scale(0.97)}
+
+/* ── SETTING SHEET ── */
+.map-setting-overlay{
+  position:absolute;inset:0;z-index:30;
+  background:rgba(0,0,0,.3);opacity:0;
+  transition:opacity .25s ease;
+}
+.map-setting-overlay.active{opacity:1}
+.map-setting-sheet{
+  position:absolute;top:0;right:0;bottom:0;width:280px;
+  background:var(--bg-primary);
+  padding:24px 20px; border-radius: 20px 0 0 20px;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.32,1,.4,1);
+  display:flex;flex-direction:column;
+}
+.map-setting-sheet.active{transform:translateX(0)}
+.map-setting-header{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border-color)}
+.map-setting-title{font-size:16px;font-weight:700;color:var(--text-heading)}
+.map-setting-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0;border-bottom:1px solid var(--border-color);
+  font-size:14px;font-weight:500;color:var(--text-primary);
+}
+.map-setting-item:last-child{border-bottom:none}
+.map-setting-expandable{cursor:pointer}
+.map-setting-arrow{transition:transform .2s ease}
+
+/* ── EXPAND BODY ── */
+.map-setting-expand-body{
+  display:flex;flex-direction:column;overflow:hidden;
+  max-height:0;opacity:0;
+  transition:max-height .3s cubic-bezier(.4,0,.2,1),opacity .25s ease;
+}
+.map-setting-expand-body.open{max-height:300px;opacity:1;margin:4px 0 8px}
+
+/* ── TIPE PETA ── */
+.map-type-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;border-radius:10px;
+  font-size:14px;font-weight:500;color:var(--text-primary);
+  cursor:pointer;transition:background .15s;
+}
+.map-type-item:active{background:var(--bg-hover)}
+.map-type-item.active{background:var(--bg-hover);color:var(--accent-dark);font-weight:600}
+.map-type-check{color:var(--accent);font-weight:700;font-size:14px;opacity:0;transition:opacity .15s}
+.map-type-item.active .map-type-check{opacity:1}
+.map-type-sub-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;font-size:13px;color:var(--text-secondary);border-radius:10px;
 }
 
-.kompas-n {
-  font-size: 13px;
-  font-weight: 800;
-  color: #e53935;
-  line-height: 1;
-  position: absolute;
-  top: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  letter-spacing: -0.5px;
-}
-
-.kompas-jarum::after {
-  content: "";
-  position: absolute;
-  bottom: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 9px solid #bbb;
-}
-
-.map-pin-user {
-  width: 50px;
-  height: 50px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  will-change: transform;
-  transform: translateZ(0);
-}
-
-.map-pin-user-off {
-  background-image: url('pinOf.png');
-}
-
-.map-pin-user-on {
-  background-image: url('pinOn.png');
-}
-
-.map-info-jarak {
-  position: absolute;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #fff;
+/* Tampilkan semua oin */
+.map-setting-sync-btn {
+  width: calc(100% - 32px);
+  margin: 14px 16px 12px;
+  height: 46px;
+  border: none;
   border-radius: 20px;
-  padding: 8px 20px;
+  background: var(--accent);
+  color: #fff;
   font-size: 14px;
   font-weight: 600;
-  color: #222;
-  box-shadow: 0 2px 10px #0003;
+  font-family: "Poppins", sans-serif;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  z-index: 10;
-  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity .2s;
 }
-
-.map-info-jarak-dot {
-  color: #bbb;
-  font-size: 16px;
+.map-setting-sync-btn:active {
+  opacity: .8;
 }
-
-.map-rincian-jarak {
+.map-setting-sync-btn.loading svg {
+  animation: rolling-spin 0.7s linear infinite;
+}
+.map-setting-sync-btn.loading {
+  opacity: .7;
+  pointer-events: none;
+}
+/* Routing Mode */
+.map-nav-mode-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a73e8;
-  margin-bottom: 16px;
-  background: #e8f0fe;
-  padding: 7px 12px;
-  border-radius: 8px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.map-nav-mode-item:active { background: var(--bg-hover); }
+.map-nav-mode-item.active .map-setting-checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.map-nav-mode-item.active .map-setting-checkbox::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translateY(-1px);
+  display: block;
 }
 
-.map-dropdown-pin-item-aktif {
-  background: #e8f0fe;
-  color: #1a73e8;
-  font-weight: 600;
+/* ── TOGGLE ── */
+.map-toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.map-toggle input{opacity:0;width:0;height:0}
+.map-toggle-slider{
+  position:absolute;inset:0;background:var(--border-color);
+  border-radius:999px;transition:background .2s;cursor:pointer;
+}
+.map-toggle-slider::before{
+  content:"";position:absolute;width:18px;height:18px;
+  left:3px;top:3px;background:#fff;border-radius:50%;
+  transition:transform .2s;
+}
+.map-toggle input:checked + .map-toggle-slider{background:var(--accent)}
+.map-toggle input:checked + .map-toggle-slider::before{transform:translateX(20px)}
+
+/* ── CHECK ITEM ── */
+.map-setting-check-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background .15s;
 }
 
-.map-dropdown-pin-item-aktif:hover {
-  background: #d2e3fc;
+.map-setting-check-item:active {
+  background: var(--bg-hover);
 }
 
-.map-badge-customer {
+.map-setting-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.map-setting-check-info {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  margin: 4px;
-  position: relative;
+  gap: 2px;
+  flex: 1;
 }
 
-.map-badge-jumlah {
-  background: #1a73e8;
-  color: #fff;
+.map-setting-check-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.map-setting-check-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.map-setting-check-item.active .map-setting-checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.map-setting-check-item.active .map-setting-checkbox::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translateY(-1px);
+  display: block;
+}
+.map-setting-loading {
+  padding: 10px 14px;
   font-size: 13px;
-  font-weight: 700;
-  padding: 5px 14px;
+  color: var(--text-muted);
+}
+
+/* ── SEARCH ── */
+.map-search-wrap {
+  position: absolute;
+  top: 16px;
+  left: 64px;
+  right: 64px;
+  z-index: 10;
+}
+.map-search-input {
+  width: 100%;
+  height: 40px;
+  border: none;
   border-radius: 20px;
-  box-shadow: 0 2px 6px #0003;
-  cursor: pointer;
-  user-select: none;
-  min-width: 36px;
-  text-align: center;
-}
-
-.map-dropdown-hari-pin {
-  display: none;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px #0003;
-  overflow: hidden;
-  min-width: 140px;
-  margin-top: 4px;
-  z-index: 999;
-}
-
-.map-dropdown-hari-pin-item {
-  padding: 10px 16px;
+  background: var(--bg-primary);
+  padding: 0 16px;
+  font-family: "Poppins", sans-serif;
   font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.map-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.map-search-suggest {
+  display: none;
+  position: absolute;
+  top: 46px;
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.map-search-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+  transition: background .15s;
+  gap: 8px;
 }
 
-.map-dropdown-hari-pin-item:hover {
-  background: #f5f5f5;
+.map-search-item:active {
+  background: var(--bg-hover);
 }
 
-.map-dropdown-hari-pin-aktif {
-  background: #e8f0fe;
-  color: #1a73e8;
+.map-search-item-nama {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.map-search-item-hari {
+  font-size: 10px;
   font-weight: 600;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
 }
 
-/* Smooth rendering map container */
-#mapFullRouting {
-  will-change: transform;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+/* ── NAV SHEET ── */
+.map-nav-sheet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
 }
 
-/* Cegah highlight tap pada kontrol map */
-.map-btn-kompas,
-.map-btn-tampil-pin,
-.map-badge-jumlah {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  user-select: none;
+.map-nav-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-/* Dropdown tidak trigger gesture map */
-.map-dropdown-pin,
-.map-dropdown-hari-pin {
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+.map-nav-durasi {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-heading);
+  line-height: 1;
+}
+
+.map-nav-detail {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.map-nav-close {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
 }

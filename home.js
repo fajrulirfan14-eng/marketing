@@ -244,37 +244,194 @@ window.initHomeView = async function(){
     }
   }
   
-  const customerWrapper = document.querySelector(".home-customer-wrapper");
-  const laporanKemarin = document.getElementById("cardLaporanKemarin");
-  const extraWrapper = document.querySelector(".home-extra-wrapper");
-  
-  // Customer hanya hunter
-  if (customerWrapper) {
-    customerWrapper.style.display =
-      role === "hunter"
-        ? "block"
-        : "none";
+  const roleContent    = document.getElementById("homeRoleContent");
+  const popupContainer = document.getElementById("homePopupContainer");
+
+  // Inject HTML per role
+  if (role === "hunter") {
+    roleContent.innerHTML = `
+      <div class="home-customer-wrapper">
+        <div class="home-customer-top">
+          <div class="home-customer-left">
+            <div class="home-customer-label">Jumlah Customer</div>
+            <div class="home-customer-total"><span id="homeCustomerTotal">0</span></div>
+          </div>
+          <div class="home-customer-actions">
+            <button class="home-customer-plus secondary" onclick="showView('rolling')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/>
+                <path d="M20 8v6"/><path d="M17 11h6"/>
+              </svg>
+            </button>
+            <button class="home-customer-plus" onclick="window.openHomeCustomerPopup()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14"/><path d="M5 12h14"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="home-customer-grid">
+          <div class="home-customer-box closing"><div class="box-label">Closing</div><div class="box-value" id="homeClosingTotal">0</div></div>
+          <div class="home-customer-box konsinyasi"><div class="box-label">Konsinyasi</div><div class="box-value" id="homeKonsinyasiTotal">0</div></div>
+          <div class="home-customer-box cash"><div class="box-label">Cash</div><div class="box-value" id="homeCashTotal">0</div></div>
+        </div>
+        <div class="home-customer-payment">
+          <div class="payment-label">Jumlah Bayaran</div>
+          <div class="payment-value" id="homeTotalBayaran">Rp 0</div>
+        </div>
+      </div>
+
+      <div class="home-sales-wrapper" id="homeSalesWrapper">
+        <div class="home-sales-top">
+          <div class="home-sales-title">Laporan Hari Ini</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="home-sales-plus secondary" id="homeSalesLaporanBtn" onclick="window.showView('laporanharian')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="home-sales-table" id="homeSalesTable"></div>
+        <div class="home-sales-payment">
+          <div class="home-sales-payment-label">Total Pembayaran</div>
+          <div class="home-sales-payment-value" id="salesTotalPembayaran">Rp 0</div>
+          <div class="sales-status-badge" id="salesStatusBayar" style="display:none;"></div>
+        </div>
+      </div>
+    `;
+
+    popupContainer.innerHTML = `
+      <div class="hunter-popup-overlay" id="popupHomeCustomer">
+        <div class="hunter-popup-content" id="popupHomeCustomerContent">
+          <div class="hunter-popup-handle"></div>
+          <div class="hunter-popup-group">
+            <label>Nama Customer</label>
+            <input type="text" id="inputNamaCustomerHome" placeholder="Masukkan nama customer">
+          </div>
+          <div id="stokContainerHome"></div>
+        </div>
+      </div>
+    `;
+
+  } else if (role === "sales") {
+    roleContent.innerHTML = `
+      <div class="home-sales-wrapper" id="homeSalesWrapper">
+        <div class="home-sales-top">
+          <div class="home-sales-title">Laporan Hari Ini</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="home-sales-plus secondary" id="homeSalesLaporanBtn" onclick="window.showView('laporanharian')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </button>
+            <button class="home-sales-plus secondary" id="homeSalesCustomerBtn" onclick="window.showView('customersales')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </button>
+            <button class="home-sales-plus" id="homeSalesPlusBtn" onclick="window.openHomeCustomerPopup()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14"/><path d="M5 12h14"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="home-sales-table" id="homeSalesTable"></div>
+        <div class="home-sales-payment">
+          <div class="home-sales-payment-label">Total Pembayaran</div>
+          <div class="home-sales-payment-value" id="salesTotalPembayaran">Rp 0</div>
+          <div class="sales-status-badge" id="salesStatusBayar" style="display:none;"></div>
+        </div>
+      </div>
+    `;
+
+    popupContainer.innerHTML = `
+      <div class="hunter-popup-overlay" id="popupHomeCustomer">
+        <div class="hunter-popup-content" id="popupHomeCustomerContent">
+          <div class="hunter-popup-handle"></div>
+          <div class="hunter-popup-group">
+            <label>Nama Customer</label>
+            <input type="text" id="inputNamaCustomerHome" placeholder="Masukkan nama customer">
+          </div>
+          <div id="stokContainerHome"></div>
+        </div>
+      </div>
+    `;
+
+  } else {
+    // Kurir / Marketing / lainnya
+    roleContent.innerHTML = `
+      <div id="cardLaporanKemarin">
+        <div class="home-menu">
+          <button class="menu-btn" onclick="showView('input')">
+            <i class="fa-solid fa-pen-to-square"></i><span>Input Data</span>
+          </button>
+          <button class="menu-btn" onclick="showView('customer')">
+            <i class="fa-solid fa-users"></i><span>Customer</span>
+          </button>
+          <button class="menu-btn" onclick="showView('analisis')">
+            <i class="fa-solid fa-chart-line"></i><span>Analisis</span>
+          </button>
+        </div>
+        <div class="extra-title">Laporan Kemarin</div>
+        <div class="extra-subtitle" id="laporanKemarinTanggal">-</div>
+        <div class="laporan-kemarin-grid">
+          <div class="laporan-kemarin-box omzet"><div class="laporan-kemarin-label">Omset</div><div class="laporan-kemarin-value" id="laporanKemarinOmset">-</div></div>
+          <div class="laporan-kemarin-box kasbon"><div class="laporan-kemarin-label">Kasbon</div><div class="laporan-kemarin-value" id="laporanKemarinKasbon">-</div></div>
+          <div class="laporan-kemarin-box potongan"><div class="laporan-kemarin-label">Potongan</div><div class="laporan-kemarin-value" id="laporanKemarinPotongan">-</div></div>
+          <div class="laporan-kemarin-box bonus"><div class="laporan-kemarin-label">Bonus</div><div class="laporan-kemarin-value" id="laporanKemarinBonus">-</div></div>
+        </div>
+      </div>
+      <div class="home-extra-wrapper">
+        <div class="home-extra-card">
+          <div class="extra-title">Customer Per Hari</div>
+          <div class="extra-subtitle">Data dari IndexedDB</div>
+          <div class="extra-body" id="ringkasanCustomerBody">
+            <div class="extra-item"><span>Memuat...</span></div>
+          </div>
+        </div>
+      </div>
+    `;
   }
-  
-  // Laporan & Extra disembunyikan untuk hunter dan sales
-  const hideLaporanExtra =
-    role === "hunter" ||
-    role === "sales";
-  
-  if (laporanKemarin) {
-    laporanKemarin.style.display =
-      hideLaporanExtra
-        ? "none"
-        : "";
+  // Footer
+  const footerEl = document.getElementById("homeFooterText");
+  if (footerEl) {
+    const roleLabel = {
+      kurir: "Kurir", hunter: "Hunter", sales: "Sales",
+      marketing: "Marketing", admincabang: "Admin Cabang"
+    };
+    const roleStr = roleLabel[role] || role;
+    const tahun = new Date().getFullYear();
+    footerEl.textContent = `${roleStr} · Teh Tarik Nusantara ${tahun} ©`;
   }
-  
-  if (extraWrapper) {
-    extraWrapper.style.display =
-      hideLaporanExtra
-        ? "none"
-        : "";
+  // Tombol kantor khusus hunter
+  const kantorBtn = document.getElementById("homeKantorBtn");
+  if (kantorBtn) {
+    kantorBtn.style.display = role === "hunter" ? "flex" : "none";
   }
-  
+  // Card sales
+  const salesWrapper = document.getElementById("homeSalesWrapper");
+  const salesPlus    = document.getElementById("homeSalesPlusBtn");
+  if (salesWrapper) {
+    salesWrapper.style.display = (role === "sales" || role === "hunter") ? "block" : "none";
+  }
+  if (salesPlus) {
+    salesPlus.style.display = role === "sales" ? "flex" : "none";
+  }
+  const salesCustomerBtn = document.getElementById("homeSalesCustomerBtn");
+  if (salesCustomerBtn) {
+    salesCustomerBtn.style.display = role === "sales" ? "flex" : "none";
+  }
   if(nama){
     nama.innerText = user.nama || "Marketing";
   }
@@ -436,106 +593,73 @@ window.initHomeView = async function(){
             console.log("Gagal fetch kantorCabang:", err);
           }
         } else { }        
-        const customerQuery =
-          window.query(
-            window.collection(
-              window.db,
-              "customer"
-            ),
-            window.where(
-              "pemilik",
-              "==",
-              uid
-            ),
-            window.where(
-              "status",
-              "==",
-              true
-            ),
-            window.where(
-              "hari",
-              "==",
-              hariAktif
-            )
-          );
-  
-        const snap = await window.getDocs(customerQuery);
-        const customerData = snap.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer)
-          };
-        });
-        window.customerCache = customerData;
+        const roleUser = (userData.role || "").toLowerCase();
+        if (roleUser !== "hunter" && roleUser !== "sales") {
+          const customerQuery =
+            window.query(
+              window.collection(window.db, "customer"),
+              window.where("pemilik", "==", uid),
+              window.where("status", "==", true),
+              window.where("hari", "==", hariAktif)
+            );
 
-        // Hanya update customerHarianDB jika hari customer == hari aktif
-        // Supaya data hari lain tetap tersimpan dan tidak tertimpa
-        try {
-          const idb = await window.openAppDB();
-
-          // Baca semua data existing dulu
-          const existingAll = await new Promise((resolve, reject) => {
-            const tx = idb.transaction("customerHarianDB", "readonly");
-            const store = tx.objectStore("customerHarianDB");
-            const req = store.getAll();
-            req.onsuccess = () => resolve(req.result || []);
-            req.onerror = () => reject(req.error);
+          const snap = await window.getDocs(customerQuery);
+          const customerData = snap.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer)
+            };
           });
+          window.customerCache = customerData;
 
-          // Buat map dari existing (key: id)
-          const existingMap = {};
-          existingAll.forEach(item => {
-            existingMap[item.id] = item;
-          });
-
-          // Cek existing untuk key ini
-          const existingEntry = existingMap[customerCacheKey] || null;
-          const existingData = existingEntry?.data || [];
-
-          // Filter customer dari hasil fetch yang harinya == hariAktif
-          const customerHariIni = customerData.filter(c => c.hari === hariAktif);
-
-          // Clear semua key dulu, lalu simpan ulang per hari
-          const semuaKeys = Object.keys(existingMap);
-          await new Promise((resolve, reject) => {
-            const tx = idb.transaction("customerHarianDB", "readwrite");
-            const store = tx.objectStore("customerHarianDB");
-            // Hapus semua key yang mengandung uid ini
-            semuaKeys.forEach(k => {
-              if (k.startsWith(uid)) store.delete(k);
+          try {
+            const idb = await window.openAppDB();
+            const existingAll = await new Promise((resolve, reject) => {
+              const tx = idb.transaction("customerHarianDB", "readonly");
+              const store = tx.objectStore("customerHarianDB");
+              const req = store.getAll();
+              req.onsuccess = () => resolve(req.result || []);
+              req.onerror = () => reject(req.error);
             });
-            tx.oncomplete = () => resolve();
-            tx.onerror    = () => reject(tx.error);
-          });
 
-          // Kelompokkan semua existing per hari (selain hari ini)
-          const customerHariLain = existingData.filter(c => c.hari !== hariAktif);
+            const existingMap = {};
+            existingAll.forEach(item => { existingMap[item.id] = item; });
 
-          // Simpan hari lain dengan key masing-masing
-          const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-          const perHari = {};
-          hariNama.forEach(h => perHari[h] = []);
-          customerHariLain.forEach(c => {
-            if (perHari[c.hari]) perHari[c.hari].push(c);
-          });
+            const existingEntry = existingMap[customerCacheKey] || null;
+            const existingData  = existingEntry?.data || [];
+            const customerHariIni = customerData.filter(c => c.hari === hariAktif);
+            const semuaKeys = Object.keys(existingMap);
 
-          await new Promise((resolve, reject) => {
-            const tx = idb.transaction("customerHarianDB", "readwrite");
-            const store = tx.objectStore("customerHarianDB");
-            // Simpan hari lain
-            hariNama.forEach(h => {
-              if (h !== hariAktif && perHari[h].length > 0) {
-                store.put({ id: `${uid}_${h}`, data: perHari[h], updatedAt: Date.now() });
-              }
+            await new Promise((resolve, reject) => {
+              const tx = idb.transaction("customerHarianDB", "readwrite");
+              const store = tx.objectStore("customerHarianDB");
+              semuaKeys.forEach(k => { if (k.startsWith(uid)) store.delete(k); });
+              tx.oncomplete = () => resolve();
+              tx.onerror    = () => reject(tx.error);
             });
-            // Simpan hari ini (fresh dari Firestore)
-            store.put({ id: customerCacheKey, data: customerHariIni, updatedAt: Date.now() });
-            tx.oncomplete = () => resolve();
-            tx.onerror    = () => reject(tx.error);
-          });
-        } catch { }
+
+            const customerHariLain = existingData.filter(c => c.hari !== hariAktif);
+            const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+            const perHari  = {};
+            hariNama.forEach(h => perHari[h] = []);
+            customerHariLain.forEach(c => { if (perHari[c.hari]) perHari[c.hari].push(c); });
+
+            await new Promise((resolve, reject) => {
+              const tx = idb.transaction("customerHarianDB", "readwrite");
+              const store = tx.objectStore("customerHarianDB");
+              hariNama.forEach(h => {
+                if (h !== hariAktif && perHari[h].length > 0) {
+                  store.put({ id: `${uid}_${h}`, data: perHari[h], updatedAt: Date.now() });
+                }
+              });
+              store.put({ id: customerCacheKey, data: customerHariIni, updatedAt: Date.now() });
+              tx.oncomplete = () => resolve();
+              tx.onerror    = () => reject(tx.error);
+            });
+          } catch { }
+        }
       } catch (err) {
         console.log(err); alert("Gagal reload data");
       } finally {
@@ -551,22 +675,23 @@ window.initHomeView = async function(){
     window.homeClock = null;
   }
   window.homeClock = setInterval(updateDateTime, 1000);
-  // Skeleton
   const sk = document.getElementById('skeletonHomeCards');
-  if (customerWrapper) customerWrapper.style.display = 'none';
-  if (laporanKemarin)  laporanKemarin.style.display  = 'none';
-  if (extraWrapper)    extraWrapper.style.display    = 'none';
 
-  await Promise.all([
-    window.updateHomeStats?.(),
-    window.loadLaporanKemarin?.(),
-    window.loadRingkasanCustomer?.(),
-  ]);
+  if (role === "hunter") {
+    await Promise.all([
+      window.updateHomeStats?.(),
+      window.loadSalesCard?.(),
+    ]);
+  } else if (role === "sales") {
+    await window.loadSalesCard?.();
+  } else {
+    await Promise.all([
+      window.loadLaporanKemarin?.(),
+      window.loadRingkasanCustomer?.(),
+    ]);
+  }
 
   if (sk) sk.style.display = 'none';
-  if (customerWrapper) customerWrapper.style.display = role === 'hunter' ? 'block' : 'none';
-  if (laporanKemarin)  laporanKemarin.style.display  = hideLaporanExtra ? 'none' : '';
-  if (extraWrapper)    extraWrapper.style.display    = hideLaporanExtra ? 'none' : '';
 };
 
 function countUp(el, target, duration = 600) {
@@ -603,7 +728,94 @@ function countUpRupiah(el, target, duration = 600) {
   }
   requestAnimationFrame(step);
 }
+window.loadSalesCard = async function() {
+  try {
+    const uid      = window.auth.currentUser?.uid;
+    if (!uid) return;
+    const idb      = await window.openAppDB();
+    const userData = await new Promise(resolve => {
+      const tx  = idb.transaction("usersDB", "readonly");
+      const req = tx.objectStore("usersDB").get(uid);
+      req.onsuccess = () => resolve(req.result?.data || null);
+      req.onerror   = () => resolve(null);
+    });
 
+    const varian = (userData?.varian || []).filter(v => {
+      const key = Object.keys(v)[0];
+      return v[key]?.isAktif === true;
+    });
+
+    const today = new Date().toISOString().split("T")[0];
+    let laporanData = null;
+    try {
+      const snap = await window.getDocs(window.query(
+        window.collection(window.db, "users", uid, "laporanMarketing"),
+        window.where("tanggal", "==", today),
+        window.where("idMarketing", "==", uid)
+      ));
+      if (!snap.empty) laporanData = snap.docs[0].data();
+    } catch { }
+
+    const orderMap        = laporanData?.order || {};
+    const sisaMap         = laporanData?.sisaBarang || laporanData?.pembayaran?.sisaBarang || {};
+    const closingMap      = laporanData?.pembayaran?.closing || {};
+    const bayar           = laporanData?.pembayaran?.nota?.bayar || 0;
+    const statusBayar     = laporanData?.pembayaran?.nota?.status || null;
+    const keteranganBayar = laporanData?.pembayaran?.nota?.keterangan || 0;
+
+    const tableEl = document.getElementById("homeSalesTable");
+    if (tableEl && varian.length) {
+      const keys = varian.map(v => Object.keys(v)[0]);
+      function cellVal(map, key) {
+        const val = map[key];
+        return (val != null && val !== 0) ? val : "-";
+      }
+      function sisaClass(map, key) {
+        const val = map[key];
+        return (val != null && val !== 0 && val < 0) ? "sales-cell-kurang" : "";
+      }
+      tableEl.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              ${keys.map(k => `<th>${k}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Bawa</td>
+              ${keys.map(k => `<td>${cellVal(orderMap, k)}</td>`).join("")}
+            </tr>
+            <tr>
+              <td>Sisa</td>
+              ${keys.map(k => `<td class="${sisaClass(sisaMap, k)}">${cellVal(sisaMap, k)}</td>`).join("")}
+            </tr>
+            <tr>
+              <td>Closing</td>
+              ${keys.map(k => `<td>${cellVal(closingMap, k)}</td>`).join("")}
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+
+    const elBayar  = document.getElementById("salesTotalPembayaran");
+    const elStatus = document.getElementById("salesStatusBayar");
+    if (elBayar) elBayar.textContent = "Rp " + bayar.toLocaleString("id-ID");
+    if (elStatus) {
+      if (statusBayar) {
+        elStatus.style.display = "inline-block";
+        elStatus.textContent   = statusBayar + (keteranganBayar ? ` (${keteranganBayar < 0 ? "-" : "+"}Rp ${Math.abs(keteranganBayar).toLocaleString("id-ID")})` : "");
+        elStatus.className     = "sales-status-badge " + (statusBayar === "Kurang" ? "kurang" : "lunas");
+      } else {
+        elStatus.style.display = "none";
+      }
+    }
+  } catch(e) {
+    console.log("loadSalesCard error:", e);
+  }
+};
 window.loadLaporanKemarin = async function() {
   try {
     // Hitung tanggal kemarin
@@ -819,65 +1031,396 @@ window.updateHomeStats = async function() {
     console.log("updateHomeStats error:", err);
   }
 };
+window.syncPendingSales = async function() {
+  try {
+    if (!navigator.onLine) return;
+    const uid = window.auth?.currentUser?.uid;
+    if (!uid) return;
+
+    const idb = await window.openAppDB();
+    const all = await new Promise(resolve => {
+      const tx  = idb.transaction("customerSalesDB", "readonly");
+      const req = tx.objectStore("customerSalesDB").getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => resolve([]);
+    });
+
+    const pending = all.filter(x => (x.isSync === false || x.isSync === undefined) && x.createdBy === uid);
+
+    for (const item of pending) {
+      try {
+        let foto = item.foto || "";
+        if (!foto && item.fotoLokal) {
+          try {
+            const arr   = item.fotoLokal.split(",");
+            const mime  = arr[0].match(/:(.*?);/)[1];
+            const bstr  = atob(arr[1]);
+            let n       = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const blob  = new Blob([u8arr], { type: mime });
+            const sRef  = window.storageRef(window.storage, `fotoCustomerSales/${item.id}`);
+            await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
+            foto = await window.getDownloadURL(sRef);
+          } catch { }
+        }
+
+        const { fotoLokal: _removed, ...itemClean } = item;
+        await window.setDoc(
+          window.doc(window.db, "customerSales", item.id),
+          {
+            ...itemClean,
+            foto,
+            lokasiCustomer: new window.GeoPoint(
+              item.lokasiCustomer?.lat || 0,
+              item.lokasiCustomer?.lng || 0
+            ),
+            createdAt: window.serverTimestamp()
+          }
+        );
+
+        const idb2 = await window.openAppDB();
+        await new Promise((resolve, reject) => {
+          const tx2 = idb2.transaction("customerSalesDB", "readwrite");
+          tx2.objectStore("customerSalesDB").put({ ...item, foto, fotoLokal: null, isSync: true });
+          tx2.oncomplete = () => resolve();
+          tx2.onerror   = () => reject(tx2.error);
+        });
+      } catch { }
+    }
+  } catch { }
+};
+window.syncPendingHunter = async function() {
+  try {
+    if (!navigator.onLine) return;
+    const uid = window.auth?.currentUser?.uid;
+    if (!uid) return;
+
+    const idb = await window.openAppDB();
+    const all = await new Promise(resolve => {
+      const tx  = idb.transaction("customerBaruDB", "readonly");
+      const req = tx.objectStore("customerBaruDB").getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => resolve([]);
+    });
+
+    const pending    = all.filter(x => (x.isSync === false || x.isSync === undefined) && x.createdBy === uid && !x.type && !x.isEdit);
+    const pendingEdit = all.filter(x => x.isSync === false && x.createdBy === uid && x.isEdit === true);
+
+    // Sync data edit
+    for (const item of pendingEdit) {
+      try {
+        let foto = item.foto || "";
+
+        // Upload foto lokal jika ada
+        if (item.fotoLokal) {
+          try {
+            const arr   = item.fotoLokal.split(",");
+            const mime  = arr[0].match(/:(.*?);/)[1];
+            const bstr  = atob(arr[1]);
+            let n       = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const blob  = new Blob([u8arr], { type: mime });
+            const sRef  = window.storageRef(window.storage, `fotoCustomer/${item.id}`);
+            await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
+            foto = await window.getDownloadURL(sRef);
+          } catch { }
+        }
+
+        const konsinyasi = item.konsinyasi || {};
+        const cash       = item.cash || {};
+
+        const updatePayload = {
+          namaCustomer:   item.namaCustomer,
+          alamatCustomer: item.alamatCustomer,
+          foto,
+          keterangan:     item.keterangan || {},
+          konsinyasi:     Object.keys(konsinyasi).length ? konsinyasi : window.deleteField(),
+          cash:           Object.keys(cash).length ? cash : window.deleteField(),
+          ...(item.lokasiCustomer?.lat ? {
+            lokasiCustomer: new window.GeoPoint(item.lokasiCustomer.lat, item.lokasiCustomer.lng)
+          } : {})
+        };
+
+        await window.updateDoc(
+          window.doc(window.db, "users", uid, "customerBaruHunter", item.id),
+          updatePayload
+        );
+
+        // Update IndexedDB — tandai sync
+        const idb2 = await window.openAppDB();
+        await new Promise((resolve, reject) => {
+          const tx2 = idb2.transaction("customerBaruDB", "readwrite");
+          tx2.objectStore("customerBaruDB").put({ ...item, foto, fotoLokal: null, isSync: true, isEdit: false });
+          tx2.oncomplete = () => resolve();
+          tx2.onerror   = () => reject(tx2.error);
+        });
+      } catch { }
+    }
+    for (const item of pending) {
+      try {
+        let foto = item.foto || "";
+
+        // Upload foto lokal jika ada
+        if (!foto && item.fotoLokal) {
+          try {
+            const arr   = item.fotoLokal.split(",");
+            const mime  = arr[0].match(/:(.*?);/)[1];
+            const bstr  = atob(arr[1]);
+            let n       = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const blob  = new Blob([u8arr], { type: mime });
+            const sRef  = window.storageRef(window.storage, `fotoCustomer/${item.id}`);
+            await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
+            foto = await window.getDownloadURL(sRef);
+          } catch { }
+        }
+
+        const colRef = window.collection(window.db, "users", uid, "customerBaruHunter");
+        const { fotoLokal: _removed, ...itemClean } = item;
+        await window.setDoc(
+          window.doc(colRef, item.id),
+          {
+            ...itemClean,
+            foto,
+            lokasiCustomer: new window.GeoPoint(
+              item.lokasiCustomer?.lat || 0,
+              item.lokasiCustomer?.lng || 0
+            ),
+            createdAt: window.serverTimestamp()
+          }
+        );
+
+        // Update IndexedDB
+        const idb2 = await window.openAppDB();
+        await new Promise((resolve, reject) => {
+          const tx2    = idb2.transaction("customerBaruDB", "readwrite");
+          const store2 = tx2.objectStore("customerBaruDB");
+          store2.put({ ...item, foto, fotoLokal: null, isSync: true });
+          tx2.oncomplete = () => resolve();
+          tx2.onerror   = () => reject(tx2.error);
+        });
+      } catch { }
+    }
+  } catch { }
+};
+window.openKantorPopup = async function() {
+  const existing = document.getElementById("kantorPopupOverlay");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "kantorPopupOverlay";
+  overlay.className = "kantor-popup-overlay";
+  document.body.appendChild(overlay);
+
+  overlay.innerHTML = `
+    <div id="kantorPopupBox" class="kantor-popup-box">
+      <div class="kantor-popup-header">
+        <div class="kantor-popup-title">Pilih Kantor Cabang</div>
+        <button id="kantorPopupClose" class="kantor-popup-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="kantorPopupList" class="kantor-popup-list">
+        <div class="kantor-popup-loading">Memuat...</div>
+      </div>
+    </div>
+  `;
+
+  requestAnimationFrame(() => overlay.classList.add("active"));
+
+  function closePopup() {
+    overlay.classList.remove("active");
+    setTimeout(() => overlay.remove(), 300);
+  }
+
+  document.getElementById("kantorPopupClose").onclick = closePopup;
+  overlay.addEventListener("click", e => { if (e.target === overlay) closePopup(); });
+
+  try {
+    const uid      = window.auth.currentUser.uid;
+    const user     = window.currentUser || {};
+    const idAktif  = user.idCabang || "";
+
+    // Cek request pending milik hunter ini
+    let idCabangPending = null;
+    try {
+      const reqSnap = await window.getDoc(window.doc(window.db, "requestCabang", uid));
+      if (reqSnap.exists() && reqSnap.data().status === "pending") {
+        idCabangPending = reqSnap.data().idCabangTujuan;
+      }
+    } catch { }
+
+    const snap = await window.getDocs(window.collection(window.db, "kantorCabang"));
+    const listEl = document.getElementById("kantorPopupList");
+    if (!listEl) return;
+
+    if (snap.empty) {
+      listEl.innerHTML = `<div class="kantor-popup-loading">Tidak ada kantor tersedia</div>`;
+      return;
+    }
+
+    const kantorList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    listEl.innerHTML = kantorList.map(k => {
+      const isAktif   = k.id === idAktif;
+      const isPending = k.id === idCabangPending;
+      return `
+        <div class="kantor-list-item ${isAktif ? "aktif" : ""}">
+          <div class="kantor-list-info">
+            <div class="kantor-list-nama">${k.namaCabang || k.nama || "-"}</div>
+            ${isAktif   ? `<div class="kantor-list-badge aktif-badge">Aktif</div>` : ""}
+            ${isPending ? `<div class="kantor-list-badge pending-badge">Menunggu ACC</div>` : ""}
+          </div>
+          ${!isAktif ? `
+            <button class="kantor-request-btn ${isPending ? "pending" : ""}" 
+              data-id="${k.id}" 
+              data-nama="${k.namaCabang || k.nama || "-"}"
+              ${isPending ? "disabled" : ""}>
+              ${isPending ? "Pending" : "Request"}
+            </button>
+          ` : ""}
+        </div>
+      `;
+    }).join("");
+
+    // Klik tombol request
+    listEl.querySelectorAll(".kantor-request-btn:not([disabled])").forEach(btn => {
+      btn.onclick = function() {
+        const idTujuan   = this.dataset.id;
+        const namaTujuan = this.dataset.nama;
+        openKonfirmasiRequest(idTujuan, namaTujuan, closePopup);
+      };
+    });
+
+  } catch {
+    const listEl = document.getElementById("kantorPopupList");
+    if (listEl) listEl.innerHTML = `<div class="kantor-popup-loading">Gagal memuat kantor</div>`;
+  }
+};
+function openKonfirmasiRequest(idTujuan, namaTujuan, onClose) {
+  const existing = document.getElementById("kantorKonfirmasiOverlay");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "kantorKonfirmasiOverlay";
+  overlay.className = "kantor-popup-overlay";
+  document.body.appendChild(overlay);
+
+  overlay.innerHTML = `
+    <div class="kantor-popup-box kantor-konfirmasi-box">
+      <div class="kantor-konfirmasi-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="32" height="32">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div class="kantor-konfirmasi-title">Request Pindah Cabang</div>
+      <div class="kantor-konfirmasi-desc">
+        Kamu akan mengajukan request untuk bergabung ke kantor cabang<br>
+        <strong>${namaTujuan}</strong>.<br><br>
+        Request akan diproses oleh admin cabang tujuan.
+      </div>
+      <div class="kantor-konfirmasi-actions">
+        <button id="kantorKonfirmasiCancel" class="kantor-konfirmasi-btn cancel">Batal</button>
+        <button id="kantorKonfirmasiOk" class="kantor-konfirmasi-btn ok">Kirim Request</button>
+      </div>
+    </div>
+  `;
+
+  requestAnimationFrame(() => overlay.classList.add("active"));
+
+  function closeKonfirmasi() {
+    overlay.classList.remove("active");
+    setTimeout(() => overlay.remove(), 300);
+  }
+
+  document.getElementById("kantorKonfirmasiCancel").onclick = closeKonfirmasi;
+
+  document.getElementById("kantorKonfirmasiOk").onclick = async function() {
+    const btn = this;
+    btn.textContent = "Mengirim...";
+    btn.disabled = true;
+
+    try {
+      const uid  = window.auth.currentUser.uid;
+      const user = window.currentUser || {};
+
+      await window.setDoc(
+        window.doc(window.db, "requestCabang", uid),
+        {
+          idHunter:        uid,
+          namaHunter:      user.nama || "-",
+          idCabangAsal:    user.idCabang || "",
+          namaCabangAsal:  user.kantorCabang || "-",
+          idCabangTujuan:  idTujuan,
+          namaCabangTujuan: namaTujuan,
+          status:          "pending",
+          createdAt:       window.serverTimestamp(),
+        }
+      );
+
+      btn.textContent = "Terkirim ✓";
+      btn.style.background = "#2eaf62";
+
+      setTimeout(() => {
+        closeKonfirmasi();
+        onClose();
+      }, 800);
+
+    } catch {
+      btn.textContent = "Gagal, Coba Lagi";
+      btn.style.background = "#e74c3c";
+      btn.disabled = false;
+      setTimeout(() => {
+        btn.textContent = "Kirim Request";
+        btn.style.background = "";
+      }, 2000);
+    }
+  };
+}
+
 window.openHomeCustomerPopup = async function() {
   const popup = document.getElementById("popupHomeCustomer");
   const stokContainer = document.getElementById("stokContainerHome");
 
   if (!popup || !stokContainer)
     return;
-
-  // =========================
+  
   // BODY POPUP
-  // =========================
   stokContainer.innerHTML = `
-    <div class="customer-form">
-      <!-- ALAMAT -->
-      <div class="popup-group">
-        <label>Alamat</label>
-        <input type="text" id="alamatCustomerHome" placeholder="Blok dan desa">
-      </div>
-
-      <!-- DATA AWAL -->
-      <div class="popup-group">
-        <label>Data Awal</label>
-        <div id="dataAwalContainerHome" class="data-awal-container">
+    <div class="hunter-form">
+        <div class="hunter-popup-group">
+          <label>Alamat</label>
+          <input type="text" id="alamatCustomerHome" placeholder="Blok dan desa">
         </div>
-      </div>
-
-      <!-- PAYMENT TYPE -->
-      <div class="payment-type-wrapper">
-        <button type="button" class="payment-type-btn" data-value="Konsinyasi">
-          Konsinyasi
+        <div class="hunter-popup-group">
+          <label>Konsinyasi</label>
+          <div id="dataKonsinyasiHome" class="data-awal-container"></div>
+        </div>
+        <div class="hunter-popup-group">
+          <label>Cash</label>
+          <div id="dataCashHome" class="data-awal-container"></div>
+        </div>
+        <button type="button" class="hunter-btn-lokasi" id="btnLokasiHome">
+          <span id="btnLokasiSpinnerHome" style="display:none;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;"></span>
+          <span id="btnLokasiTextHome">Ambil Lokasi Sekarang</span>
         </button>
-        <button type="button" class="payment-type-btn" data-value="Cash">
-          Cash
+        <div class="hunter-foto-wrapper">
+          <label class="hunter-foto-card" id="fotoCardHome">
+            <input type="file" accept="image/*" capture="environment" id="fotoInputHome" hidden>
+            <div class="hunter-foto-placeholder">
+              <i class="fa-solid fa-camera"></i>
+              <span>Ambil Foto</span>
+            </div>
+          </label>
+        </div>
+        <button type="button" class="hunter-btn-simpan" id="btnSimpanCustomerHome">
+          <span id="btnSimpanTextHome">Simpan</span>
         </button>
       </div>
-
-      <!-- LOKASI -->
-      <button type="button" class="btn-lokasi" id="btnLokasiHome">
-        <span id="btnLokasiSpinnerHome" style="display:none;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;"></span>
-        <span id="btnLokasiTextHome">Ambil Lokasi Sekarang</span>
-      </button>
-
-      <!-- FOTO -->
-      <div class="foto-wrapper">
-        <label class="foto-card" id="fotoCardHome">
-          <input type="file" accept="image/*" capture="environment" id="fotoInputHome" hidden>
-          <div class="foto-placeholder">
-            <i class="fa-solid fa-camera"></i>
-            <span>Ambil Foto</span>
-          </div>
-        </label>
-      </div>
-
-      <!-- BUTTON -->
-      <button type="button" class="btn-simpan-customer" id="btnSimpanCustomerHome">
-        <span id="btnSimpanTextHome">
-          Simpan
-        </span>
-      </button>
-    </div>
   `;
 
   window.selectedPaymentType = null;
@@ -895,48 +1438,44 @@ window.openHomeCustomerPopup = async function() {
         );
       req.onerror = () => resolve(null);
     });
-    const container = document.getElementById("dataAwalContainerHome");
-    const varian = Array.isArray(userData?.varian)
-     ? userData.varian : [];
+    const varian = Array.isArray(userData?.varian) ? userData.varian : [];
+    const konsinyasiContainer = document.getElementById("dataKonsinyasiHome");
+    const cashContainer       = document.getElementById("dataCashHome");
 
-    if (container && varian.length) {
+    if (varian.length) {
       let html = "";
       varian.forEach(item => {
         const key = Object.keys(item)[0];
         if (!key) return;
-
         html += `
           <div class="data-awal-item">
-            <input type="number" class="data-awal-input" data-key="${key}" placeholder="${key}">
+            <input type="number" class="data-awal-input-konsinyasi" data-key="${key}" placeholder="${key}">
           </div>
         `;
       });
-      container.innerHTML = html;
+      if (konsinyasiContainer) konsinyasiContainer.innerHTML = html;
+
+      let htmlCash = "";
+      varian.forEach(item => {
+        const key = Object.keys(item)[0];
+        if (!key) return;
+        htmlCash += `
+          <div class="data-awal-item">
+            <input type="number" class="data-awal-input-cash" data-key="${key}" placeholder="${key}">
+          </div>
+        `;
+      });
+      if (cashContainer) cashContainer.innerHTML = htmlCash;
     } else {
-      container.innerHTML = `
-        <div class="customer-empty">
-          Tidak ada data varian
-        </div>
-      `;
+      if (konsinyasiContainer) konsinyasiContainer.innerHTML = `<div class="customer-empty">Tidak ada data varian</div>`;
+      if (cashContainer) cashContainer.innerHTML = `<div class="customer-empty">Tidak ada data varian</div>`;
     }
 
   } catch(err) {
     console.log("Gagal load varian:", err);
   }
 
-  const paymentBtns = document.querySelectorAll(".payment-type-btn");
-  paymentBtns.forEach(btn => {
-    btn.onclick = function() {
-        paymentBtns.forEach(item =>
-          item.classList.remove("active")
-        );
-        this.classList.add("active");
-        window.selectedPaymentType = this.dataset.value;
-        console.log("Payment:",
-          window.selectedPaymentType
-        );
-      };
-  });
+  window.selectedPaymentType = null;
   popup.classList.add("active");
   // BUTTON LOKASI + GOOGLE MAPS FULLSCREEN
   let customerLat = null;
@@ -947,103 +1486,82 @@ window.openHomeCustomerPopup = async function() {
   const btnLokasiHome = document.getElementById("btnLokasiHome");
   const btnLokasiTextHome = document.getElementById("btnLokasiTextHome");
   const btnLokasiSpinnerHome = document.getElementById("btnLokasiSpinnerHome");
-  const mapPopupHome = document.getElementById("mapPopupHome");
-  const btnSelectLocationHome = document.getElementById("btnSelectLocationHome");
-  const btnTutupMapHome = document.getElementById("btnTutupMapHome");
 
-  function openFullMap(lat, lng) {
-    mapPopupHome.style.display = "flex";
-    document.body.style.overflow = "hidden";
+  let lokasiMapHome    = null;
+  let lokasiMarkerHome = null;
 
-    if (!fullMap) {
-      fullMap = new google.maps.Map(document.getElementById("mapFullHome"), {
-        center: { lat, lng },
-        zoom: 18,
-        mapId: "3f6f47bf59913618a195fe2e",
-        tilt: 0,
-        zoomControl: true,
-        mapTypeControl: true,
-        streetViewControl: true,
-        rotateControl: true,
-        fullscreenControl: false
-      });
-      
-      // PIN MARKER
-      if (!window.customerMarkerHome) {
-        window.customerMarkerHome = new google.maps.Marker({
-          position: { lat, lng },
-          map: fullMap,
-          draggable: true,
-          animation: google.maps.Animation.DROP,
-          icon: {
-            url: "pin.png",
-            scaledSize: new google.maps.Size(40, 40),
-            anchor: new google.maps.Point(20, 40)
-          }
-        });
-      } else {
-        window.customerMarkerHome.setPosition({ lat, lng });
-        window.customerMarkerHome.setMap(fullMap);
-      }
-      
-      // LONG PRESS HANDLER
-      const mapDiv = document.getElementById("mapFullHome");
-      let lpTimer = null;
-      let lpMoved = false;
-      
-      mapDiv.addEventListener("touchstart", (e) => {
-        if (e.touches.length !== 1) return;
-        lpMoved = false;
-        const touch = e.touches[0];
-        lpTimer = setTimeout(() => {
-          if (lpMoved) return;
-          // Konversi pixel touch ke LatLng
-          const mapRect = mapDiv.getBoundingClientRect();
-          const x = touch.clientX - mapRect.left;
-          const y = touch.clientY - mapRect.top;
-          const overlay = new google.maps.OverlayView();
-          overlay.draw = function(){};
-          overlay.setMap(fullMap);
-          google.maps.event.addListenerOnce(overlay, "add", () => {
-            const proj = overlay.getProjection();
-            const point = new google.maps.Point(x, y);
-            const latLng = proj.fromContainerPixelToLatLng(point);
-            if (latLng) {
-              window.customerMarkerHome.setPosition(latLng);
-              fullMap.panTo(latLng);
-            }
-            overlay.setMap(null);
-          });
-        }, 600);
-      }, { passive: true });
-      
-      mapDiv.addEventListener("touchmove", () => {
-        lpMoved = true;
-        clearTimeout(lpTimer);
-      }, { passive: true });
-      
-      mapDiv.addEventListener("touchend", () => {
-        clearTimeout(lpTimer);
-      }, { passive: true });
-      
-      // TOMBOL BALIK KE POSISI GPS
-      const btnMyLocation = document.createElement("button");
-      btnMyLocation.innerHTML = `<img src="https://maps.gstatic.com/tactile/mylocation/mylocation-sprite-2x.png" style="width:18px;height:18px;background-size:cover;">`;
-      btnMyLocation.style.cssText = `
-        width:40px;height:40px;background:#fff;border:0;
-        border-radius:4px;box-shadow:0 2px 6px #0003;
-        cursor:pointer;display:flex;align-items:center;justify-content:center;
-        margin:10px;
-      `;
-      btnMyLocation.onclick = () => {
-        fullMap.panTo({ lat, lng });
-        fullMap.setZoom(18);
-        window.customerMarkerHome.setPosition({ lat, lng });
-      };
-      fullMap.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(btnMyLocation);
-    } else {
-      fullMap.setCenter({ lat, lng });
+  function tampilkanPetaHome(lat, lng) {
+    const existingMap = document.getElementById("customerMapOverlayHome");
+    if (existingMap) existingMap.remove();
+
+    const mapOverlay = document.createElement("div");
+    mapOverlay.id = "customerMapOverlayHome";
+    mapOverlay.style.cssText = `
+      position:fixed;inset:0;z-index:99999;
+      background:rgba(0,0,0,.45);backdrop-filter:blur(4px);
+      display:flex;align-items:flex-end;justify-content:center;
+      opacity:0;transition:opacity .25s ease;
+    `;
+    mapOverlay.innerHTML = `
+      <div id="customerMapBoxHome" style="
+        width:100%;max-width:540px;
+        background:var(--bg-primary);border-radius:24px 24px 0 0;
+        display:flex;flex-direction:column;overflow:hidden;
+        transform:translateY(100%);transition:transform .3s cubic-bezier(.32,1,.4,1);
+        box-shadow:0 -8px 40px rgba(0,0,0,.15);
+      ">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-color);flex-shrink:0;">
+          <button id="customerMapTutupHome" style="width:34px;height:34px;border:none;border-radius:10px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+          <div style="font-size:15px;font-weight:700;color:var(--text-heading);">Pilih Lokasi</div>
+          <button id="customerMapPilihHome" style="padding:8px 18px;border:none;border-radius:20px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Pilih</button>
+        </div>
+        <div id="customerMapElHome" style="height:55dvh;"></div>
+        <div style="padding:10px 20px 24px;font-size:12px;color:var(--text-secondary);text-align:center;">
+          Seret pin untuk memilih lokasi yang tepat
+        </div>
+      </div>
+    `;
+    document.body.appendChild(mapOverlay);
+
+    requestAnimationFrame(() => {
+      mapOverlay.style.opacity = "1";
+      document.getElementById("customerMapBoxHome").style.transform = "translateY(0)";
+    });
+
+    const mapEl = document.getElementById("customerMapElHome");
+    lokasiMapHome = new google.maps.Map(mapEl, {
+      center: { lat, lng }, zoom: 18,
+      mapId: "3f6f47bf59913618a195fe2e",
+      zoomControl: true, mapTypeControl: false,
+      streetViewControl: false, fullscreenControl: false,
+      gestureHandling: "greedy",
+    });
+    lokasiMarkerHome = new google.maps.Marker({
+      position: { lat, lng }, map: lokasiMapHome,
+      draggable: true,
+      animation: google.maps.Animation.DROP,
+    });
+
+    function closeMapHome() {
+      mapOverlay.style.opacity = "0";
+      document.getElementById("customerMapBoxHome").style.transform = "translateY(100%)";
+      setTimeout(() => { mapOverlay.remove(); lokasiMapHome = null; lokasiMarkerHome = null; }, 300);
     }
+
+    document.getElementById("customerMapTutupHome").onclick = closeMapHome;
+    mapOverlay.addEventListener("click", e => { if (e.target === mapOverlay) closeMapHome(); });
+
+    document.getElementById("customerMapPilihHome").onclick = () => {
+      const pos = lokasiMarkerHome.getPosition();
+      customerLat   = pos.lat();
+      customerLng   = pos.lng();
+      lokasiSuccess = true;
+      closeMapHome();
+      btnLokasiHome.classList.add("success");
+      btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
+    };
   }
 
   // KLIK AMBIL LOKASI
@@ -1052,72 +1570,25 @@ window.openHomeCustomerPopup = async function() {
       btnLokasiTextHome.innerText = "GPS tidak didukung";
       return;
     }
-
     btnLokasiHome.disabled = true;
     btnLokasiSpinnerHome.style.display = "inline-block";
     btnLokasiTextHome.innerText = "Mengambil...";
-
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      pos => {
         btnLokasiSpinnerHome.style.display = "none";
         btnLokasiHome.disabled = false;
-        // Buka map fullscreen
-        openFullMap(pos.coords.latitude, pos.coords.longitude);
+        tampilkanPetaHome(pos.coords.latitude, pos.coords.longitude);
       },
-      (err) => {
+      err => {
         btnLokasiHome.disabled = false;
         btnLokasiSpinnerHome.style.display = "none";
-        btnLokasiHome.style.background = "#e53935";
-        const pesanError = {
-          1: "Izin lokasi ditolak",
-          2: "Lokasi tidak tersedia",
-          3: "Timeout, coba lagi"
-        };
-        btnLokasiTextHome.innerText = pesanError[err.code] || "Gagal, Coba Lagi";
-        setTimeout(() => {
-          btnLokasiHome.style.background = "";
-          btnLokasiTextHome.innerText = "📍 Ambil Lokasi Sekarang";
-          btnLokasiHome.disabled = false;
-        }, 2500);
+        btnLokasiTextHome.innerText = "Gagal, Coba Lagi";
+        setTimeout(() => { btnLokasiTextHome.innerText = "Ambil Lokasi Sekarang"; }, 2500);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
-  // KLIK "PILIH LOKASI" — ambil center map sebagai koordinat
-  btnSelectLocationHome.onclick = function(e) {
-    e.stopPropagation();
-    const pos = window.customerMarkerHome.getPosition();
-    customerLat = pos.lat();
-    customerLng = pos.lng();
-    lokasiSuccess = true;
-    mapPopupHome.style.display = "none";
-    document.body.style.overflow = "";
-    btnLokasiHome.style.background = "#4caf50";
-    btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
-    // Destroy map setelah lokasi dipilih
-    window.customerMarkerHome?.setMap(null);
-    window.customerMarkerHome = null;
-    fullMap = null;
-    const mapDiv = document.getElementById("mapFullHome");
-    if (mapDiv) mapDiv.innerHTML = "";
-  };
-  // KLIK ✕ TUTUP MAP
-  btnTutupMapHome.onclick = function() {
-    mapPopupHome.style.display = "none";
-    document.body.style.overflow = "";
-    btnLokasiHome.disabled = false;
-    btnLokasiSpinnerHome.style.display = "none";
-    btnLokasiTextHome.innerText = "📍 Ambil Lokasi Sekarang";
-    // Destroy map instance supaya tidak memory leak
-    if (fullMap) {
-      window.customerMarkerHome?.setMap(null);
-      window.customerMarkerHome = null;
-      fullMap = null;
-      const mapDiv = document.getElementById("mapFullHome");
-      if (mapDiv) mapDiv.innerHTML = "";
-    }
-  };
   // FOTO PREVIEW
   const fotoInputHome = document.getElementById("fotoInputHome");
   const fotoCardHome = document.getElementById("fotoCardHome");
@@ -1177,18 +1648,26 @@ window.openHomeCustomerPopup = async function() {
       // ALAMAT
       const alamatCustomer = document.getElementById("alamatCustomerHome")?.value.trim() || "";
 
-      // PAYMENT TYPE
-      const paymentType = window.selectedPaymentType || "";
-      if (!paymentType) throw new Error("Pilih tipe pembayaran");
-
-      // DATA AWAL
-      const dataAwalInputs = document.querySelectorAll(".data-awal-input");
-      const dataAwal = {};
-      dataAwalInputs.forEach(input => {
+      // DATA KONSINYASI
+      const konsinyasi = {};
+      document.querySelectorAll(".data-awal-input-konsinyasi").forEach(input => {
         const key = input.dataset.key;
         const val = input.value.trim();
-        if (key && val !== "") dataAwal[key] = Number(val);
+        if (key && val !== "") konsinyasi[key] = Number(val);
       });
+
+      // DATA CASH
+      const cash = {};
+      document.querySelectorAll(".data-awal-input-cash").forEach(input => {
+        const key = input.dataset.key;
+        const val = input.value.trim();
+        if (key && val !== "") cash[key] = Number(val);
+      });
+
+      // Minimal satu harus diisi
+      if (!Object.keys(konsinyasi).length && !Object.keys(cash).length) {
+        throw new Error("Isi minimal konsinyasi atau cash");
+      }
 
       // LOAD VARIAN DARI INDEXDB
       let varianMap = {};
@@ -1211,21 +1690,26 @@ window.openHomeCustomerPopup = async function() {
 
       // HITUNG KETERANGAN
       let hargaPendam = 0;
-      let hargaJual = 0;
-      let cashback = 0;
+      let hargaJual   = 0;
+      let hargaPay    = 0;
 
-      Object.entries(dataAwal).forEach(([key, qty]) => {
-        const varian = varianMap[key] || {};
-        hargaPendam += qty * Number(varian.hargaProduksi || 0);
-        hargaJual   += qty * Number(varian.hargaKonsumen || 0);
-        cashback    += qty * Number(varian.hargaKonsumen || 0);
+      Object.entries(konsinyasi).forEach(([key, qty]) => {
+        const v = varianMap[key] || {};
+        hargaPendam += qty * Number(v.hargaProduksi || 0);
+        hargaJual   += qty * Number(v.hargaKonsumen || 0);
+      });
+
+      Object.entries(cash).forEach(([key, qty]) => {
+        const v = varianMap[key] || {};
+        hargaPay += qty * Number(v.hargaKonsumen || 0);
       });
 
       const keterangan = {};
-      if (paymentType === "Konsinyasi") {
+      if (Object.keys(konsinyasi).length) {
         keterangan.modal = { hargaPendam, hargaJual };
-      } else if (paymentType === "Cash") {
-        keterangan.cashback = cashback;
+      }
+      if (Object.keys(cash).length) {
+        keterangan.pay = { hargaPay };
       }
 
       // HITUNG JARAK pakai Google Distance Matrix
@@ -1277,17 +1761,10 @@ window.openHomeCustomerPopup = async function() {
         console.log("Gagal hitung jarak:", e);
       }
 
-      // Siapkan compressed foto (upload setelah dapat idCustomer)
-      let compressedFoto = null;
-      if (window.fotoBase64Home) {
-        compressedFoto = await compressImageHome(window.fotoBase64Home);
-      }
-
-      // ID CUSTOMER dibuat setelah addDoc
-      let idCustomer = "";
       let foto = "";
+      const roleUser = (user.role || "").toLowerCase();
+      const idCustomer = crypto.randomUUID();
 
-      // DATA CUSTOMER (tanpa foto dulu)
       const dataCustomer = {
         idCustomer,
         namaCustomer,
@@ -1298,52 +1775,91 @@ window.openHomeCustomerPopup = async function() {
         idCabang: user.idCabang || "",
         createdBy: uid,
         jarak,
-        [paymentType.toLowerCase()]: dataAwal,
+        ...(Object.keys(konsinyasi).length ? { konsinyasi } : {}),
+        ...(Object.keys(cash).length ? { cash } : {}),
         keterangan,
         diserahkan: false
       };
 
-      // SAVE FIRESTORE
-      const colRef = window.collection(
-        window.db,
-        "users", uid,
-        "customerBaruHunter"
-      );
-      const docRef = await window.addDoc(colRef, {
-        ...dataCustomer,
-        lokasiCustomer: new window.GeoPoint(customerLat || 0, customerLng || 0),
-        createdAt: window.serverTimestamp()
-      });
-      idCustomer = docRef.id;
-
-      // UPLOAD FOTO KE STORAGE setelah dapat idCustomer
-      if (compressedFoto) {
-        const storageRef = window.storageRef(
-          window.storage,
-          `fotoCustomer/${idCustomer}`
-        );
-        const blob = await fetch(compressedFoto).then(r => r.blob());
-        await window.uploadBytes(storageRef, blob, {
-          contentType: "image/jpeg"
-        });
-        foto = await window.getDownloadURL(storageRef);
+      // Compress foto
+      let fotoBase64Compressed = null;
+      if (window.fotoBase64Home) {
+        fotoBase64Compressed = await compressImageHome(window.fotoBase64Home);
       }
 
-      // UPDATE idCustomer + foto URL ke Firestore
-      await window.updateDoc(docRef, { idCustomer, foto });
-      // SAVE INDEXDB
+      const storeNama    = roleUser === "sales" ? "customerSalesDB" : "customerBaruDB";
+      const fotoFolder   = roleUser === "sales" ? "fotoCustomerSales" : "fotoCustomer";
+      const firestoreCol = roleUser === "sales"
+        ? window.collection(window.db, "customerSales")
+        : window.collection(window.db, "users", uid, "customerBaruHunter");
+
+      // SAVE INDEXDB DULU (offline-first)
       const idb = await window.openAppDB();
-      const txIdb = idb.transaction("customerBaruDB", "readwrite");
-      const storeIdb = txIdb.objectStore("customerBaruDB");
-      storeIdb.put({
-        ...dataCustomer,
-        id: idCustomer,
-        foto,
-        lokasiCustomer: window.normalizeGeoPoint(
-          new window.GeoPoint(customerLat || 0, customerLng || 0)
-        ),
-        createdAt: Date.now()
+      await new Promise((resolve, reject) => {
+        const txIdb    = idb.transaction(storeNama, "readwrite");
+        const storeIdb = txIdb.objectStore(storeNama);
+        storeIdb.put({
+          ...dataCustomer,
+          id: idCustomer,
+          idCustomer,
+          foto: "",
+          fotoLokal: fotoBase64Compressed || null,
+          lokasiCustomer: { lat: customerLat || 0, lng: customerLng || 0 },
+          isSync: false,
+          createdAt: Date.now()
+        });
+        txIdb.oncomplete = () => resolve();
+        txIdb.onerror   = () => reject(txIdb.error);
       });
+
+      // SYNC KE FIRESTORE JIKA ONLINE
+      if (navigator.onLine) {
+        try {
+          if (fotoBase64Compressed) {
+            try {
+              const arr   = fotoBase64Compressed.split(",");
+              const mime  = arr[0].match(/:(.*?);/)[1];
+              const bstr  = atob(arr[1]);
+              let n       = bstr.length;
+              const u8arr = new Uint8Array(n);
+              while (n--) u8arr[n] = bstr.charCodeAt(n);
+              const blob  = new Blob([u8arr], { type: mime });
+              const sRef  = window.storageRef(window.storage, `${fotoFolder}/${idCustomer}`);
+              await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
+              foto = await window.getDownloadURL(sRef);
+            } catch { }
+          }
+
+          await window.setDoc(
+            window.doc(firestoreCol, idCustomer),
+            {
+              ...dataCustomer,
+              idCustomer,
+              foto,
+              lokasiCustomer: new window.GeoPoint(customerLat || 0, customerLng || 0),
+              createdAt: window.serverTimestamp()
+            }
+          );
+
+          const idb2 = await window.openAppDB();
+          await new Promise((resolve, reject) => {
+            const tx2    = idb2.transaction(storeNama, "readwrite");
+            const store2 = tx2.objectStore(storeNama);
+            store2.put({
+              ...dataCustomer,
+              id: idCustomer,
+              idCustomer,
+              foto,
+              fotoLokal: null,
+              lokasiCustomer: { lat: customerLat || 0, lng: customerLng || 0 },
+              isSync: true,
+              createdAt: Date.now()
+            });
+            tx2.oncomplete = () => resolve();
+            tx2.onerror   = () => reject(tx2.error);
+          });
+        } catch { }
+      }
       window.updateHomeStats();
       btnSimpanTextHome.innerText = "Sukses ✓";
       btnSimpanHome.style.background = "#4caf50";
@@ -1368,91 +1884,50 @@ window.openHomeCustomerPopup = async function() {
     }
   };
 };
+// Swipe close popup home customer — pasang sekali saja
+if (!window._homeSwipeListenerAttached) {
+  window._homeSwipeListenerAttached = true;
 
-(function() {
-  let startY = 0;
-  let currentY = 0;
-  let isDragging = false;
-  let canSwipe = false;
+  let startY = 0, currentY = 0, isDragging = false, canSwipe = false;
 
-  document.addEventListener("touchstart",
-    function(e) {
-      const popup = document.getElementById("popupHomeCustomer");
-      const content = document.getElementById("popupHomeCustomerContent");
-      if (!popup || !content)
-        return;
-      if (!popup.classList.contains("active"))
-        return;
-      if (e.target.closest("#mapPopupHome")) {
-        canSwipe = false;
-        return;
-      }
-      if (e.target.closest("input, textarea, select")){
-        canSwipe = false;
-        return;
-      }
-      if (content.scrollTop > 0) {
-        canSwipe = false;
-        return;
-      }
-      canSwipe = true;
-      isDragging = true;
-      startY = e.touches[0].clientY;
-      currentY = startY;
-      content.style.transition = "none";
-    },
-    { passive: true }
-  );
+  document.addEventListener("touchstart", function(e) {
+    const popup   = document.getElementById("popupHomeCustomer");
+    const content = document.getElementById("popupHomeCustomerContent");
+    if (!popup || !content || !popup.classList.contains("active")) return;
+    if (e.target.closest("#mapPopupHome")) { canSwipe = false; return; }
+    if (e.target.closest("input, textarea, select")) { canSwipe = false; return; }
+    if (content.scrollTop > 0) { canSwipe = false; return; }
+    canSwipe = true; isDragging = true;
+    startY = currentY = e.touches[0].clientY;
+    content.style.transition = "none";
+  }, { passive: true });
 
   document.addEventListener("touchmove", function(e) {
-      if (
-        !isDragging ||
-        !canSwipe
-      ) return;
-      const content = document.getElementById("popupHomeCustomerContent");
-      if (!content) return;
-      currentY = e.touches[0].clientY;
-      const moveY = currentY - startY;
-      if (moveY > 0) {
-        content.style.transform = `translateY(${moveY}px)`;
-      }
-    },
-    { passive: true }
-  );
-  document.addEventListener("touchend",
-    function() {
-      if (
-        !isDragging ||
-        !canSwipe
-      ) return;
-      const popup = document.getElementById("popupHomeCustomer");
-      const content = document.getElementById("popupHomeCustomerContent");
-      if (!content) return;
-      const moveY = currentY - startY;
-      content.style.transition = "0.3s ease";
+    if (!isDragging || !canSwipe) return;
+    const content = document.getElementById("popupHomeCustomerContent");
+    if (!content) return;
+    currentY = e.touches[0].clientY;
+    const moveY = currentY - startY;
+    if (moveY > 0) content.style.transform = `translateY(${moveY}px)`;
+  }, { passive: true });
 
-      if (moveY > 120) {
-        content.style.transform = "translateY(100%)";
-        setTimeout(() => {
-          popup.classList.remove("active");
-          content.style.transform = "";
-          window.fotoBase64Home = null;
-          customerLat = null;
-          customerLng = null;
-          // Destroy map
-          if (window.customerMarkerHome) {
-            window.customerMarkerHome.setMap(null);
-            window.customerMarkerHome = null;
-          }
-          fullMap = null;
-          const mapDiv = document.getElementById("mapFullHome");
-          if (mapDiv) mapDiv.innerHTML = "";
-        }, 250);
-      } else {
+  document.addEventListener("touchend", function() {
+    if (!isDragging || !canSwipe) return;
+    const popup   = document.getElementById("popupHomeCustomer");
+    const content = document.getElementById("popupHomeCustomerContent");
+    if (!content) return;
+    const moveY = currentY - startY;
+    content.style.transition = "0.3s ease";
+    if (moveY > 120) {
+      content.style.transform = "translateY(100%)";
+      setTimeout(() => {
+        popup.classList.remove("active");
         content.style.transform = "";
-      }
-      isDragging = false;
-      canSwipe = false;
+        window.fotoBase64Home = null;
+      }, 250);
+    } else {
+      content.style.transform = "";
     }
-  );
-})();
+    isDragging = false; canSwipe = false;
+  });
+}

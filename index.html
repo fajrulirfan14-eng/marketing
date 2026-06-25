@@ -28,6 +28,8 @@
 <link rel="stylesheet" href="customer.css">
 <link rel="stylesheet" href="analisis.css">
 <link rel="stylesheet" href="rolling.css">
+<link rel="stylesheet" href="laporanharian.css">
+<link rel="stylesheet" href="customersales.css">
 <link rel="stylesheet" href="operasional.css">
 <link rel="stylesheet" href="tentang.css">
 <link rel="stylesheet" href="keamanan.css">
@@ -60,6 +62,19 @@
       <div class="headerHome"></div>
       <div id="marketingList">
         <div class="marketing-card">
+          <button id="homeKantorBtn" class="home-kantor-btn" style="display:none;" onclick="window.openKantorPopup()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </button>
+          <button id="homeMapBtn" class="home-map-btn" onclick="window.openMapView()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+          </button>
           <button id="homeNotifBtn" class="home-notif-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -140,140 +155,18 @@
         </div>
       </div>
 
-      <div class="home-customer-wrapper">
-        <div class="home-customer-top">
-          <div class="home-customer-left">
-            <div class="home-customer-label">
-              Jumlah Customer
-            </div>
-            <div class="home-customer-total">
-              <span id="homeCustomerTotal">0</span>
-            </div>
-          </div>
-          <div class="home-customer-actions">
-            <button
-              class="home-customer-plus secondary"
-              onclick="showView('rolling')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="10" cy="7" r="4"></circle>
-                <path d="M20 8v6"></path>
-                <path d="M17 11h6"></path>
-              </svg>
-      
-            </button>
-            <button
-              class="home-customer-plus"
-              onclick="openHomeCustomerPopup()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 5v14"></path>
-                <path d="M5 12h14"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div class="home-customer-grid">
-          <div class="home-customer-box closing">
-            <div class="box-label">Closing</div>
-            <div class="box-value" id="homeClosingTotal">0</div>
-          </div>
-          <div class="home-customer-box konsinyasi">
-            <div class="box-label">Konsinyasi</div>
-            <div class="box-value" id="homeKonsinyasiTotal">0</div>
-          </div>
-          <div class="home-customer-box cash">
-            <div class="box-label">Cash</div>
-            <div class="box-value" id="homeCashTotal">0</div>
-          </div>
-        </div>
-        <div class="home-customer-payment">
-          <div class="payment-label">
-            Jumlah Bayaran
-          </div>
-          <div class="payment-value" id="homeTotalBayaran">
-            Rp. 0
-          </div>
-        </div>      
+      <!-- DYNAMIC CONTENT PER ROLE -->
+      <div id="homeRoleContent"></div>
+
+      <div class="home-footer" id="homeFooter">
+        <img src="LogoTTN.png" class="home-footer-logo">
+        <div class="home-footer-text" id="homeFooterText"></div>
       </div>
-      <div id="cardLaporanKemarin">
-        <div class="home-menu">
-        <button class="menu-btn" onclick="showView('input')">
-          <i class="fa-solid fa-pen-to-square"></i>
-          <span>Input Data</span>
-        </button>
-        <button class="menu-btn" onclick="showView('customer')">
-          <i class="fa-solid fa-users"></i>
-          <span>Customer</span>
-        </button>
-        <button class="menu-btn" onclick="showView('analisis')">
-          <i class="fa-solid fa-chart-line"></i>
-          <span>Analisis</span>
-        </button>
-      </div>
-        <div class="extra-title">Laporan Kemarin</div>
-        <div class="extra-subtitle" id="laporanKemarinTanggal">-</div>
-        <div class="laporan-kemarin-grid">
-          <div class="laporan-kemarin-box omzet">
-            <div class="laporan-kemarin-label">Omset</div>
-            <div class="laporan-kemarin-value" id="laporanKemarinOmset">-</div>
-          </div>
-          <div class="laporan-kemarin-box kasbon">
-            <div class="laporan-kemarin-label">Kasbon</div>
-            <div class="laporan-kemarin-value" id="laporanKemarinKasbon">-</div>
-          </div>
-          <div class="laporan-kemarin-box potongan">
-            <div class="laporan-kemarin-label">Potongan</div>
-            <div class="laporan-kemarin-value" id="laporanKemarinPotongan">-</div>
-          </div>
-          <div class="laporan-kemarin-box bonus">
-            <div class="laporan-kemarin-label">Bonus</div>
-            <div class="laporan-kemarin-value" id="laporanKemarinBonus">-</div>
-          </div>
-        </div>
-      </div>
-      <div class="home-extra-wrapper">
-        <div class="home-extra-card">
-          <div class="extra-title">Customer Per Hari</div>
-          <div class="extra-subtitle">Data dari IndexedDB</div>
-          <div class="extra-body" id="ringkasanCustomerBody">
-            <div class="extra-item">
-              <span>Memuat...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
+
     </div>
 
-    <div class="popup-overlay" id="popupHomeCustomer">
-      <div class="popup-content" id="popupHomeCustomerContent">
-        <!-- HANDLE -->
-        <div class="popup-handle"></div>
-        <!-- TITLE -->
-        <div class="popup-title">
-          Input Customer
-        </div>
-    
-        <!-- NAMA -->
-        <div class="popup-group">
-          <label>
-            Nama Customer
-          </label>
-    
-          <input
-            type="text"
-            id="inputNamaCustomerHome"
-            placeholder="Masukkan nama customer">
-        </div>
-    
-        <!-- AUTO RENDER FORM -->
-        <div id="stokContainerHome"></div>
-        <div id="mapPreviewHome" style="display:none;width:100%;height:320px;border-radius:14px;overflow:hidden;margin-top:8px;"></div>
-    
-      </div>
-    </div>
+    <!-- POPUP DYNAMIC -->
+    <div id="homePopupContainer"></div>
   </div>
   
   <!-- ===== INPUT VIEW ===== -->
@@ -519,27 +412,24 @@
   
   <!-- ===== INPUT TABEL VIEW ===== -->
   <div class="view" id="view-inputTabel">
-    <div class="input-tabel-page">
-      <div class="input-tabel-header">
-        <button class="input-tabel-back-btn" onclick="window.showView('input','back')">
-          <i class="fa-solid fa-arrow-left"></i>
-        </button>
-        <div class="input-tabel-title">Tabel Input</div>
-      </div>
-      <div class="input-tabel-container" id="inputTabelContainer">
-        <div class="input-tabel-card">
-          <div class="input-tabel-scroller" id="inputTabelScroller">
-            <div class="input-tabel-inner" id="inputTabelInner">
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="it-toolbar">
+      <button class="it-back" onclick="window.showView('input','back')">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <span class="it-title">Tabel Input</span>
     </div>
+    <div class="it-canvas-wrap" id="inputTabelInner"></div>
   </div>
   
   <!-- ===== CUSTOMER VIEW ===== -->
   <div class="view" id="view-customer">
     <div class="customer-page">
+      <!-- BACK BUTTON -->
+      <button class="customer-back-btn" onclick="window.showView('home','back')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+        </svg>
+      </button>
       <!-- CARD -->
       <div class="customer-card">
         <!-- HARI -->
@@ -936,12 +826,11 @@
             <div class="profil-storage-bar-wrap">
               <div class="profil-storage-bar-fill" id="storageBarFill"></div>
             </div>
-            <div class="profil-storage-detail" id="storageDetail">-</div>
           </div>
 
           <div class="profil-card-sep"></div>
 
-          <!-- KUOTA -->
+         <!-- KUOTA -->
           <div class="profil-card-item">
             <div class="profil-card-icon green">
               <i class="fa-solid fa-hard-drive"></i>
@@ -1883,6 +1772,11 @@
   
       <!-- HEADER -->
       <div class="rolling-header">
+        <button class="rolling-back-btn" onclick="window.showView('home','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
         <span>Customer Baru</span>
         <div class="rolling-header-actions">
 
@@ -1915,6 +1809,25 @@
               <div class="rolling-hari-item" data-hari="Jumat">Jumat</div>
               <div class="rolling-hari-item" data-hari="Sabtu">Sabtu</div>
               <div class="rolling-hari-item" data-hari="Minggu">Minggu</div>
+              <div class="rolling-filter-bulan-tahun">
+                <select id="rollingFilterBulan" class="rolling-filter-select">
+                  <option value="1">Januari</option>
+                  <option value="2">Februari</option>
+                  <option value="3">Maret</option>
+                  <option value="4">April</option>
+                  <option value="5">Mei</option>
+                  <option value="6">Juni</option>
+                  <option value="7">Juli</option>
+                  <option value="8">Agustus</option>
+                  <option value="9">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+                </select>
+                <select id="rollingFilterTahun" class="rolling-filter-select">
+                  <!-- AUTO RENDER JS -->
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1932,8 +1845,17 @@
         <!-- CONTENT -->
         <div class="rolling-bottom-content">
 
-          <!-- JUMLAH -->
-          <div class="rolling-jumlah-text" id="rollingJumlahCustomer">0 Customer</div>
+          <!-- STATS ROW -->
+          <div class="rolling-stats-row">
+            <div class="rolling-stat-box">
+              <div class="rolling-stat-label">Total Customer</div>
+              <div class="rolling-stat-value" id="rollingJumlahCustomer">0</div>
+            </div>
+            <div class="rolling-stat-box">
+              <div class="rolling-stat-label">Penghasilan Bulan Ini</div>
+              <div class="rolling-stat-value" id="rollingPenghasilan">Rp 0</div>
+            </div>
+          </div>
 
           <!-- SEARCH -->
           <input
@@ -1947,6 +1869,12 @@
         </div>
       </div>
 
+      <!-- TAB -->
+      <div class="rolling-tab-bar">
+        <button class="rolling-tab active" id="rollingTabAktif" onclick="window.setRollingTab('aktif')">New</button>
+        <button class="rolling-tab" id="rollingTabHistory" onclick="window.setRollingTab('history')">Submitted</button>
+      </div>
+
       <!-- CUSTOMER LIST -->
       <div class="rolling-wrapper">
         <div class="rolling-panel">
@@ -1958,71 +1886,239 @@
   
     </div>
     
-  <div class="popup-overlay" id="popupRollingCustomer">
-  
-    <div class="popup-content" id="popupRollingCustomerContent">
-  
-      <!-- HANDLE -->
-      <div class="popup-handle"></div>
-  
-      <!-- TITLE -->
-      <div class="popup-title">
-        Input Customer
-      </div>
-  
-      <!-- NAMA -->
-      <div class="popup-group">
+  <div class="rolling-popup-overlay" id="popupRollingCustomer">
+    <div class="rolling-popup-sheet" id="popupRollingCustomerContent">
+      <div class="rolling-popup-handle"></div>
+      <div class="rolling-popup-title">Edit Customer</div>
+
+      <div class="rolling-popup-group">
         <label>Nama Customer</label>
-        <input
-          type="text"
-          id="inputNamaCustomerRolling"
-          placeholder="Masukkan nama customer">
+        <input type="text" id="inputNamaCustomerRolling" placeholder="Masukkan nama customer">
       </div>
-  
-      <!-- ALAMAT -->
-      <div class="popup-group">
+
+      <div class="rolling-popup-group">
         <label>Alamat</label>
-        <input
-          type="text"
-          id="alamatCustomerRolling"
-          placeholder="Blok dan desa">
+        <input type="text" id="alamatCustomerRolling" placeholder="Blok dan desa">
       </div>
-  
-      <!-- DATA AWAL -->
-      <div class="popup-group">
+
+      <div class="rolling-popup-group">
         <label>Data Awal</label>
-        <div id="dataAwalContainerRolling" class="data-awal-container"></div>
+        <div id="dataAwalContainerRolling"></div>
       </div>
-  
-      <!-- PAYMENT TYPE -->
-      <div class="payment-type-wrapper">
-        <button type="button" class="payment-type-btn" data-value="Konsinyasi">
-          Konsinyasi
-        </button>
-        <button type="button" class="payment-type-btn" data-value="Cash">
-          Cash
-        </button>
-      </div>
-  
-      <!-- FOTO -->
-      <div class="foto-wrapper">
-        <label class="foto-card" id="fotoCardRolling">
+
+      <div class="rolling-foto-wrapper">
+        <label class="rolling-foto-card" id="fotoCardRolling">
           <input type="file" accept="image/*" capture="environment" id="fotoInputRolling" hidden>
-          <div class="foto-placeholder">
+          <div class="rolling-foto-placeholder">
             <i class="fa-solid fa-camera"></i>
             <span>Ganti Foto</span>
           </div>
         </label>
       </div>
-  
-      <!-- BUTTON -->
-      <button class="btn-simpan-customer" id="btnUpdateRolling">
-        Update
-      </button>
-  
+
+      <button class="rolling-btn-update" id="btnUpdateRolling">Update</button>
     </div>
-  
   </div>
+  </div>
+  
+  <!-- ===== CUSTOMER SALES VIEW ===== -->
+  <div class="view" id="view-customersales">
+    <div class="customer-sales-page">
+
+      <!-- HEADER -->
+      <div class="customer-sales-header">
+        <button class="customer-sales-back" onclick="window.showView('home','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
+        <span>Customer Sales</span>
+        <div class="customer-sales-header-actions">
+          <button class="customer-sales-icon-btn" id="btnReloadCustomerSales" title="Sync dari server">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 4v6h-6"/>
+              <path d="M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0114.36-3.36L23 10M1 14l5.13 4.36A9 9 0 0020.49 15"/>
+            </svg>
+          </button>
+          <div class="customer-sales-hari-wrapper" id="customerSalesHariWrapper">
+            <button class="customer-sales-icon-btn" id="btnFilterHariSales">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </button>
+            <div class="customer-sales-hari-dropdown" id="customerSalesHariDropdown">
+              <div class="customer-sales-hari-item" data-hari="Hari Ini"><strong>Hari Ini</strong></div>
+              <div class="customer-sales-hari-item" data-hari="Semua">Semua</div>
+              <div class="customer-sales-hari-item" data-hari="Senin">Senin</div>
+              <div class="customer-sales-hari-item" data-hari="Selasa">Selasa</div>
+              <div class="customer-sales-hari-item" data-hari="Rabu">Rabu</div>
+              <div class="customer-sales-hari-item" data-hari="Kamis">Kamis</div>
+              <div class="customer-sales-hari-item" data-hari="Jumat">Jumat</div>
+              <div class="customer-sales-hari-item" data-hari="Sabtu">Sabtu</div>
+              <div class="customer-sales-hari-item" data-hari="Minggu">Minggu</div>
+              <div class="customer-sales-filter-bulan-tahun">
+                <select id="customerSalesFilterBulan" class="customer-sales-filter-select">
+                  <option value="1">Januari</option>
+                  <option value="2">Februari</option>
+                  <option value="3">Maret</option>
+                  <option value="4">April</option>
+                  <option value="5">Mei</option>
+                  <option value="6">Juni</option>
+                  <option value="7">Juli</option>
+                  <option value="8">Agustus</option>
+                  <option value="9">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+                </select>
+                <select id="customerSalesFilterTahun" class="customer-sales-filter-select">
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM BAR -->
+      <div class="customer-sales-bottom-bar closed" id="customerSalesBottomBar">
+        <button class="customer-sales-bottom-toggle" id="btnToggleSearchBarSales">
+          <div class="customer-sales-bottom-line"></div>
+        </button>
+        <div class="customer-sales-bottom-content">
+
+          <!-- STATS -->
+          <div class="customer-sales-stats-row">
+            <div class="customer-sales-stat-box">
+              <div class="customer-sales-stat-label">Modal Pendam</div>
+              <div class="customer-sales-stat-value" id="salesModalPendam">Rp 0</div>
+            </div>
+            <div class="customer-sales-stat-box">
+              <div class="customer-sales-stat-label">Aset Customer</div>
+              <div class="customer-sales-stat-value" id="salesAsetCustomer">Rp 0</div>
+            </div>
+          </div>
+          <div class="customer-sales-stats-row">
+            <div class="customer-sales-stat-box full">
+              <div class="customer-sales-stat-label">Total Aset</div>
+              <div class="customer-sales-stat-value" id="salesTotalAset">Rp 0</div>
+            </div>
+            <div class="customer-sales-stat-box full">
+              <div class="customer-sales-stat-label">Customer</div>
+              <div class="customer-sales-stat-value" id="customerSalesJumlah">0</div>
+            </div>
+          </div>
+
+          <!-- SEARCH -->
+          <input type="text" id="customerSalesSearchInput" class="customer-sales-search-input"
+            placeholder="Cari nama customer..." autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+
+      <!-- LIST -->
+      <div class="customer-sales-wrapper">
+        <div class="customer-sales-panel">
+          <div class="customer-sales-list" id="customerSalesList">
+            <!-- AUTO RENDER JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+      <!-- POPUP EDIT CUSTOMER SALES -->
+    <div class="rolling-popup-overlay" id="popupCustomerSales">
+      <div class="rolling-popup-sheet" id="popupCustomerSalesContent">
+        <div class="rolling-popup-handle"></div>
+        <div class="rolling-popup-title">Edit Customer</div>
+  
+        <div class="rolling-popup-group">
+          <label>Nama Customer</label>
+          <input type="text" id="inputNamaCustomerSales" placeholder="Masukkan nama customer">
+        </div>
+  
+        <div class="rolling-popup-group">
+          <label>Alamat</label>
+          <input type="text" id="alamatCustomerSales" placeholder="Blok dan desa">
+        </div>
+        
+        <div class="rolling-popup-group">
+        <label>Hari</label>
+        <div class="sales-hari-dropdown-wrap" id="salesHariDropdownWrap">
+          <button type="button" class="sales-hari-dropdown-btn" id="salesHariDropdownBtn">
+            <span id="salesHariDropdownLabel">Senin</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="sales-hari-dropdown-list" id="salesHariDropdownList">
+            <div class="sales-hari-dropdown-item" data-hari="Senin">Senin</div>
+            <div class="sales-hari-dropdown-item" data-hari="Selasa">Selasa</div>
+            <div class="sales-hari-dropdown-item" data-hari="Rabu">Rabu</div>
+            <div class="sales-hari-dropdown-item" data-hari="Kamis">Kamis</div>
+            <div class="sales-hari-dropdown-item" data-hari="Jumat">Jumat</div>
+            <div class="sales-hari-dropdown-item" data-hari="Sabtu">Sabtu</div>
+            <div class="sales-hari-dropdown-item" data-hari="Minggu">Minggu</div>
+          </div>
+        </div>
+      </div>
+  
+        <div class="rolling-popup-group">
+          <label>Data Awal</label>
+          <div id="dataAwalContainerSales"></div>
+        </div>
+  
+        <div class="rolling-foto-wrapper">
+          <label class="rolling-foto-card" id="fotoCardSales">
+            <input type="file" accept="image/*" capture="environment" id="fotoInputSales" hidden>
+            <div class="rolling-foto-placeholder">
+              <i class="fa-solid fa-camera"></i>
+              <span>Ganti Foto</span>
+            </div>
+          </label>
+        </div>
+  
+        <button class="rolling-btn-update" id="btnUpdateSales">Update</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ===== LAPORAN HARIAN VIEW ===== -->
+  <div class="view" id="view-laporanharian">
+    <div class="laporan-harian-page">
+
+      <!-- HEADER -->
+      <div class="laporan-harian-header">
+        <button class="laporan-harian-back" onclick="window.showView('home','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
+        <span>Laporan Harian</span>
+        <div class="laporan-harian-filter">
+          <div class="laporan-dropdown-wrap" id="laporanDropdownBulanWrap">
+            <button class="laporan-dropdown-btn" id="laporanDropdownBulanBtn">
+              <span id="laporanDropdownBulanLabel">Juni</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="laporan-dropdown-list" id="laporanDropdownBulanList"></div>
+          </div>
+          <div class="laporan-dropdown-wrap" id="laporanDropdownTahunWrap">
+            <button class="laporan-dropdown-btn" id="laporanDropdownTahunBtn">
+              <span id="laporanDropdownTahunLabel">2026</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="laporan-dropdown-list" id="laporanDropdownTahunList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIST -->
+      <div class="laporan-harian-list" id="laporanHarianList">
+        <!-- AUTO RENDER JS -->
+      </div>
+
+    </div>
   </div>
 
   <!-- ===== OPERASIONAL VIEW ===== -->
@@ -2232,7 +2328,17 @@
 
 </div>
  
-
+<!-- ===== MAP POPUP GLOBAL ===== -->
+<div id="mapPopup" style="display:none;">
+  <div id="mapPopupInner">
+    <div id="mapPopupFull"></div>
+    <button id="mapPopupClose">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+    </svg>
+  </button>
+  </div>
+</div>
  <!-- POPUP CATATAN GLOBAL  -->
 <div class="popup-overlay" id="popupCatatanCustomer">
   <div class="popup-content popup-catatan-content">
@@ -2294,52 +2400,6 @@
 
 </div>
 
-<!-- POPUP RINCIAN PIN MAP -->
-<div id="popupRincianPin" class="map-rincian-overlay" style="display:none;">
-  <div class="map-rincian-card">
-    <button id="btnTutupRincianPin" class="map-rincian-close">✕</button>
-    <img id="rincianPinFoto" class="map-rincian-foto" src="" alt="">
-    <div class="map-rincian-nama" id="rincianPinNama"></div>
-    <div class="map-rincian-alamat" id="rincianPinAlamat"></div>
-    <div class="map-rincian-kemarin" id="rincianPinKemarin"></div>
-    <div class="map-rincian-jarak" id="rincianPinJarak" style="display:none;">
-      <span id="rincianPinJarakKm">— km</span>
-      <span class="map-info-jarak-dot">•</span>
-      <span id="rincianPinJarakMenit">— menit</span>
-    </div>
-    <button id="btnRincianMulaiRouting" class="map-rincian-btn-routing">
-      ▶ Navigasi ke Sini
-    </button>
-  </div>
-</div>
-<!-- MAP ROUTING -->
-<div id="mapPopupRouting" class="map-popup-overlay" style="display:none;">
-  <div class="map-popup-container">
-    <div id="mapFullRouting"></div>
-    <div id="infoJarakRouting" class="map-info-jarak" style="display:none;">
-      <span id="infoJarakKm">— km</span>
-      <span class="map-info-jarak-dot">•</span>
-      <span id="infoJarakMenit">— menit</span>
-    </div>
-    <button id="btnMulaiNavigasiRouting" class="btn-pilih-lokasi">
-      ▶ Mulai
-    </button>
-    <button id="btnTutupMapRouting" class="btn-tutup-map">✕</button>
-  </div>
-</div>
-<!-- MAP PIN -->
-<div id="mapPopupHome" class="map-popup-overlay">
-  <div class="map-popup-container">
-    <div id="mapFullHome"></div>
-    <button id="btnSelectLocationHome" class="btn-pilih-lokasi">
-      Pilih Lokasi
-    </button>
-    <button id="btnTutupMapHome" class="btn-tutup-map">
-      ✕
-    </button>
-  </div>
-</div>
-
 <!-- ===== NAVBAR ===== -->
 <div class="navbar-bottom" id="navbarBottom">
 
@@ -2367,7 +2427,8 @@
   </div>
 
 </div>
-
+<div id="devConsoleMount"></div>
+<script src="devconsole.js"></script>
 <script type="module" src="index.js"></script>
 <script type="module" src="home.js"></script>
 <script type="module" src="input.js"></script>
@@ -2375,6 +2436,8 @@
 <script src="customer.js"></script>
 <script src="analisis.js"></script>
 <script src="rolling.js"></script>
+<script type="module" src="laporanharian.js"></script>
+<script type="module" src="customersales.js"></script>
 <script src="operasional.js"></script>
 <script src="slip.js"></script>
 <script src="chat.js"></script>

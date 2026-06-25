@@ -1,7 +1,15 @@
 
-window.initRollingView = async function () {
-  console.log("Rolling view ready");
+window.rollingTabAktif   = "aktif";
+window.rollingFilterBulan = new Date().getMonth() + 1;
+window.rollingFilterTahun = new Date().getFullYear();
 
+window.setRollingTab = function(tab) {
+  window.rollingTabAktif = tab;
+  document.getElementById("rollingTabAktif")?.classList.toggle("active", tab === "aktif");
+  document.getElementById("rollingTabHistory")?.classList.toggle("active", tab === "history");
+  window.initRollingView();
+};
+window.initRollingView = async function () {
   const customerList = document.getElementById("rollingCustomerList");
 
   // Toggle bottom bar
@@ -18,7 +26,7 @@ window.initRollingView = async function () {
   const hariHariIni = hariNama[new Date().getDay()];
 
   if (!window.rollingFilterHari) {
-    window.rollingFilterHari = "CustomerBaru";
+    window.rollingFilterHari = hariHariIni;
   }
 
   // Set active item dropdown
@@ -53,10 +61,40 @@ window.initRollingView = async function () {
       dropdown?.classList.remove("open");
     }
   });
+  // Init filter bulan & tahun
+  const now = new Date();
+  const selectBulan = document.getElementById("rollingFilterBulan");
+  const selectTahun = document.getElementById("rollingFilterTahun");
 
-  // =========================
+  if (selectTahun && !selectTahun.options.length) {
+    const tahunIni = now.getFullYear();
+    for (let y = tahunIni; y >= tahunIni - 3; y--) {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      selectTahun.appendChild(opt);
+    }
+  }
+
+  if (selectBulan) selectBulan.value = window.rollingFilterBulan;
+  if (selectTahun) selectTahun.value = window.rollingFilterTahun;
+
+  if (selectBulan) {
+    selectBulan.onchange = function() {
+      window.rollingFilterBulan = Number(this.value);
+      localStorage.setItem("rollingFilterBulan", this.value);
+      window.initRollingView();
+    };
+  }
+  
+  if (selectTahun) {
+    selectTahun.onchange = function() {
+      window.rollingFilterTahun = Number(this.value);
+      localStorage.setItem("rollingFilterTahun", this.value);
+      window.initRollingView();
+    };
+  }
   // TOMBOL RELOAD (SYNC FIRESTORE)
-  // =========================
   const btnReload = document.getElementById("btnReloadRolling");
   if (btnReload) {
     btnReload.onclick = async function() {
@@ -71,27 +109,34 @@ window.initRollingView = async function () {
         const colRef = window.collection(
           window.db, "users", uid, "customerBaruHunter"
         );
-        console.log("🔍 UID:", uid);
-        console.log("🔍 Path:", `users/${uid}/customerBaruHunter`);
         const uid2 = window.auth.currentUser.uid;
-        if (filterHari && filterHari !== "Semua") {
+        const bulanFilter = window.rollingFilterBulan || (new Date().getMonth() + 1);
+        const tahunFilter = window.rollingFilterTahun || new Date().getFullYear();
+
+        // Hitung range tanggal awal dan akhir bulan
+        const tglAwal  = `${tahunFilter}-${String(bulanFilter).padStart(2,"0")}-01`;
+        const tglAkhir = `${tahunFilter}-${String(bulanFilter).padStart(2,"0")}-31`;
+
+        if (filterHari && filterHari !== "Semua" && filterHari !== "CustomerBaru") {
           q = window.query(
             colRef,
             window.where("createdBy", "==", uid2),
-            window.where("hari", "==", filterHari)
+            window.where("hari", "==", filterHari),
+            window.where("tanggal", ">=", tglAwal),
+            window.where("tanggal", "<=", tglAkhir)
           );
         } else {
           q = window.query(
             colRef,
-            window.where("createdBy", "==", uid2)
+            window.where("createdBy", "==", uid2),
+            window.where("tanggal", ">=", tglAwal),
+            window.where("tanggal", "<=", tglAkhir)
           );
         }
 
         const snapshot = await window.getDocs(q);
         const docs = [];
         snapshot.forEach(d => docs.push({ ...d.data(), id: d.id }));
-        console.log("📦 Docs dari Firestore:", docs.length, docs);
-
         // Simpan ke IndexedDB (replace semua yang di-query)
         const idb = await window.openAppDB();
         const tx = idb.transaction("customerBaruDB", "readwrite");
@@ -101,7 +146,6 @@ window.initRollingView = async function () {
         if (filterHari === "Semua") {
           await new Promise(r => { store.clear().onsuccess = r; });
         }
-        console.log("💾 Mau disimpan ke IDB:", docs.length, "item");
         docs.forEach(item => {
           // Normalize GeoPoint
           if (item.lokasiCustomer) {
@@ -114,8 +158,6 @@ window.initRollingView = async function () {
           tx.oncomplete = res;
           tx.onerror = () => rej(tx.error);
         });
-
-        console.log(`✅ Sync ${docs.length} customer (${filterHari})`);
       } catch(err) {
         console.log("Gagal sync:", err);
       } finally {
@@ -138,33 +180,91 @@ window.initRollingView = async function () {
       req.onsuccess = () => resolve(req.result || []);
       req.onerror = () => reject(req.error);
     });
-    
-    // =========================
-    // DEBUG CUSTOMERBARUDB
-    // =========================
-    console.log("Semua customerBaruDB:", data);
-    
-    console.table(data);
-    
-    data.forEach((item, index) => {
-      console.log(`Customer ${index + 1}`, item);
-    });
-    
     // APPLY FILTER HARI
-    const todayStr = new Date().toISOString().split("T")[0]; // "2026-06-12"
+    const nowLocal = new Date();
+    
+    const todayStr =
+      nowLocal.getFullYear() +
+      "-" +
+      String(nowLocal.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(nowLocal.getDate()).padStart(2, "0");
 
     let filtered;
-    if (window.rollingFilterHari === "CustomerBaru") {
-      filtered = data.filter(item => item.tanggal === todayStr);
-    } else if (window.rollingFilterHari === "Semua") {
-      filtered = data;
+    const uid           = window.auth.currentUser?.uid;
+    const idCabangAktif = window.currentUser?.idCabang || "";
+    const bulan         = window.rollingFilterBulan || (new Date().getMonth() + 1);
+    const tahun         = window.rollingFilterTahun || new Date().getFullYear();
+
+    // Helper cek tanggal masuk bulan & tahun filter
+    function dalamBulanTahun(item) {
+      if (!item.tanggal) return false;
+    
+      const [tahunItem, bulanItem] = item.tanggal.split("-").map(Number);
+    
+      return (
+        bulanItem === bulan &&
+        tahunItem === tahun
+      );
+    }
+
+    if (window.rollingTabAktif === "history") {
+      filtered = data.filter(item =>
+        item.diserahkan === true &&
+        item.createdBy === uid &&
+        dalamBulanTahun(item)
+      );
     } else {
-      filtered = data.filter(item => item.hari === window.rollingFilterHari);
+      if (window.rollingFilterHari === "CustomerBaru") {
+        filtered = data.filter(item =>
+          item.tanggal === todayStr &&
+          item.diserahkan !== true &&
+          item.idCabang === idCabangAktif &&
+          item.createdBy === uid
+        );
+      } else if (window.rollingFilterHari === "Semua") {
+        filtered = data.filter(item =>
+          item.diserahkan !== true &&
+          item.idCabang === idCabangAktif &&
+          item.createdBy === uid &&
+          dalamBulanTahun(item)
+        );
+      } else {
+        filtered = data.filter(item =>
+          item.hari === window.rollingFilterHari &&
+          item.diserahkan !== true &&
+          item.idCabang === idCabangAktif &&
+          item.createdBy === uid &&
+          dalamBulanTahun(item)
+        );
+      }
     }
 
     // Update jumlah customer
     const elJumlah = document.getElementById("rollingJumlahCustomer");
-    if (elJumlah) elJumlah.textContent = `${filtered.length} Customer`;
+    if (elJumlah) elJumlah.textContent = filtered.length;
+
+    // Hitung penghasilan — semua dokumen bulan & tahun filter (false dan true)
+    const semuaBulanIni = data.filter(item =>
+      item.createdBy === uid && dalamBulanTahun(item)
+    );
+    let upahHunter = 0;
+    try {
+      const user = window.currentUser || {};
+      const idbK = await window.openAppDB();
+      const kantorRaw = await new Promise(resolve => {
+        const tx = idbK.transaction("kantorDB", "readonly");
+        const r  = tx.objectStore("kantorDB").get(user.idCabang || "");
+        r.onsuccess = () => resolve(r.result || null);
+        r.onerror   = () => resolve(null);
+      });
+      const kantorData = kantorRaw?.data || kantorRaw;
+      upahHunter = Number(kantorData?.upahHunter || 0);
+    } catch { }
+
+    const totalPenghasilan = semuaBulanIni.length * upahHunter;
+    const elPenghasilan = document.getElementById("rollingPenghasilan");
+    if (elPenghasilan) elPenghasilan.textContent = "Rp " + totalPenghasilan.toLocaleString("id-ID");
 
     // Search filter
     const searchVal = (document.getElementById("rollingSearchInput")?.value || "").toLowerCase();
@@ -200,19 +300,31 @@ window.initRollingView = async function () {
       const badgeCatatan = item.catatan
         ? `<span class="rolling-badge-catatan">𓂃✍︎</span>`
         : "";
+      // Badge konsinyasi
+      const badgeKonsinyasi = Object.keys(item.konsinyasi || {}).length
+        ? Object.entries(item.konsinyasi).map(([k, v]) =>
+            `<span class="rolling-badge rolling-badge-konsinyasi">${k}: ${v}</span>`
+          ).join("")
+        : "";
 
+      // Badge cash
+      const badgeCash = Object.keys(item.cash || {}).length
+        ? Object.entries(item.cash).map(([k, v]) =>
+            `<span class="rolling-badge rolling-badge-cash">${k}: ${v}</span>`
+          ).join("")
+        : "";
       return `
         <div class="rolling-customer-item" onclick="openRollingCustomerPopup('${item.id}')">
           <img class="rolling-avatar" src="${foto}" />
           
           <div class="rolling-info">
-            <div class="rolling-name">${nama} ${badgeCatatan}</div>
+            <div class="rolling-name">${nama} ${badgeCatatan} ${badgeKonsinyasi} ${badgeCash}</div>
             <div class="rolling-distance">${jarak}</div>
             <div class="rolling-hari">${hari}</div>
           </div>
 
           <div class="rolling-actions">
-            <button class="rolling-action-btn" onclick="event.stopPropagation(); window.openMapRouting('${item.id}')">
+            <button class="rolling-action-btn" onclick="event.stopPropagation(); window.openMapFromCustomerBaru('${item.id}')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
@@ -243,8 +355,6 @@ window.initRollingView = async function () {
   }
 };
 window.openRollingCustomerPopup = async function (idCustomer) {
-  console.log("Open rolling popup:", idCustomer);
-
   const popup = document.getElementById("popupRollingCustomer");
   const inputNama = document.getElementById("inputNamaCustomerRolling");
   const inputAlamat = document.getElementById("alamatCustomerRolling");
@@ -290,71 +400,37 @@ window.openRollingCustomerPopup = async function (idCustomer) {
 
     const varian = Array.isArray(userData?.varian) ? userData.varian : [];
 
-    // =========================
-    // 3. DETECT PAYMENT
-    // =========================
-    const paymentKey =
-      data.konsinyasi ? "konsinyasi" :
-      data.cash ? "cash" : null;
-
-    const dataAwal = data[paymentKey] || {};
-
-    // =========================
-    // 4. BUILD MAP VALUE
-    // =========================
-    const valueMap = {};
-    Object.entries(dataAwal).forEach(([k, v]) => {
-      valueMap[k] = v;
-    });
-
-    // =========================
-    // 5. RENDER DATA AWAL (WAJIB URUT VARIAN)
-    // =========================
-    let html = "";
+    // Render konsinyasi & cash terpisah
+    let htmlKonsinyasi = "";
+    let htmlCash = "";
 
     varian.forEach(item => {
       const key = Object.keys(item)[0];
       if (!key) return;
-
-      const val = valueMap[key] ?? "";
-
-      html += `
-        <div class="data-awal-item">
-          <input
-            type="number"
-            class="data-awal-input"
-            data-key="${key}"
-            value="${val}"
-            placeholder="${key}">
+      const valK = data.konsinyasi?.[key] ?? "";
+      const valC = data.cash?.[key] ?? "";
+      htmlKonsinyasi += `
+        <div class="rolling-data-item">
+          <input type="number" class="rolling-input-konsinyasi rolling-data-input" data-key="${key}" value="${valK}" placeholder="${key}">
+        </div>
+      `;
+      htmlCash += `
+        <div class="rolling-data-item">
+          <input type="number" class="rolling-input-cash rolling-data-input" data-key="${key}" value="${valC}" placeholder="${key}">
         </div>
       `;
     });
 
-    container.innerHTML = html || `
-      <div class="customer-empty">Tidak ada data varian</div>
+    container.innerHTML = `
+      <div class="rolling-popup-group">
+        <label>Konsinyasi</label>
+        <div class="rolling-data-container">${htmlKonsinyasi}</div>
+      </div>
+      <div class="rolling-popup-group">
+        <label>Cash</label>
+        <div class="rolling-data-container">${htmlCash}</div>
+      </div>
     `;
-
-    // =========================
-    // 6. PAYMENT ACTIVE STATE
-    // =========================
-    document.querySelectorAll(".payment-type-btn").forEach(btn => {
-      btn.classList.remove("active");
-
-      if (btn.dataset.value.toLowerCase() === paymentKey) {
-        btn.classList.add("active");
-      }
-
-      btn.onclick = function () {
-        document.querySelectorAll(".payment-type-btn")
-          .forEach(b => b.classList.remove("active"));
-
-        this.classList.add("active");
-        // Samakan ke lowercase supaya konsisten dengan key IndexedDB
-        window.selectedPaymentTypeRolling = this.dataset.value.toLowerCase();
-      };
-    });
-
-    window.selectedPaymentTypeRolling = paymentKey; // sudah lowercase
 
     const fotoCard = document.getElementById("fotoCardRolling");
     if (data.foto) {
@@ -396,6 +472,9 @@ window.openRollingCustomerPopup = async function (idCustomer) {
     
       inputKamera.click();
     };
+    window._rollingEditLat   = null;
+    window._rollingEditLng   = null;
+    window._rollingEditJarak = null;
 
     popup.classList.add("active");
 
@@ -452,88 +531,96 @@ document.getElementById("btnUpdateRolling")?.addEventListener("click", async fun
 
     // Update foto kalau ada foto baru
     if (window.rollingFotoBaru) {
-      existing.foto = window.rollingFotoBaru;
+      // Compress dulu
+      const compressed = await new Promise(resolve => {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          let w = img.width, h = img.height;
+          const maxSize = 800;
+          if (w > h) { if (w > maxSize) { h *= maxSize/w; w = maxSize; } }
+          else { if (h > maxSize) { w *= maxSize/h; h = maxSize; } }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.6));
+        };
+        img.src = window.rollingFotoBaru;
+      });
+      existing.fotoLokal = compressed;
+      existing.foto      = compressed; // tampil lokal dulu
       window.rollingFotoBaru = null;
     }
-
-    // Update payment type & varian
-    const paymentKey = window.selectedPaymentTypeRolling;
-    if (paymentKey) {
-
-      // Kumpulkan input varian
-      const inputs = document.querySelectorAll("#dataAwalContainerRolling .data-awal-input");
-      const varianData = {};
-      inputs.forEach(input => {
-        const key = input.dataset.key;
-        const val = input.value;
-        if (key) varianData[key] = val !== "" ? Number(val) : 0;
-      });
-
-      // Hitung ulang keterangan
-      let hargaPendam = 0;
-      let hargaJual = 0;
-      let cashback = 0;
-
-      Object.entries(varianData).forEach(([key, qty]) => {
-        const v = varianMap[key] || {};
-        hargaPendam += qty * Number(v.hargaProduksi || 0);
-        hargaJual   += qty * Number(v.hargaKonsumen || 0);
-        cashback    += qty * Number(v.hargaKonsumen || 0);
-      });
-
-      const keterangan = {};
-      if (paymentKey === "konsinyasi") {
-        keterangan.modal = { hargaPendam, hargaJual };
-      } else if (paymentKey === "cash") {
-        keterangan.cashback = cashback;
-      }
-
-      // Hapus payment lama, set yang baru
-      delete existing.konsinyasi;
-      delete existing.cash;
-      existing[paymentKey] = varianData;
-      existing.keterangan = keterangan;
-    }
-
-    // =========================
-    // STEP 3: UPDATE FIRESTORE
-    // =========================
-    const uid = window.auth.currentUser.uid;
-    const docRef = window.doc(
-      window.db,
-      "users", uid,
-      "customerBaruHunter", existing.id
-    );
-
-    // Hapus field payment lama, set yang baru (sama seperti saat Simpan)
-    const updatePayload = {
-      namaCustomer: existing.namaCustomer,
-      alamatCustomer: existing.alamatCustomer,
-      foto: existing.foto || "",
-      keterangan: existing.keterangan || {},
-      konsinyasi: window.deleteField(),
-      cash: window.deleteField(),
-      [existing.konsinyasi ? "konsinyasi" : "cash"]:
-        existing.konsinyasi || existing.cash,
-    };
-
-    await window.updateDoc(docRef, updatePayload);
-    console.log("☁️ Firestore update berhasil");
-
-    // =========================
-    // STEP 4: WRITE INDEXEDDB
-    // =========================
-    const dbWrite = await window.openAppDB();
-    await new Promise((resolve, reject) => {
-      const tx = dbWrite.transaction("customerBaruDB", "readwrite");
-      const store = tx.objectStore("customerBaruDB");
-      const req = store.put(existing);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
+    // Kumpulkan konsinyasi & cash
+    const konsinyasi = {};
+    document.querySelectorAll(".rolling-input-konsinyasi").forEach(input => {
+      if (input.dataset.key && input.value !== "") konsinyasi[input.dataset.key] = Number(input.value);
+    });
+    const cash = {};
+    document.querySelectorAll(".rolling-input-cash").forEach(input => {
+      if (input.dataset.key && input.value !== "") cash[input.dataset.key] = Number(input.value);
     });
 
-    console.log("Update berhasil");
+    // Hitung keterangan
+    let hargaPendam = 0, hargaJual = 0, hargaPay = 0;
+    Object.entries(konsinyasi).forEach(([key, qty]) => {
+      const v = varianMap[key] || {};
+      hargaPendam += qty * Number(v.hargaProduksi || 0);
+      hargaJual   += qty * Number(v.hargaKonsumen || 0);
+    });
+    Object.entries(cash).forEach(([key, qty]) => {
+      const v = varianMap[key] || {};
+      hargaPay += qty * Number(v.hargaKonsumen || 0);
+    });
 
+    const keterangan = {};
+    if (Object.keys(konsinyasi).length) keterangan.modal = { hargaPendam, hargaJual };
+    if (Object.keys(cash).length) keterangan.pay = { hargaPay };
+
+    existing.konsinyasi = Object.keys(konsinyasi).length ? konsinyasi : undefined;
+    existing.cash       = Object.keys(cash).length ? cash : undefined;
+    existing.keterangan = keterangan;
+
+    // STEP 3: SAVE INDEXDB DULU
+    const uid = window.auth.currentUser.uid;
+    // STEP 4: WRITE INDEXEDDB
+    const dbWrite = await window.openAppDB();
+    await new Promise((resolve, reject) => {
+      const tx    = dbWrite.transaction("customerBaruDB", "readwrite");
+      const store = tx.objectStore("customerBaruDB");
+      store.put({ ...existing, isSync: false, isEdit: true });
+      tx.oncomplete = () => resolve();
+      tx.onerror    = () => reject(tx.error);
+    });
+
+    // SYNC KE FIRESTORE JIKA ONLINE
+    if (navigator.onLine) {
+      try {
+        const docRef = window.doc(window.db, "users", uid, "customerBaruHunter", existing.id);
+        const updatePayload = {
+          namaCustomer:   existing.namaCustomer,
+          alamatCustomer: existing.alamatCustomer,
+          foto:           existing.fotoLokal ? "" : (existing.foto || ""),
+          keterangan:     existing.keterangan || {},
+          jarak:          existing.jarak ?? 0,
+          konsinyasi:     Object.keys(existing.konsinyasi || {}).length ? existing.konsinyasi : window.deleteField(),
+          cash:           Object.keys(existing.cash || {}).length ? existing.cash : window.deleteField(),
+          ...(existing.lokasiCustomer?.lat ? {
+            lokasiCustomer: new window.GeoPoint(existing.lokasiCustomer.lat, existing.lokasiCustomer.lng)
+          } : {})
+        };
+        await window.updateDoc(docRef, updatePayload);
+
+        // Tandai sync berhasil
+        const dbSync = await window.openAppDB();
+        await new Promise((resolve, reject) => {
+          const tx    = dbSync.transaction("customerBaruDB", "readwrite");
+          const store = tx.objectStore("customerBaruDB");
+          store.put({ ...existing, isSync: true });
+          tx.oncomplete = () => resolve();
+          tx.onerror    = () => reject(tx.error);
+        });
+      } catch { }
+    }
     // Tutup popup & refresh list
     document.getElementById("popupRollingCustomer").classList.remove("active");
     window.initRollingView();

@@ -113,6 +113,7 @@ onAuthStateChanged(auth, async(user)=>{
 });
 window.logout = async function(){
   try{
+    if (window.homeClock) { clearInterval(window.homeClock); window.homeClock = null; }
     await signOut(auth);
     localStorage.clear();
     window.location.href = "login.html";
@@ -142,13 +143,19 @@ window.logout = async function(){
 
   function canPull() {
     if (isPopupOpen()) return false;
+    if (window.currentView === "map") return false;
+    if (window.currentView === "inputTabel") return false;
     const app = document.getElementById("app");
     if (app.scrollTop > 0) return false;
-    // Cek scroll di dalam view aktif juga
     const activeView = document.querySelector(".view.active");
     if (activeView && activeView.scrollTop > 0) return false;
-    // Cek scroll di view aktif langsung
-    if (activeView && activeView.scrollTop > 0) return false;
+    // Cek semua elemen scrollable di dalam view aktif
+    if (activeView) {
+      const scrollables = activeView.querySelectorAll("*");
+      for (const el of scrollables) {
+        if (el.scrollTop > 0) return false;
+      }
+    }
     return true;
   }
   window.addEventListener("touchstart", (e) => {
@@ -225,7 +232,7 @@ window.logout = async function(){
 })();
 window.openAppDB = function () {
   return new Promise( (resolve, reject) => {
-    const request = indexedDB.open("appDB", 7);
+    const request = indexedDB.open("appDB", 9);
     request.onupgradeneeded = function (event) {
       const db = event.target.result;
       if (!db.objectStoreNames.contains("customerHarianDB")) {
@@ -254,6 +261,18 @@ window.openAppDB = function () {
         const store = db.createObjectStore("laporanMarketingDB", { keyPath: "id" });
         store.createIndex("tanggal", "tanggal", { unique: false });
         store.createIndex("idMarketing", "idMarketing", { unique: false });
+      }
+      if (!db.objectStoreNames.contains("customerLainDB")) {
+        db.createObjectStore("customerLainDB", { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains("customerHunterDB")) {
+        db.createObjectStore("customerHunterDB", { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains("customerSalesDB")) {
+        db.createObjectStore("customerSalesDB", { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains("customerSalesLainDB")) {
+        db.createObjectStore("customerSalesLainDB", { keyPath: "id" });
       }
       if (!db.objectStoreNames.contains("slipGajiDB")) {
         const store = db.createObjectStore("slipGajiDB", { keyPath: "id" });
@@ -459,6 +478,8 @@ window.addEventListener(
     window.syncOfflineDataHarian();
     window.syncCustomerHarian?.();
     window.syncPendingLokasi?.();
+    window.syncPendingHunter?.();
+    window.syncPendingSales?.();
   }
 );
 window.getCustomerFromIndexDB = async function(idCustomer) {
@@ -573,7 +594,9 @@ function showView(viewName, trigger = "direct"){
     "slip",
     "rollingcustomer",
     "chatAi",
-    "peraturan"
+    "peraturan",
+    "laporanharian",
+    "customersales"
   ];
 
   if (navbar) {
@@ -589,7 +612,8 @@ function showView(viewName, trigger = "direct"){
     clearInterval(window.homeClock);
     window.homeClock = null;
   }
-
+  // Cleanup tabel canvas saat pindah view
+  if (viewName !== "inputTabel") window._tabelCleanup?.();
   switch(viewName){
     case "home": window.initHomeView?.(); break;
     case "input": window.initInputView?.(); break;
@@ -606,6 +630,8 @@ function showView(viewName, trigger = "direct"){
     case "rollingcustomer": window.initRollingCustomerView?.(); break;
     case "chatAi": window.initChatAiView?.(); break;
     case "peraturan": window.initPeraturanView?.(); break;
+    case "customersales": window.initCustomerSalesView?.(); break;
+    case "laporanharian": window.initLaporanHarianView?.(); break;
   }
 
   // Reset scroll semua view container
@@ -920,7 +946,7 @@ function initNavbar() {
   const hideNavbarViews = [
     "customer","input","inputTabel","analisis","rolling",
     "tentang","keamanan","perjanjian","slip",
-    "rollingcustomer","chatAi","peraturan"
+    "rollingcustomer","chatAi","peraturan", "laporanharian", "customersales"
   ];
 
   appEl?.addEventListener("scroll", () => {
@@ -1148,10 +1174,11 @@ window.fetchUsersByCabang = async function () {
       const h = state.drag.handle;
       let { x: bx, y: by, w: bw, h: bh } = sb;
 
-      if (h === 'br') { bw = Math.max(MIN, bw + dx); bh = Math.max(MIN, bh + dy); }
-      if (h === 'bl') { const nw = Math.max(MIN, bw - dx); bx = bx + bw - nw; bw = nw; bh = Math.max(MIN, bh + dy); }
-      if (h === 'tr') { bw = Math.max(MIN, bw + dx); const nh = Math.max(MIN, bh - dy); by = by + bh - nh; bh = nh; }
-      if (h === 'tl') { const nw = Math.max(MIN, bw - dx); bx = bx + bw - nw; bw = nw; const nh = Math.max(MIN, bh - dy); by = by + bh - nh; bh = nh; }
+      const RATIO = 14 / 9;
+      if (h === 'br') { bw = Math.max(MIN, bw + dx); bh = bw / RATIO; }
+      if (h === 'bl') { const nw = Math.max(MIN, bw - dx); bx = bx + bw - nw; bw = nw; bh = bw / RATIO; }
+      if (h === 'tr') { bw = Math.max(MIN, bw + dx); bh = bw / RATIO; by = by + sb.h - bh; }
+      if (h === 'tl') { const nw = Math.max(MIN, bw - dx); bx = bx + bw - nw; bw = nw; bh = bw / RATIO; by = by + sb.h - bh; }
 
       nb = clampBox({ x: bx, y: by, w: bw, h: bh }, ir);
 
@@ -1176,9 +1203,16 @@ window.fetchUsersByCabang = async function () {
     img.src = dataUrl;
 
     img.onload = () => {
-      // Hitung posisi gambar, init crop box = full gambar
       state.imgRect = getImgRect();
-      state.box     = { ...state.imgRect };
+      const ir = state.imgRect;
+      // Init crop box dengan rasio hero 14:9
+      const RATIO = 14 / 9;
+      let bw = ir.w;
+      let bh = bw / RATIO;
+      if (bh > ir.h) { bh = ir.h; bw = bh * RATIO; }
+      const bx = ir.x + (ir.w - bw) / 2;
+      const by = ir.y + (ir.h - bh) / 2;
+      state.box = { x: bx, y: by, w: bw, h: bh };
       applyBox();
 
       // Pasang event (sekali)
@@ -1247,7 +1281,17 @@ window.fetchUsersByCabang = async function () {
       heroBg.style.background     = `url(${compressed}) center/cover no-repeat`;
       heroBg.style.backgroundSize = 'cover';
     }
-
+    // Toast feedback
+    const toast = document.createElement("div");
+    toast.textContent = "✓ Foto sampul berhasil diperbarui";
+    toast.style.cssText = `
+      position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+      background:#2eaf62;color:#fff;padding:10px 20px;border-radius:20px;
+      font-size:13px;font-weight:600;z-index:99999;
+      animation:fadeInUp .3s ease;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
     closeModal();
   }
   function closeModal() {

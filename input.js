@@ -40,16 +40,7 @@ window.initInputView = async function(){
       styleEl.id = styleId;
       document.head.appendChild(styleEl);
     }
-    if (bersih) {
-      styleEl.innerHTML = `
-        .customer-badge,
-        .customer-badge-new,
-        .customer-note-badge,
-        .input-customer-jarak { display: none !important; }
-      `;
-    } else {
-      styleEl.innerHTML = "";
-    }
+    styleEl.innerHTML = "";
   }
 
   applyTampilanBersih(window.inputTampilanBersih);
@@ -73,6 +64,18 @@ window.initInputView = async function(){
     }
   };
   document.addEventListener("click", window._analysisDocClickHandler);
+  // Tombol tutup dropdown
+  const closeDropdownBtn = analysisDropdown.querySelector(".analysis-close-btn");
+  if (!closeDropdownBtn) {
+    const btnClose = document.createElement("button");
+    btnClose.className = "analysis-close-btn";
+    btnClose.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+    btnClose.addEventListener("click", (e) => {
+      e.stopPropagation();
+      analysisDropdown.classList.remove("active");
+    });
+    analysisDropdown.appendChild(btnClose);
+  }
 
   // Clone semua analysis-item supaya listener lama tidak numpuk
   document.querySelectorAll(".analysis-item").forEach(item => {
@@ -89,15 +92,18 @@ window.initInputView = async function(){
         window.inputFilterMode = window.inputFilterMode === action ? "all" : action;
         localStorage.setItem("inputFilterMode", window.inputFilterMode);
         updateFilterUI();
-        renderCustomerList();
+        window._renderCustomerList?.();
         return;
       }
 
       if (action === "tampilan") {
         window.inputTampilanBersih = !window.inputTampilanBersih;
         localStorage.setItem("inputTampilanBersih", window.inputTampilanBersih);
-        applyTampilanBersih(window.inputTampilanBersih);
         updateFilterUI();
+        window._renderCustomerList?.();
+        // Toggle bawa barang di header
+        const bawaEl = document.getElementById("inputBawaBarang");
+        if (bawaEl) bawaEl.style.display = window.inputTampilanBersih ? "none" : "";
         return;
       }
     });
@@ -281,6 +287,7 @@ window.initInputView = async function(){
       `;
     }
     bawaEl.innerHTML = html;
+    if (window.inputTampilanBersih) bawaEl.style.display = "none";
     const db = await window.openAppDB();
     const tx = db.transaction("customerHarianDB", "readonly");
     const store = tx.objectStore("customerHarianDB");
@@ -463,269 +470,88 @@ window.initInputView = async function(){
     let customerHtml =
       "";
     window._renderCustomerList = function renderCustomerList(){
-    
       let customerHtml = "";
       customerList.forEach(data => {
-    
-        // =========================
-        // FILTER MODE
-        // =========================
+        const customerId = getCustomerId(data);
+
         if (window.inputFilterMode === "keterangan") {
           const status = (data.statusBadge || "").trim();
-          // hanya TP / PN / PT
-          if (!status) return;
-          if (!["TP", "PN", "PT"].includes(status)) return;
+          if (!status || !["TP","PN","PT"].includes(status)) return;
         }
         if (window.inputFilterMode === "fee_disable") {
-          const hasF = data.hasFee;
-          const hasD = data.hasDisable;
-          if (!(hasF || hasD)) return;
+          if (!(data.hasFee || data.hasDisable)) return;
         }
         if (window.inputFilterMode === "penyesuaian") {
           if (!data.hasKonsinyasiDiff) return;
         }
-        // =========================
-        // BUILD CUSTOMER ID
-        // =========================
-        const customerId = getCustomerId(data);
-
         if (window.inputFilterMode === "produktif") {
-          const status = (window.trikotomiResult || {})[customerId];
-          if (status !== "green") return;
+          if ((window.trikotomiResult||{})[customerId] !== "green") return;
         }
         if (window.inputFilterMode === "stabil") {
-          const status = (window.trikotomiResult || {})[customerId];
-          if (status !== "yellow") return;
+          if ((window.trikotomiResult||{})[customerId] !== "yellow") return;
         }
         if (window.inputFilterMode === "non_produktif") {
-          const status = (window.trikotomiResult || {})[customerId];
-          if (status !== "red") return;
+          if ((window.trikotomiResult||{})[customerId] !== "red") return;
         }
+
         customerHtml += `
-          <div class=" input-customer-item
-              ${
-                data.sudahInput
-                  ? "done"
-                  : ""
-              }
-            "
-            data-customer-id="${
-              customerId
-            }"
-            onclick='openPopupInputData(
-              window.customerDataMap["${customerId}"]
-            )'>
+          <div class="input-customer-item ${data.sudahInput ? "done" : ""}"
+            data-customer-id="${customerId}"
+            onclick='openPopupInputData(window.customerDataMap["${customerId}"])'>
             <div class="input-customer-left">
-              <div class=" input-customer-foto-wrapper">
-                ${
-                  data.catatan?.pesan?.trim()
-                  ? `
-                    <div class=" customer-note-badge" onclick=" event.stopPropagation();
-                     openPopupCatatanCustomer(
-                          '${customerId}',
-                          '${
-                            (
-                              data.namaCustomer ||
-                              '-'
-                            ).replace(/'/g,"\\'")
-                          }');">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style=" color:#fff;">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                      </svg>
-                    </div>
-                  `
-                  : ''
-                }
-              
-                <img src="${
-                    data.fotoLokal ||
-                    data.foto ||
-                    'https://ui-avatars.com/api/?name=' +
-                    encodeURIComponent(
-                      data.namaCustomer ||
-                      'C'
-                    )
-                  }"
-                  class=" input-customer-foto"
-                  onclick=" event.stopPropagation(); openPreviewFoto(
-                      '${
-                        (
-                          data.fotoLokal ||
-                          data.foto ||
-                          'https://ui-avatars.com/api/?name=' +
-                          encodeURIComponent(
-                            data.namaCustomer ||
-                            'C'
-                          )
-                        ).replace(/'/g, "\\'")
-                      }'
-                    );">
-                ${
-                  data.isNew === true
-                  ? `
-                    <div class=" customer-badge-new">
-                      NEW
-                    </div>
-                  `
-                  : ''
-                }
-              
-              </div>
-              <div class=" input-customer-info">
-                <div class=" input-customer-nama-wrapper">
-                  <div class=" input-customer-nama">
-                    ${
-                      data.namaCustomer
-                      || "-"
-                    }
-                  </div>
-                  <div class=" input-customer-badge-wrap"
-                    id="badge-${
-                      customerId
-                    }"
-                  >
-                    ${
-                      data.hasFee
-                      ? `
-                        <div class=" customer-badge fee">
-                          F
-                        </div>
-                      `
-                      : ''
-                    }
-                    ${
-                      data.hasDisable
-                      ? `
-                        <div class=" customer-badge disable">
-                          D
-                        </div>
-                      `
-                      : ''
-                    }
-                    ${
-                      data.statusBadge
-                      ? `
-                        <div class=" customer-badge
-                            ${
-                              data.statusBadge === "PN"
-                                ? "pending"
-                                : data.statusBadge === "TP"
-                                ? "tutup"
-                                : "putus"
-                            }
-                          ">
-                          ${
-                            data.statusBadge
-                          }
-                        </div>
-                      `
-                      : ''
-                    }
-                    ${data.hasKonsinyasiDiff 
-                      ? `<div class="customer-badge konsinyasi-diff">K</div>` 
-                      : ''}
-                      ${(function() {
-                      const result = window.trikotomiResult || {};
-                      const status = result[customerId];
-                      if (!status || status === "grey") return "";
-                      const colorMap = {
-                        green: "#2eaf62",
-                        yellow: "#f0a500",
-                        red: "#e74c3c"
-                      };
-                      const labelMap = {
-                        green: "P",
-                        yellow: "S",
-                        red: "NP"
-                      };
-                      return `<div class="customer-badge" style="background:${colorMap[status]};color:#fff;">${labelMap[status]}</div>`;
+              ${!window.inputTampilanBersih ? `<div class="input-customer-foto-wrapper">
+                ${data.catatan?.pesan?.trim() ? `
+                  <div class="customer-note-badge" onclick="event.stopPropagation();openPopupCatatanCustomer('${customerId}','${(data.namaCustomer||'-').replace(/'/g,"\\'")}');">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#fff;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  </div>` : ""}
+                <img src="${data.fotoLokal || data.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.namaCustomer || 'C')}"
+                  class="input-customer-foto"
+                  onclick="event.stopPropagation();openPreviewFoto('${(data.fotoLokal || data.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.namaCustomer || 'C')).replace(/'/g,"\\'")}');">
+                ${data.isNew ? `<div class="customer-badge-new">NEW</div>` : ""}
+              </div>` : ""}
+              <div class="input-customer-info">
+                <div class="input-customer-nama-wrapper">
+                  <div class="input-customer-nama">${data.namaCustomer || "-"}</div>
+                  <div class="input-customer-badge-wrap" id="badge-${customerId}" ${window.inputTampilanBersih ? 'style="display:none"' : ""}>
+                    ${data.hasFee ? `<div class="customer-badge fee">F</div>` : ""}
+                    ${data.hasDisable ? `<div class="customer-badge disable">D</div>` : ""}
+                    ${data.statusBadge ? `<div class="customer-badge ${data.statusBadge==="PN"?"pending":data.statusBadge==="TP"?"tutup":"putus"}">${data.statusBadge}</div>` : ""}
+                    ${data.hasKonsinyasiDiff ? `<div class="customer-badge konsinyasi-diff">K</div>` : ""}
+                    ${(()=>{
+                      const s = (window.trikotomiResult||{})[customerId];
+                      if (!s || s==="grey") return "";
+                      const c = {green:"#2eaf62",yellow:"#f0a500",red:"#e74c3c"};
+                      const l = {green:"P",yellow:"S",red:"NP"};
+                      return `<div class="customer-badge" style="background:${c[s]};color:#fff;">${l[s]}</div>`;
                     })()}
                   </div>
                 </div>
-                
-                <!-- DATA KEMARIN -->
                 <div class="input-customer-kemarin">
-                
-                  ${
-                    (()=>{
-                      let kemarinHtml = "";
-                      (
-                        window.globalBawaBarang || []
-                      ).forEach(item=>{
-                        Object.keys(item).forEach(key=>{
-                          const barang = item[key];
-                          if(
-                            barang?.isAktif === true
-                          ){
-                            const qty = Number(data?.dataKemarin?.[key]?.qty || 0);  
-                            
-                            const highlightClass = qty > 0 ? "highlight" : "";  
-                            
-                            kemarinHtml += `  
-                              <div class="input-customer-kemarin-item ${highlightClass}">  
-                                ${key}: ${qty}  
-                              </div>  
-                            `;
-                          }
-                        });
+                  ${(()=>{
+                    let h = "";
+                    (window.globalBawaBarang||[]).forEach(item=>{
+                      Object.keys(item).forEach(key=>{
+                        if(item[key]?.isAktif){
+                          const qty = Number(data?.dataKemarin?.[key]?.qty||0);
+                          h += `<div class="input-customer-kemarin-item ${qty>0?"highlight":""}">${key}: ${qty}</div>`;
+                        }
                       });
-                      return kemarinHtml;
-                    })()
-                  }
+                    });
+                    return h;
+                  })()}
                 </div>
-                <div class=" input-customer-jarak">
-                  ${Number(
-                    data.jarak || 0
-                  ).toFixed(2)}
-                  km
-                </div>
+                ${!window.inputTampilanBersih ? `<div class="input-customer-jarak">${Number(data.jarak||0).toFixed(2)} km</div>` : ""}
               </div>
             </div>
-        
-            <!-- RIGHT ACTION -->
             <div class="input-action-right">
-            
-              <!-- CATATAN -->
-              <button class="input-catatan-btn" onclick="
-                  event.stopPropagation();
-                  openPopupCatatanCustomer(
-                    '${customerId}',
-                    '${
-                      (
-                        data.namaCustomer ||
-                        '-'
-                      ).replace(/'/g,'\\\'')
-                    }'
-                  );
-                ">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-                  <path d="M7.5 3.375c0-1.036.84-1.875 1.875-1.875h.375a3.75 3.75 0 0 1 3.75 3.75v1.875C13.5 8.161 14.34 9 15.375 9h1.875A3.75 3.75 0 0 1 21 12.75v3.375C21 17.16 20.16 18 19.125 18h-9.75A1.875 1.875 0 0 1 7.5 16.125V3.375Z" />
-                  <path d="M15 5.25a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 17.25 7.5h-1.875A.375.375 0 0 1 15 7.125V5.25ZM4.875 6H6v10.125A3.375 3.375 0 0 0 9.375 19.5H16.5v1.125c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 0 1 3 20.625V7.875C3 6.839 3.84 6 4.875 6Z" />
-                </svg>
+              <button class="input-catatan-btn" onclick="event.stopPropagation();openPopupCatatanCustomer('${customerId}','${(data.namaCustomer||'-').replace(/'/g,"\\'")}');">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6"><path d="M7.5 3.375c0-1.036.84-1.875 1.875-1.875h.375a3.75 3.75 0 0 1 3.75 3.75v1.875C13.5 8.161 14.34 9 15.375 9h1.875A3.75 3.75 0 0 1 21 12.75v3.375C21 17.16 20.16 18 19.125 18h-9.75A1.875 1.875 0 0 1 7.5 16.125V3.375Z"/><path d="M15 5.25a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 17.25 7.5h-1.875A.375.375 0 0 1 15 7.125V5.25ZM4.875 6H6v10.125A3.375 3.375 0 0 0 9.375 19.5H16.5v1.125c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 0 1 3 20.625V7.875C3 6.839 3.84 6 4.875 6Z"/></svg>
               </button>
-              
-              <!-- LOKASI -->
-              <button class="input-lokasi-btn" onclick="
-                event.stopPropagation();
-                window.openPopupLokasiCustomer('${customerId}', '${(data.namaCustomer||'').replace(/'/g,"\\'")}');
-              " title="Input Alamat & Lokasi">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-                  <path d="M15.75 8.25a.75.75 0 0 1 .75.75c0 1.12-.492 2.126-1.27 2.812a.75.75 0 1 1-.992-1.124A2.243 2.243 0 0 0 15 9a.75.75 0 0 1 .75-.75Z" />
-                  <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM4.575 15.6a8.25 8.25 0 0 0 9.348 4.425 1.966 1.966 0 0 0-1.84-1.275.983.983 0 0 1-.97-.822l-.073-.437c-.094-.565.25-1.11.8-1.267l.99-.282c.427-.123.783-.418.982-.816l.036-.073a1.453 1.453 0 0 1 2.328-.377L16.5 15h.628a2.25 2.25 0 0 1 1.983 1.186 8.25 8.25 0 0 0-6.345-12.4c.044.262.18.503.389.676l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 0 1-1.161.886l-.143.048a1.107 1.107 0 0 0-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 0 1-1.652.928l-.679-.906a1.125 1.125 0 0 0-1.906.172L4.575 15.6Z" clip-rule="evenodd" />
-                </svg>
-
+              <button class="input-lokasi-btn" onclick="event.stopPropagation();window.openPopupLokasiCustomer('${customerId}','${(data.namaCustomer||'').replace(/'/g,"\\'")}');">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6"><path d="M15.75 8.25a.75.75 0 0 1 .75.75c0 1.12-.492 2.126-1.27 2.812a.75.75 0 1 1-.992-1.124A2.243 2.243 0 0 0 15 9a.75.75 0 0 1 .75-.75Z"/><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM4.575 15.6a8.25 8.25 0 0 0 9.348 4.425 1.966 1.966 0 0 0-1.84-1.275.983.983 0 0 1-.97-.822l-.073-.437c-.094-.565.25-1.11.8-1.267l.99-.282c.427-.123.783-.418.982-.816l.036-.073a1.453 1.453 0 0 1 2.328-.377L16.5 15h.628a2.25 2.25 0 0 1 1.983 1.186 8.25 8.25 0 0 0-6.345-12.4c.044.262.18.503.389.676l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 0 1-1.161.886l-.143.048a1.107 1.107 0 0 0-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 0 1-1.652.928l-.679-.906a1.125 1.125 0 0 0-1.906.172L4.575 15.6Z" clip-rule="evenodd"/></svg>
               </button>
-            
-              <!-- MAP -->
-              <button class="input-map-btn" onclick="
-                event.stopPropagation();
-                window.openMapRouting('${customerId}', 'customerHarianDB');
-              ">
-              
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-                  <path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
-                </svg>
-
+              <button class="input-map-btn" onclick="event.stopPropagation();window.openMapFromInput('${customerId}');">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6"><path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd"/></svg>
               </button>
             </div>
           </div>
@@ -767,10 +593,9 @@ window.initInputView = async function(){
           }
         } catch { }
 
-        // Re-render & refresh badge
+        // Re-render & update progress
         renderCustomerList();
         updateProgressFromDOM();
-        if (window[`refreshBadge_${id}`]) window[`refreshBadge_${id}`]();
       }
 
       if (store === "customerHarianDB" && id) {
@@ -804,110 +629,30 @@ window.initInputView = async function(){
       }
     };
     document.addEventListener("idbUpdated", window._idbUpdateHandler);
-    renderCustomerList();
 
     window.customerDataMap = {};
     customerList.forEach(data => {
       const customerId = getCustomerId(data);
       window.customerDataMap[customerId] = data;
-
-      // Buat fungsi refreshBadge dinamis
-      window[`refreshBadge_${customerId}`] = async function(){
-        const badgeEl = document.getElementById(`badge-${customerId}`);
-        if(!badgeEl) return;
-
-        let hasFee = false, hasDisable = false, statusBadge = "", statusClass = "", hasKonsinyasiDiff = false;
-
-        try{
-          let dh = (window._dataHarianMap || {})[customerId] || null;
-          if(!dh){
-            const dbB = await window.openAppDB();
-            const txB = dbB.transaction("dataHarianDB","readonly");
-            const storeB = txB.objectStore("dataHarianDB");
-            const reqB = storeB.get(`${customerId}_${today}`);
-            dh = await new Promise((resolve, reject)=>{
-              reqB.onsuccess = () => resolve(reqB.result || null);
-              reqB.onerror  = () => reject(reqB.error);
-            });
-          }
-
-          if(dh){
-            hasFee = Object.keys(dh.fee || {}).length > 0;
-            hasDisable = Object.keys(dh.disable || {}).length > 0;
-
-            const status = String(dh?.keterangan?.status || "").trim().toLowerCase();
-            if(status === "pending"){ statusBadge = "PN"; statusClass = "pending"; }
-            else if(status === "tutup") { statusBadge = "TP"; statusClass = "tutup"; }
-            else if(status === "putus") { statusBadge = "PT"; statusClass = "putus"; }
-
-            // CEK KONSINYASI DIFF
-          if(dh.konsinyasi){
-            const customerData = window.customerDataMap?.[customerId] || {};
-            let dataKemarin = customerData.dataKemarin || {};
-            if(dh.dataKemarin && Object.keys(dh.dataKemarin).length > 0){
-              dataKemarin = dh.dataKemarin;
-            }
-
-            const kemarinKeys = new Set(Object.keys(dataKemarin));
-            const konsKeys = new Set(Object.keys(dh.konsinyasi));
-
-            const sameKeys =
-              kemarinKeys.size === konsKeys.size &&
-              [...kemarinKeys].every(k => konsKeys.has(k));
-
-            if(!sameKeys){
-              hasKonsinyasiDiff = true;
-            } else {
-              // CEK NILAI QTY JUGA
-              hasKonsinyasiDiff = [...kemarinKeys].some(k =>
-                Number(dh.konsinyasi[k]) !== Number(dataKemarin[k]?.qty || 0)
-              );
-            }
-          }
-          }
-        } catch { }
-
-        // Tambah badge trikotomi
-        const trikotomiStatus = (window.trikotomiResult || {})[customerId];
-        const trikotomiBadge = (function() {
-          if (!trikotomiStatus || trikotomiStatus === "grey") return "";
-          const colorMap = { green: "#2eaf62", yellow: "#f0a500", red: "#e74c3c" };
-          const labelMap = { green: "P", yellow: "S", red: "NP" };
-          return `<div class="customer-badge" style="background:${colorMap[trikotomiStatus]};color:#fff;">${labelMap[trikotomiStatus]}</div>`;
-        })();
-
-        badgeEl.innerHTML = 
-          (hasFee ? `<div class="customer-badge fee">F</div>` : "") +
-          (hasDisable ? `<div class="customer-badge disable">D</div>` : "") +
-          (statusBadge ? `<div class="customer-badge ${statusClass}">${statusBadge}</div>` : "") +
-          (hasKonsinyasiDiff ? `<div class="customer-badge konsinyasi-diff">≠</div>` : "") +
-          trikotomiBadge;
-      };
-
-      // Panggil sekali
-      window[`refreshBadge_${customerId}`]();
     });
-    // LONG PRESS CUSTOMER
-    document.querySelectorAll(".input-customer-item").forEach(item=>{
-      let pressTimer;
-      item.addEventListener("touchstart",
-        function(){
-          pressTimer = setTimeout(()=>{
-              const cid = this.dataset.customerId;
-              const data = window.customerDataMap[cid];
-              if(data) openPopupInputFd(data);
-            },600);
-        }
-      );
-      item.addEventListener("touchend", ()=>{
-          clearTimeout(pressTimer);
-        }
-      );
-      item.addEventListener("touchmove", ()=>{
-          clearTimeout(pressTimer);
-        }
-      );
-    });
+
+    // Attach long press via event delegation — tidak perlu re-attach setelah re-render
+    const listEl = document.getElementById("listCustomer");
+    let pressTimer = null;
+    listEl.addEventListener("touchstart", function(e) {
+      const item = e.target.closest(".input-customer-item");
+      if (!item) return;
+      pressTimer = setTimeout(() => {
+        const cid  = item.dataset.customerId;
+        const data = window.customerDataMap[cid];
+        if (data) openPopupInputFd(data);
+      }, 600);
+    }, { passive: true });
+
+    listEl.addEventListener("touchend",  () => clearTimeout(pressTimer), { passive: true });
+    listEl.addEventListener("touchmove", () => clearTimeout(pressTimer), { passive: true });
+
+    renderCustomerList();
     
     let fdStartY = 0;
     let fdCurrentY = 0;
@@ -1528,13 +1273,7 @@ window.initInputView = async function(){
           };
         }
 
-        // Refresh badge F dan D realtime
-        if (window[`refreshBadge_${customerId}`]) {
-          await window[`refreshBadge_${customerId}`]();
-        }
-
         overlay.classList.remove("active");
-    
       } catch (err) {
         console.log(err);
         alert("Gagal simpan");
@@ -1633,24 +1372,22 @@ window.initInputView = async function(){
     function getLatestAvailableDate(customerId, today) {
       return new Promise(async (resolve) => {
         try {
-          const db = await window.openAppDB();
-          const tx = db.transaction("dataHarianDB", "readonly");
+          const db    = await window.openAppDB();
+          const tx    = db.transaction("dataHarianDB", "readonly");
           const store = tx.objectStore("dataHarianDB");
-          const req = store.getAll();
+          const index = store.index("customerId");
+
+          // Query hanya record milik customerId ini
+          const req = index.getAll(customerId);
           req.onsuccess = () => {
-            const all = req.result || [];
+            const all    = req.result || [];
             const latest = all
-              .filter(x =>
-                x.idCustomer === customerId &&
-                x.tanggal &&
-                x.tanggal < today
-              )
+              .filter(x => x.tanggal && x.tanggal < today)
               .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))[0];
             resolve(latest?.tanggal || null);
           };
-    
           req.onerror = () => resolve(null);
-        } catch (err) {
+        } catch {
           resolve(null);
         }
       });
@@ -3187,9 +2924,6 @@ window.initInputView = async function(){
       document.removeEventListener("idbUpdated", window._idbUpdateHandler);
       window._idbUpdateHandler = null;
     }
-    Object.keys(window).forEach(key=>{
-      if(key.startsWith("refreshBadge_")) delete window[key];
-    });
     if(window._onDocClickPreviewFoto){
       document.removeEventListener("click", window._onDocClickPreviewFoto);
       window._onDocClickPreviewFoto = null;
