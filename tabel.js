@@ -135,4 +135,26 @@ window.initInputTabelView = function() {
       <table class="it-table">${thead}${tbody}${tfoot}</table>
     </div>
   `;
+  // Search
+  const searchInput = document.getElementById("itSearchInput");
+  const searchClear = document.getElementById("itSearchClear");
+
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.trim().toLowerCase();
+      searchClear.style.display = q ? "block" : "none";
+      inner.querySelectorAll(".it-row").forEach(row => {
+        const nama = row.querySelector(".it-td-nama")?.textContent?.toLowerCase() || "";
+        row.style.display = nama.includes(q) ? "" : "none";
+      });
+    });
+
+    searchClear.addEventListener("click", () => {
+      searchInput.value = "";
+      searchClear.style.display = "none";
+      inner.querySelectorAll(".it-row").forEach(row => {
+        row.style.display = "";
+      });
+    });
+  }
 };
