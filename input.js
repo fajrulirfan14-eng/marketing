@@ -3,6 +3,12 @@ window.initInputView = async function(){
   if(window._inputViewCleanup){
     window._inputViewCleanup();
   }
+  // Helper dispatch IDB update event
+  window.dispatchIdbUpdate = function(storeName, id = null) {
+    document.dispatchEvent(new CustomEvent("idbUpdated", {
+      detail: { store: storeName, id }
+    }));
+  };
   const hariEl = document.getElementById("inputHari");
   const bawaEl = document.getElementById("inputBawaBarang");
   const listCustomerEl = document.getElementById("listCustomer");
@@ -735,14 +741,7 @@ window.initInputView = async function(){
       </div>
     `;
   }
-  // Helper dispatch IDB update event
-  window.dispatchIdbUpdate = function(storeName, id = null) {
-    document.dispatchEvent(new CustomEvent("idbUpdated", {
-      detail: { store: storeName, id }
-    }));
-  };
-  
-  window.compressImageInput = function(file, maxWidth = 800, quality = 0.75) {
+  window.compressImageInput = function(file, maxWidth = 600, quality = 0.4) {
     return new Promise(resolve => {
       const reader = new FileReader();
       reader.onload = e => {
@@ -1016,20 +1015,6 @@ window.initInputView = async function(){
 
         // Re-render supaya badge catatan muncul/hilang
         window._renderCustomerList?.();
-
-        // Re-attach long press
-        document.querySelectorAll(".input-customer-item").forEach(item => {
-          let pressTimer;
-          item.addEventListener("touchstart", function () {
-            pressTimer = setTimeout(() => {
-              const cid = this.dataset.customerId;
-              const d = window.customerDataMap[cid];
-              if (d) openPopupInputFd(d);
-            }, 600);
-          });
-          item.addEventListener("touchend", () => clearTimeout(pressTimer));
-          item.addEventListener("touchmove", () => clearTimeout(pressTimer));
-        });
 
         popupCatatanOverlay.classList.remove("active");
         if (window.catatanUnsubscribe) {
@@ -1594,7 +1579,7 @@ window.initInputView = async function(){
             const ctx = canvas.getContext("2d");
             let width = img.width;
             let height = img.height;
-            const maxSize = 800;
+            const maxSize = 600;
             if(width > height){
               if(width > maxSize){
                 height *= maxSize / width;
@@ -1610,7 +1595,7 @@ window.initInputView = async function(){
             canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
             resolve(
-              canvas.toDataURL("image/jpeg", 0.6)
+              canvas.toDataURL("image/jpeg", 0.4)
             );
           };
           img.src = e.target.result;
@@ -1907,36 +1892,9 @@ window.initInputView = async function(){
         // Re-render list
         window._renderCustomerList?.();
 
-        // Re-attach long press setelah re-render
-        document.querySelectorAll(".input-customer-item").forEach(item => {
-          let pressTimer;
-          item.addEventListener("touchstart", function () {
-            pressTimer = setTimeout(() => {
-              const cid = this.dataset.customerId;
-              const d = window.customerDataMap[cid];
-              if (d) openPopupInputFd(d);
-            }, 600);
-          });
-          item.addEventListener("touchend", () => clearTimeout(pressTimer));
-          item.addEventListener("touchmove", () => clearTimeout(pressTimer));
-        });
-
-        window._updateProgressFromDOM?.();
-
-        if (window[`refreshBadge_${customerId}`]) {
-          window[`refreshBadge_${customerId}`]();
-        }
-
-        document.getElementById("popupInputOverlay").classList.remove("active");
+        overlay.classList.remove("active");
       } catch (err) {
         console.log(err);
-    
-        document.querySelectorAll(".input-customer-item").forEach(item => {
-          if (item.dataset.customerId === getCustomerId(data)) {
-            item.classList.remove("done");
-          }
-        });
-    
         alert("Gagal simpan, silakan coba lagi");
       } finally {
         submitBtn.disabled = false;
@@ -2623,6 +2581,7 @@ window.initInputView = async function(){
       lokasiPhotoBlob = await window.compressImageInput(file, 800, 0.75);
       const url = URL.createObjectURL(lokasiPhotoBlob);
       lokasiPhotoPreview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:10px;">`;
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     });
 
     // Ambil GPS

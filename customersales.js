@@ -437,12 +437,12 @@ document.getElementById("btnUpdateSales")?.addEventListener("click", async funct
         img.onload = function() {
           const canvas = document.createElement("canvas");
           let w = img.width, h = img.height;
-          const maxSize = 800;
+          const maxSize = 600;
           if (w > h) { if (w > maxSize) { h *= maxSize/w; w = maxSize; } }
           else { if (h > maxSize) { w *= maxSize/h; h = maxSize; } }
           canvas.width = w; canvas.height = h;
           canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL("image/jpeg", 0.6));
+          resolve(canvas.toDataURL("image/jpeg", 0.4));
         };
         img.src = window.salesFotoBaru;
       });
