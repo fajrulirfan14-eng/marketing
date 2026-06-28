@@ -322,36 +322,53 @@ function showSyncToast(pesan, sukses = true) {
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), sukses ? 2000 : 5000);
 }
-async function doSyncDataHarian(pendingData, db) {
+async function doSyncAll(pendingHarian, pendingPenjualan, db) {
   const BATCH_SIZE = 500;
-  for (let i = 0; i < pendingData.length; i += BATCH_SIZE) {
-    const chunk = pendingData.slice(i, i + BATCH_SIZE);
+  const allPending = [...pendingHarian, ...pendingPenjualan];
+
+  for (let i = 0; i < allPending.length; i += BATCH_SIZE) {
+    const chunk = allPending.slice(i, i + BATCH_SIZE);
     const batch = window.writeBatch(window.db);
 
     chunk.forEach(item => {
-      const docRef = window.doc(
-        window.db,
-        "customer",
-        item.idCustomer,
-        "dataHarian",
-        item.tanggal
-      );
-      batch.set(docRef, item.payload, { merge: true });
+      let docRef;
+      if (item._type === "penjualan") {
+        docRef = window.doc(window.db, "users", item.uid, "penjualanLangsung", item.tanggal);
+        const { _type, id, isSync, updatedAt, ...payload } = item;
+        batch.set(docRef, { ...payload, updatedAt: window.serverTimestamp() });
+      } else {
+        docRef = window.doc(window.db, "customer", item.idCustomer, "dataHarian", item.tanggal);
+        batch.set(docRef, item.payload, { merge: true });
+      }
     });
 
     await batch.commit();
 
-    // Update IDB isSync: true
-    const tx = db.transaction("dataHarianDB", "readwrite");
-    const store = tx.objectStore("dataHarianDB");
-    chunk.forEach(item => {
+    // Update IDB isSync: true untuk dataHarianDB
+    const txH = db.transaction("dataHarianDB", "readwrite");
+    const storeH = txH.objectStore("dataHarianDB");
+    chunk.filter(x => x._type !== "penjualan").forEach(item => {
       item.isSync = true;
       item.syncedAt = Date.now();
-      store.put(item);
+      storeH.put(item);
     });
     await new Promise((resolve, reject) => {
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
+      txH.oncomplete = resolve;
+      txH.onerror = () => reject(txH.error);
+    });
+
+    // Update IDB isSync: true untuk penjualanLangsungDB
+    const txP = db.transaction("penjualanLangsungDB", "readwrite");
+    const storeP = txP.objectStore("penjualanLangsungDB");
+    chunk.filter(x => x._type === "penjualan").forEach(item => {
+      const { _type, ...clean } = item;
+      clean.isSync = true;
+      clean.syncedAt = Date.now();
+      storeP.put(clean);
+    });
+    await new Promise((resolve, reject) => {
+      txP.oncomplete = resolve;
+      txP.onerror = () => reject(txP.error);
     });
   }
 }
@@ -360,25 +377,41 @@ window.syncOfflineDataHarian = async function() {
     if (!navigator.onLine) return;
 
     const db = await window.openAppDB();
-    const allData = await new Promise((resolve, reject) => {
+
+    // Load pending dataHarianDB
+    const allHarian = await new Promise((resolve, reject) => {
       const tx  = db.transaction("dataHarianDB", "readonly");
       const req = tx.objectStore("dataHarianDB").getAll();
       req.onsuccess = () => resolve(req.result || []);
       req.onerror   = () => reject(req.error);
     });
+    const pendingHarian = allHarian.filter(item =>
+      item?.isSync === false && item?.payload && item?.idCustomer && item?.tanggal
+    );
 
-    const pendingData = allData.filter(item => item?.isSync === false && item?.payload && item?.idCustomer && item?.tanggal);
-    if (pendingData.length === 0) return;
+    // Load pending penjualanLangsungDB
+    const allPenjualan = await new Promise((resolve, reject) => {
+      const tx  = db.transaction("penjualanLangsungDB", "readonly");
+      const req = tx.objectStore("penjualanLangsungDB").getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => reject(req.error);
+    });
+    const pendingPenjualan = allPenjualan
+      .filter(item => item?.isSync === false && item?.uid && item?.tanggal)
+      .map(item => ({ ...item, _type: "penjualan" }));
+
+    if (pendingHarian.length === 0 && pendingPenjualan.length === 0) return;
+
+    const total = pendingHarian.length + pendingPenjualan.length;
 
     try {
-      await doSyncDataHarian(pendingData, db);
-      showSyncToast(`✓ ${pendingData.length} data berhasil tersimpan`, true);
+      await doSyncAll(pendingHarian, pendingPenjualan, db);
+      showSyncToast(`✓ ${total} data berhasil tersimpan`, true);
     } catch {
-      // Retry 1x setelah 3 detik
       setTimeout(async () => {
         try {
-          await doSyncDataHarian(pendingData, db);
-          showSyncToast(`✓ ${pendingData.length} data berhasil tersimpan`, true);
+          await doSyncAll(pendingHarian, pendingPenjualan, db);
+          showSyncToast(`✓ ${total} data berhasil tersimpan`, true);
         } catch {
           showSyncToast("Data input gagal terkirim, cek internet atau buka aplikasi kembali", false);
         }

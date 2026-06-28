@@ -410,26 +410,30 @@ window.initInputView = async function(){
       }
 
       // === CEK PERBEDAAN KONSINYASI ===
-      const kemarinKeys = Object.keys(dataKemarin).filter(k => Number(dataKemarin[k]?.qty || 0) > 0);
+      const kemarinData = {};
+      Object.keys(dataKemarin).forEach(k => {
+        const qty = Number(dataKemarin[k]?.qty || 0);
+        if (qty > 0) kemarinData[k] = qty;
+      });
 
-      if (kemarinKeys.length > 0) {
-        if (!dataHarian?.konsinyasi) {
-          // Belum diinput hari ini tapi kemarin ada titipan → pasti beda
-          hasKonsinyasiDiff = true;
-        } else {
-          const konsinyasi = dataHarian.konsinyasi;
-          const sameKeys =
-            kemarinKeys.length === Object.keys(konsinyasi).length &&
-            kemarinKeys.every(key => konsinyasi.hasOwnProperty(key));
+      const konsinyasiHariIni = dataHarian?.konsinyasi || {};
 
-          if (!sameKeys) {
-            hasKonsinyasiDiff = true;
-          } else {
-            hasKonsinyasiDiff = kemarinKeys.some(key =>
-              Number(konsinyasi[key]) !== Number(dataKemarin[key]?.qty || 0)
-            );
-          }
-        }
+      const kemarinKeys     = Object.keys(kemarinData);
+      const konsinyasiKeys  = Object.keys(konsinyasiHariIni);
+
+      // Beda jika jumlah key beda
+      if (kemarinKeys.length !== konsinyasiKeys.length) {
+        hasKonsinyasiDiff = true;
+      } else if (kemarinKeys.length === 0 && konsinyasiKeys.length === 0) {
+        // Keduanya kosong — sama
+        hasKonsinyasiDiff = false;
+      } else {
+        // Cek nilai per key
+        hasKonsinyasiDiff = konsinyasiKeys.some(key =>
+          Number(konsinyasiHariIni[key] || 0) !== Number(kemarinData[key] || 0)
+        ) || kemarinKeys.some(key =>
+          Number(kemarinData[key] || 0) !== Number(konsinyasiHariIni[key] || 0)
+        );
       }
 
       if(dataHarian){
@@ -1124,7 +1128,7 @@ window.initInputView = async function(){
             html += `
               <div class="popup-input-item">
                 <input type="number" min="0" placeholder="${key}" value="${preload ?? ""}"
-                  class="popup-input-number popup-fd-input">
+                  class="popup-input-number popup-fd-input ${keyGroup}">
               </div>
             `;
           }
@@ -1881,6 +1885,30 @@ window.initInputView = async function(){
         );
         if (customerEntry) {
           customerEntry.sudahInput = true;
+
+          // Update hasKonsinyasiDiff
+          const dk = customerEntry.dataKemarin || {};
+          const kemarinData = {};
+          Object.keys(dk).forEach(k => {
+            const qty = Number(dk[k]?.qty || 0);
+            if (qty > 0) kemarinData[k] = qty;
+          });
+          const konsinyasiHariIni = groupData.konsinyasi || {};
+          const kKeys    = Object.keys(kemarinData);
+          const konsKeys = Object.keys(konsinyasiHariIni);
+          let diff = false;
+          if (kKeys.length !== konsKeys.length) {
+            diff = true;
+          } else if (kKeys.length === 0 && konsKeys.length === 0) {
+            diff = false;
+          } else {
+            diff = konsKeys.some(key =>
+              Number(konsinyasiHariIni[key] || 0) !== Number(kemarinData[key] || 0)
+            ) || kKeys.some(key =>
+              Number(kemarinData[key] || 0) !== Number(konsinyasiHariIni[key] || 0)
+            );
+          }
+          customerEntry.hasKonsinyasiDiff = diff;
         }
 
         // Sort ulang: belum input dulu, lalu by jarak
@@ -2199,6 +2227,11 @@ window.initInputView = async function(){
     overlay.id = "penjualanLangsungOverlay";
     overlay.className = "popup-overlay active";
 
+    const varianMap = {};
+    (window.globalVarian || []).forEach(item => {
+      Object.keys(item).forEach(k => { varianMap[k] = item[k]; });
+    });
+
     const itemsHtml = activeKeys.map(key => `
       <div class="popup-input-item">
         <input type="number" min="0" placeholder="${key}"
@@ -2212,6 +2245,10 @@ window.initInputView = async function(){
       <div class="popup-content popup-pl-content">
         <div class="popup-handle"></div>
         <div class="popup-title">Penjualan Langsung</div>
+        <div class="popup-preview-pay-wrapper">
+          <span class="popup-preview-pay-label">Total</span>
+          <span class="popup-preview-pay" id="previewPayPL">Rp0</span>
+        </div>
         <div class="popup-group">
           <div class="popup-group-list">${itemsHtml}</div>
         </div>
@@ -2235,7 +2272,20 @@ window.initInputView = async function(){
       content.style.transition = ".3s ease";
       if (d > 120) { overlay.remove(); } else { content.style.transform = ""; }
     });
-
+    function updatePreviewPayPL() {
+      let total = 0;
+      overlay.querySelectorAll(".pl-input").forEach(input => {
+        const qty   = Number(input.value || 0);
+        const harga = Number(varianMap[input.dataset.key]?.hargaKonsumen || 0);
+        total += qty * harga;
+      });
+      const el = document.getElementById("previewPayPL");
+      if (el) el.textContent = "Rp" + total.toLocaleString("id-ID");
+    }
+    overlay.querySelectorAll(".pl-input").forEach(input => {
+      input.addEventListener("input", updatePreviewPayPL);
+    });
+    updatePreviewPayPL();
     overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
 
     document.getElementById("btnSimpanPenjualanLangsung").onclick = async function() {
@@ -2271,6 +2321,8 @@ window.initInputView = async function(){
 
         const pembayaran = { bayarKonsumen };
 
+        const closing = { ...pay };
+
         const payload = {
           id: `${uid}_${today}`,
           uid,
@@ -2278,6 +2330,7 @@ window.initInputView = async function(){
           idCabang: user.idCabang || "",
           tanggal: today,
           penjualanLangsung,
+          closing,
           pay,
           pembayaran,
           isSync: false,
@@ -2293,23 +2346,6 @@ window.initInputView = async function(){
           tx.onerror    = () => reject(tx.error);
         });
 
-        // Hitung pay dan pembayaran
-        const varianMap = {};
-        (window.globalVarian || []).forEach(item => {
-          Object.keys(item).forEach(k => { varianMap[k] = item[k]; });
-        });
-
-        const pay = {};
-        let bayarKonsumen = 0;
-        Object.entries(penjualanLangsung).forEach(([key, qty]) => {
-          if (qty > 0) {
-            pay[key] = qty;
-            bayarKonsumen += qty * Number(varianMap[key]?.hargaKonsumen || 0);
-          }
-        });
-
-        const pembayaran = { bayarKonsumen };
-
         // Sync Firestore jika online
         if (navigator.onLine) {
           try {
@@ -2321,6 +2357,7 @@ window.initInputView = async function(){
                 idCabang: user.idCabang || "",
                 tanggal: today,
                 penjualanLangsung,
+                closing,
                 pay,
                 pembayaran,
                 updatedAt: window.serverTimestamp()
@@ -2427,85 +2464,6 @@ window.initInputView = async function(){
     // ❌ HAPUS HITUNG ULANG CLOSING
     // (tidak dipakai lagi)
   
-    // Hitung Saldo Barang
-    const saldoBarang = {};
-    activeKeys.forEach(key => {
-      let bawa = 0;
-  
-      (window.globalBawaBarang || []).forEach(item => {
-        if (item[key]?.isAktif) {
-          bawa = Number(item[key].bawa || 0);
-        }
-      });
-  
-      saldoBarang[key] =
-        bawa -
-        Number(summary.closing?.[key] || 0) -
-        Number(summary.fee?.[key]     || 0) -
-        Number(summary.disable?.[key] || 0);
-    });
-  
-    let html = "";
-  
-    // Bawa Barang
-    html += `
-      <div class="popup-detail-section">
-        <div class="popup-detail-section-title">Bawa Barang</div>
-        <div class="popup-detail-inline-list">
-    `;
-  
-    (window.globalBawaBarang || []).forEach(item => {
-      Object.keys(item).forEach(key => {
-        const barang = item[key];
-        if (barang?.isAktif) {
-          html += `
-            <div class="popup-kemarin-item">
-              ${key}: ${barang.bawa || 0}
-            </div>
-          `;
-        }
-      });
-    });
-  
-    html += `</div></div>`;
-  
-    // Pembayaran
-    html += `
-      <div class="popup-detail-section">
-        <div class="popup-detail-section-title">Jumlah Pembayaran</div>
-        <div class="popup-detail-inline-list">
-          <div class="popup-detail-chip payment">
-            Rp${Number(summary.pembayaran || 0).toLocaleString("id-ID")}
-          </div>
-        </div>
-      </div>
-    `;
-  
-    function renderGroup(title, obj, type = "") {
-      html += `
-        <div class="popup-detail-section ${type}">
-          <div class="popup-detail-section-title">${title}</div>
-          <div class="popup-detail-inline-list">
-      `;
-  
-      activeKeys.forEach(key => {
-        const value = obj?.[key] || 0;
-  
-        html += `
-          <div class="popup-detail-chip ${type}">
-            ${key}: ${value}
-          </div>
-        `;
-      });
-  
-      html += `</div></div>`;
-    }
-  
-    renderGroup("Expired",      summary.expired,  "expired");
-    renderGroup("Fee",          summary.fee,      "fee");
-    renderGroup("Disable",      summary.disable,  "disable");
-    renderGroup("Closing",      summary.closing,  "closing");
-
     // Load penjualan langsung dari IDB
     let penjualanLangsung = {};
     try {
@@ -2517,9 +2475,98 @@ window.initInputView = async function(){
         req.onsuccess = () => resolve(req.result || null);
         req.onerror   = () => resolve(null);
       });
-      console.log("rawP penjualan:", rawP);
       penjualanLangsung = rawP?.penjualanLangsung || {};
-    } catch(e) { console.log("error penjualan:", e); }
+
+      // Tambah ke summary pembayaran
+      summary.pembayaran += Number(rawP?.pembayaran?.bayarKonsumen || 0);
+
+      // Tambah ke summary closing
+      Object.entries(penjualanLangsung).forEach(([key, qty]) => {
+        summary.closing[key] = (summary.closing[key] || 0) + Number(qty);
+      });
+    } catch { }
+
+    // Hitung Saldo Barang
+    const saldoBarang = {};
+    activeKeys.forEach(key => {
+      let bawa = 0;
+      (window.globalBawaBarang || []).forEach(item => {
+        if (item[key]?.isAktif) {
+          bawa = Number(item[key].bawa || 0);
+        }
+      });
+      saldoBarang[key] =
+        bawa -
+        Number(summary.closing?.[key] || 0) -
+        Number(summary.fee?.[key]     || 0) -
+        Number(summary.disable?.[key] || 0);
+    });
+  
+    let html = "";
+  
+    // Bawa Barang
+    html += `
+      <div class="popup-group">
+        <div class="popup-group-title">Bawa Barang</div>
+        <div class="popup-group-list">
+    `;
+
+    (window.globalBawaBarang || []).forEach(item => {
+      Object.keys(item).forEach(key => {
+        const barang = item[key];
+        if (barang?.isAktif) {
+          html += `
+            <div class="popup-input-item">
+              <div class="popup-input-number popup-detail-number bawa">
+                ${key}: ${barang.bawa || 0}
+              </div>
+            </div>
+          `;
+        }
+      });
+    });
+
+    html += `</div></div>`;
+
+    // Pembayaran
+    html += `
+      <div class="popup-group">
+        <div class="popup-group-title">Jumlah Pembayaran</div>
+        <div class="popup-group-list">
+          <div class="popup-input-item popup-payment-item">
+            <div class="popup-input-number popup-detail-number payment">
+              Rp${Number(summary.pembayaran || 0).toLocaleString("id-ID")}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  
+    function renderGroup(title, obj, type = "") {
+      html += `
+        <div class="popup-group ${type}">
+          <div class="popup-group-title">${title}</div>
+          <div class="popup-group-list">
+      `;
+
+      activeKeys.forEach(key => {
+        const value = obj?.[key] || 0;
+        html += `
+          <div class="popup-input-item">
+            <div class="popup-input-number popup-detail-number ${type}">
+              ${key}: ${value}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+    }
+  
+    renderGroup("Expired",      summary.expired,  "expired");
+    renderGroup("Fee",          summary.fee,      "fee");
+    renderGroup("Disable",      summary.disable,  "disable");
+    renderGroup("Closing",      summary.closing,  "closing");
 
     // Hitung saldo barang ikut penjualan langsung
     activeKeys.forEach(key => {
@@ -2528,17 +2575,19 @@ window.initInputView = async function(){
 
     // Section penjualan langsung
     html += `
-      <div class="popup-detail-section penjualan">
-        <div class="popup-detail-section-header">
-          <div class="popup-detail-section-title">Penjualan Langsung</div>
+      <div class="popup-group penjualan">
+        <div class="popup-group-title popup-group-title-flex">
+          Penjualan Langsung
           <button class="popup-detail-edit-btn" id="btnEditPenjualanLangsung">
             ${Object.keys(penjualanLangsung).length > 0 ? "Edit" : "Input"}
           </button>
         </div>
-        <div class="popup-detail-inline-list">
+        <div class="popup-group-list">
           ${activeKeys.map(key => `
-            <div class="popup-detail-chip penjualan">
-              ${key}: ${Number(penjualanLangsung[key] || 0)}
+            <div class="popup-input-item">
+              <div class="popup-input-number popup-detail-number penjualan">
+                ${key}: ${Number(penjualanLangsung[key] || 0)}
+              </div>
             </div>
           `).join("")}
         </div>

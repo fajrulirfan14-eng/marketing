@@ -222,142 +222,159 @@
 }
 .popup-detail-header {
   margin: -10px -16px 18px;
-  padding: 18px 18px 5px;
+  padding: 10px 18px 5px;
   border-bottom: 2px solid var(--border-color);
   text-align: center;
 }
 .popup-detail-title {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-heading);
 }
 .popup-detail-subtitle {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   margin-top: 4px;
 }
 .popup-detail-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-}
-.popup-detail-section {
-  background: var(--bg-card);
-  border-radius: 22px;
-  padding: 8px 16px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  border: 1.3px solid var(--border-color);
-}
-.popup-detail-section-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--text-heading);
-  letter-spacing: 0.2px;
-}
-.popup-detail-inline-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+  gap: 1px;
 }
 
-.popup-detail-chip {
-  display: flex;
-  align-items: center;
-  padding: 3px 12px;
-  border-radius: 50px;
-  border: 0.8px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  word-break: break-word;
-}
-.popup-detail-section.payment {
-  background: var(--payment-bg);
-  border-color: var(--payment-border);
-}
-.popup-detail-section.expired {
-  background: var(--expired-bg);
-  border-color: var(--expired-border);
-}
-.popup-detail-section.fee {
-  background: var(--fee-bg);
-  border-color: var(--fee-border);
-}
-.popup-detail-section.disable {
-  background: var(--disable-bg);
-  border-color: var(--disable-border);
-}
-.popup-detail-chip.payment {
-  background: var(--payment-chip-bg);
-  border-color: var(--payment-chip-border);
-  color: var(--payment-chip-text);
-}
-.popup-detail-chip.expired {
-  background: var(--expired-chip-bg);
-  border-color: var(--expired-chip-border);
-  color: var(--expired-chip-text);
-}
-.popup-detail-chip.fee {
-  background: var(--fee-chip-bg);
-  border-color: var(--fee-chip-border);
-  color: var(--fee-chip-text);
-}
-.popup-detail-chip.disable {
-  background: var(--disable-chip-bg);
-  border-color: var(--disable-chip-border);
-  color: var(--disable-chip-text);
-}
-.popup-detail-section.closing {
-  background: var(--closing-bg);
-}
-.popup-detail-chip.closing {
-  background: var(--closing-chip-bg);
-  color: var(--closing-chip-text);
-}
-.popup-detail-section.saldo {
-  background: var(--saldo-bg);
-}
-.popup-detail-chip.saldo {
-  background: var(--saldo-chip-bg);
-  color: var(--saldo-chip-text);
-}
-.popup-detail-empty {
-  width: 100%;
-  text-align: center;
-  padding: 12px;
-  border-radius: 14px;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-}
 /* ── PENJUALAN LANGSUNG ── */
-.popup-detail-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
 .popup-detail-edit-btn {
-  padding: 4px 12px;
+  padding: 2px 12px;
   border: 1.5px solid var(--accent);
   border-radius: 20px;
   background: none;
   color: var(--accent);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
-.popup-detail-chip.penjualan {
-  background: rgba(201,166,123,.15);
-  color: var(--accent-dark);
+
+/* ── PREVIEW PAY PENJUALAN LANGSUNG ── */
+.popup-preview-pay-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--bg-hover);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
 }
-.popup-pl-content {
-  max-height: 70vh;
-  overflow-y: auto;
+.popup-preview-pay-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.popup-preview-pay {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text-heading);
+  letter-spacing: -0.5px;
+}
+
+/* ── POPUP DETAIL GROUP COLORS ── */
+.popup-group.fee {
+  background: var(--fee-bg);
+  border: 1px solid var(--fee-border);
+}
+.popup-group.fee .popup-input-number {
+  background: var(--fee-chip-bg);
+  border: 1px solid var(--fee-chip-border);
+  color: var(--fee-chip-text);
+}
+
+.popup-group.disable {
+  background: var(--disable-bg);
+  border: 1px solid var(--disable-border);
+}
+.popup-group.disable .popup-input-number {
+  background: var(--disable-chip-bg);
+  border: 1px solid var(--disable-chip-border);
+  color: var(--disable-chip-text);
+}
+.popup-group.closing {
+  background: var(--closing-bg);
+  border: 1px solid var(--closing-chip-bg);
+}
+.popup-group.saldo {
+  background: var(--saldo-bg);
+  border: 1px solid var(--saldo-chip-bg);
+}
+.popup-group.penjualan {
+  background: var(--brand-light);
+  border: 1px solid var(--brand-hover);
+}
+
+/* ── POPUP DETAIL NUMBER (READ ONLY) ── */
+.popup-detail-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.popup-detail-number.bawa {
+  background: #ffb15c;
+  border: 1px solid #ff9800;
+  color: #7a4a1f;
+  border-radius: 15px;
+}
+.popup-detail-number.payment {
+  background: var(--payment-chip-bg);
+  border: 1px solid var(--payment-chip-border);
+  color: var(--payment-chip-text);
+  font-size: 16px;
+  border-radius: 15px;
+}
+.popup-detail-number.expired {
+  background: var(--expired-chip-bg);
+  border: 1px solid var(--expired-chip-border);
+  color: var(--expired-chip-text);
+  border-radius: 15px;
+}
+.popup-detail-number.fee {
+  background: var(--fee-chip-bg);
+  border: 1px solid var(--fee-chip-border);
+  color: var(--fee-chip-text);
+  border-radius: 15px;
+}
+.popup-detail-number.disable {
+  background: var(--disable-chip-bg);
+  border: 1px solid var(--disable-chip-border);
+  color: var(--disable-chip-text);
+  border-radius: 15px;
+}
+.popup-detail-number.closing {
+  background: var(--closing-chip-bg);
+  border: 1px solid var(--disable-chip-border);
+  color: var(--closing-chip-text);
+  border-radius: 15px;
+}
+.popup-detail-number.saldo {
+  background: var(--saldo-chip-bg);
+  border: 1px solid var(--disable-chip-border);
+  color: var(--saldo-chip-text);
+  border-radius: 15px;
+}
+.popup-detail-number.penjualan {
+  background: var(--brand-hover);
+  border: 1px solid var(--brand);
+  color: var(--accent-dark);
+  border-radius: 15px;
+}
+.popup-group-title-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.popup-payment-item {
+  min-width: 100%;
 }
 
 /* ── HARI & BAWA ── */
@@ -819,8 +836,8 @@
   border: 1px solid var(--border-color);
 }
 .popup-group-title {
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-heading);
   padding: 10px 10px 0;
   line-height: 0.1;
@@ -829,7 +846,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
-  margin-top: -10px;
+  margin-top: -8px;
   overflow: visible;
 }
 .popup-input-item {
@@ -841,9 +858,9 @@
   width: 100%;
   position: relative;
   top: 15px;
-  height: 38px !important;
-  min-height: 38px !important;
-  max-height: 38px !important;
+  height: 35px !important;
+  min-height: 30px !important;
+  max-height: 35px !important;
   border: none;
   outline: none;
   border-radius: 7px;
