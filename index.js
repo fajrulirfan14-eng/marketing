@@ -10,7 +10,9 @@ import "./fcm.js";
 import {
   getAuth,
   onAuthStateChanged,
-  signOut
+  signOut,
+  setPersistence,
+  browserLocalPersistence
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -18,6 +20,7 @@ import {
   doc,
   getDoc,
   collection,
+  writeBatch,
   collectionGroup,
   addDoc,
   setDoc,
@@ -44,6 +47,7 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch(() => {});
 const db = getFirestore(app);
 const storage = getStorage(app);
 
@@ -67,6 +71,7 @@ window.collectionGroup = collectionGroup;
 window.onSnapshot = onSnapshot;
 window.updateDoc = updateDoc;
 window.deleteField = deleteField;
+window.writeBatch = writeBatch;
 window.storage = storage;
 window.storageRef = storageRef;
 window.uploadBytes = uploadBytes;
@@ -107,8 +112,18 @@ onAuthStateChanged(auth, async(user)=>{
     }
     initNavbar();
     showView("home");
-  }else{
-    window.location.href ="login.html";
+  } else {
+    // Cek cache dulu sebelum redirect
+    const cache = localStorage.getItem("userCache");
+    if (cache && !navigator.onLine) {
+      // Offline dan ada cache — jangan logout
+      window.currentUser = JSON.parse(cache);
+      initNavbar();
+      showView("home");
+    } else {
+      localStorage.clear();
+      window.location.href = "login.html";
+    }
   }
 });
 window.logout = async function(){
@@ -187,7 +202,7 @@ window.logout = async function(){
     const progress = Math.pow(raw, 1.4);
 
     indicator.style.transition = "none";
-    indicator.style.transform  = `translateY(${damped - 60}px)`;
+    indicator.style.transform  = `translateY(${damped - 70}px)`;
     // Circle penuh (100%) saat threshold tercapai
     circle.style.strokeDashoffset = FULL_DASH - (FULL_DASH * progress);
   }, { passive: false });
@@ -232,7 +247,7 @@ window.logout = async function(){
 })();
 window.openAppDB = function () {
   return new Promise( (resolve, reject) => {
-    const request = indexedDB.open("appDB", 9);
+    const request = indexedDB.open("appDB", 10);
     request.onupgradeneeded = function (event) {
       const db = event.target.result;
       if (!db.objectStoreNames.contains("customerHarianDB")) {
@@ -279,63 +294,95 @@ window.openAppDB = function () {
         store.createIndex("idUsers", "idUsers", { unique: false });
         store.createIndex("bulanKey", "bulanKey", { unique: false });
       }
+      if (!db.objectStoreNames.contains("penjualanLangsungDB")) {
+        const store = db.createObjectStore("penjualanLangsungDB", { keyPath: "id" });
+        store.createIndex("tanggal", "tanggal", { unique: false });
+        store.createIndex("uid", "uid", { unique: false });
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 };
-window.syncOfflineDataHarian = async function(){
-  try{
-    if(!navigator.onLine){
-      return;
-    }
+function showSyncToast(pesan, sukses = true) {
+  const existing = document.getElementById("syncToastEl");
+  if (existing) existing.remove();
 
-    const db = await window.openAppDB();
-    const tx = db.transaction("dataHarianDB","readonly");
-    const store = tx.objectStore("dataHarianDB");
+  const toast = document.createElement("div");
+  toast.id = "syncToastEl";
+  toast.textContent = pesan;
+  toast.style.cssText = `
+    position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
+    background:${sukses ? "#2eaf62" : "#e53935"};
+    color:#fff;padding:10px 20px;border-radius:20px;
+    font-size:13px;font-weight:600;z-index:99999;
+    white-space:nowrap;max-width:90vw;text-align:center;
+    animation:csToastIn .3s cubic-bezier(.34,1.56,.64,1) both;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), sukses ? 2000 : 5000);
+}
+async function doSyncDataHarian(pendingData, db) {
+  const BATCH_SIZE = 500;
+  for (let i = 0; i < pendingData.length; i += BATCH_SIZE) {
+    const chunk = pendingData.slice(i, i + BATCH_SIZE);
+    const batch = window.writeBatch(window.db);
 
-    const allData = await new Promise((resolve,reject)=>{
-      const req = store.getAll();
-
-      req.onsuccess = ()=>{
-        resolve(req.result || []);
-      };
-
-      req.onerror = ()=>{
-        reject(req.error);
-      };
+    chunk.forEach(item => {
+      const docRef = window.doc(
+        window.db,
+        "customer",
+        item.idCustomer,
+        "dataHarian",
+        item.tanggal
+      );
+      batch.set(docRef, item.payload, { merge: true });
     });
 
-    const pendingData = allData.filter(
-      item => item?.isSync === false
-    );
+    await batch.commit();
 
-    for(const item of pendingData){
-      try{
-        const today = item.tanggal;
-        const customerId = item.idCustomer;
+    // Update IDB isSync: true
+    const tx = db.transaction("dataHarianDB", "readwrite");
+    const store = tx.objectStore("dataHarianDB");
+    chunk.forEach(item => {
+      item.isSync = true;
+      item.syncedAt = Date.now();
+      store.put(item);
+    });
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+}
+window.syncOfflineDataHarian = async function() {
+  try {
+    if (!navigator.onLine) return;
 
-        const docRef = window.doc(
-          window.db,
-          "customer",
-          customerId,
-          "dataHarian",
-          today
-        );
+    const db = await window.openAppDB();
+    const allData = await new Promise((resolve, reject) => {
+      const tx  = db.transaction("dataHarianDB", "readonly");
+      const req = tx.objectStore("dataHarianDB").getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => reject(req.error);
+    });
 
-        await window.setDoc(
-          docRef,
-          item.payload,
-          { merge:true }
-        );
+    const pendingData = allData.filter(item => item?.isSync === false && item?.payload && item?.idCustomer && item?.tanggal);
+    if (pendingData.length === 0) return;
 
-        const txUpdate = db.transaction("dataHarianDB", "readwrite");
-        const storeUpdate = txUpdate.objectStore("dataHarianDB");
-        item.isSync = true;
-        item.syncedAt = Date.now();
-        storeUpdate.put(item);
-
-      } catch { }
+    try {
+      await doSyncDataHarian(pendingData, db);
+      showSyncToast(`✓ ${pendingData.length} data berhasil tersimpan`, true);
+    } catch {
+      // Retry 1x setelah 3 detik
+      setTimeout(async () => {
+        try {
+          await doSyncDataHarian(pendingData, db);
+          showSyncToast(`✓ ${pendingData.length} data berhasil tersimpan`, true);
+        } catch {
+          showSyncToast("Data input gagal terkirim, cek internet atau buka aplikasi kembali", false);
+        }
+      }, 3000);
     }
   } catch { }
 };
@@ -595,7 +642,6 @@ function showView(viewName, trigger = "direct"){
     "rollingcustomer",
     "chatAi",
     "peraturan",
-    "laporanharian",
     "customersales"
   ];
 
@@ -905,7 +951,12 @@ function initNavbar() {
 
   // Expose ke luar untuk dipakai back button handler
   window._moveFab = moveFab;
-
+  // Navbar Laporan — kurir ke operasional, hunter/sales ke laporanharian
+  const role = (window.currentUser?.role || "").toLowerCase();
+  const laporanItem = document.querySelector(".nav-item[data-view='operasional']");
+  if (laporanItem && role !== "kurir") {
+    laporanItem.dataset.view = "laporanharian";
+  }
   // Simpan label dari span terakhir ke data-label sekali saat init
   const navItems = document.querySelectorAll(".nav-item");
   navItems.forEach(item => {
@@ -946,7 +997,7 @@ function initNavbar() {
   const hideNavbarViews = [
     "customer","input","inputTabel","analisis","rolling",
     "tentang","keamanan","perjanjian","slip",
-    "rollingcustomer","chatAi","peraturan", "laporanharian", "customersales"
+    "rollingcustomer","chatAi","peraturan", "customersales"
   ];
 
   appEl?.addEventListener("scroll", () => {

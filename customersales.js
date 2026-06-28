@@ -151,12 +151,17 @@ window.initCustomerSalesView = async function() {
     const elJumlah = document.getElementById("customerSalesJumlah");
     if (elJumlah) elJumlah.textContent = filtered.length;
 
-    // Hitung modal pendam dari keterangan.modal.hargaPendam
+    // Hitung modal pendam per varian dan total
     let totalModalPendam = 0;
+    const modalPerVarian = {};
+
     filtered.forEach(item => {
       totalModalPendam += Number(item.keterangan?.modal?.hargaPendam || 0);
+      // Hitung qty per varian dari konsinyasi
+      Object.entries(item.konsinyasi || {}).forEach(([key, qty]) => {
+        modalPerVarian[key] = (modalPerVarian[key] || 0) + Number(qty);
+      });
     });
-
     // Aset customer — jumlah filtered × upahHunter
     let upahHunter = 0;
     try {
@@ -182,6 +187,22 @@ window.initCustomerSalesView = async function() {
     if (elModal) elModal.textContent   = "Rp " + totalModalPendam.toLocaleString("id-ID");
     if (elAset)  elAset.textContent    = "Rp " + totalAsetCustomer.toLocaleString("id-ID");
     if (elTotal) elTotal.textContent   = "Rp " + totalAset.toLocaleString("id-ID");
+
+    // Render grid modal per varian
+    const elVarianGrid = document.getElementById("salesModalVarianGrid");
+    if (elVarianGrid) {
+      const keys = Object.keys(modalPerVarian);
+      if (keys.length) {
+        elVarianGrid.innerHTML = keys.map(k => `
+          <div class="cs-varian-box">
+            <div class="cs-varian-label">${k}</div>
+            <div class="cs-varian-value">${modalPerVarian[k]}</div>
+          </div>
+        `).join("");
+      } else {
+        elVarianGrid.innerHTML = `<div class="cs-varian-empty">Belum ada data</div>`;
+      }
+    }
     const searchVal = (searchInput?.value || "").toLowerCase();
     const tampil    = searchVal
       ? filtered.filter(item => (item.namaCustomer || "").toLowerCase().includes(searchVal))
@@ -198,15 +219,27 @@ window.initCustomerSalesView = async function() {
       const jarak = item.jarak != null ? `${item.jarak} km` : "-";
       const hari  = item.hari || "-";
 
+      const badgeCatatan = item.catatan
+        ? `<span class="cs-badge-catatan">✍︎</span>`
+        : "";
+
       return `
-        <div class="customer-sales-item" onclick="window.openCustomerSalesPopup('${item.id}')">
+        <div class="customer-sales-item" data-id="${item.id}" onclick="window.openCustomerSalesPopup('${item.id}')">
           <img class="customer-sales-avatar" src="${foto}">
           <div class="customer-sales-info">
-            <div class="customer-sales-name">${nama}</div>
+            <div class="customer-sales-name">${nama} ${badgeCatatan}</div>
             <div class="customer-sales-distance">${jarak}</div>
             <div class="customer-sales-hari-badge">${hari}</div>
           </div>
           <div class="customer-sales-actions">
+            <button class="customer-sales-action-btn" onclick="event.stopPropagation(); window.openCatatanSales('${item.id}', '${(item.namaCustomer||'').replace(/'/g,"\\'")}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </button>
             <button class="customer-sales-action-btn" onclick="event.stopPropagation(); window.openMapFromCustomerSales('${item.id}')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/>
@@ -282,8 +315,120 @@ window.openMapFromCustomerSales = async function(idCustomer) {
   };
   tryShow(0);
 };
+window.openCatatanSales = async function(idCustomer, namaCustomer) {
+  const overlay   = document.getElementById("popupCatatanCustomer");
+  const namaEl    = document.getElementById("popupCatatanNama");
+  const updateEl  = document.getElementById("popupCatatanUpdate");
+  const textEl    = document.getElementById("popupCatatanText");
+  const simpanBtn = document.getElementById("btnSimpanCatatan");
+  const simpanTxt = document.getElementById("btnSimpanCatatanText");
+  if (!overlay) return;
 
+  // Load catatan dari IndexedDB
+  try {
+    const idb  = await window.openAppDB();
+    const data = await new Promise(resolve => {
+      const tx  = idb.transaction("customerSalesDB", "readonly");
+      const req = tx.objectStore("customerSalesDB").get(idCustomer);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror   = () => resolve(null);
+    });
+    if (namaEl)   namaEl.textContent   = namaCustomer || "-";
+    if (textEl)   textEl.value         = data?.catatan || "";
+    if (updateEl) updateEl.textContent = data?.catatanUpdatedAt
+      ? "Update: " + new Date(data.catatanUpdatedAt).toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
+      : "Update: -";
+  } catch {
+    if (namaEl)   namaEl.textContent   = namaCustomer || "-";
+    if (textEl)   textEl.value         = "";
+    if (updateEl) updateEl.textContent = "Update: -";
+  }
+
+  overlay.classList.add("active");
+
+  // Override tombol simpan
+  simpanBtn.onclick = async function() {
+    const catatan = textEl.value.trim();
+    const now     = Date.now();
+    simpanBtn.disabled  = true;
+    simpanTxt.textContent = "Menyimpan...";
+
+    try {
+      const idb      = await window.openAppDB();
+      const existing = await new Promise(resolve => {
+        const tx  = idb.transaction("customerSalesDB", "readonly");
+        const req = tx.objectStore("customerSalesDB").get(idCustomer);
+        req.onsuccess = () => resolve(req.result || {});
+        req.onerror   = () => resolve({});
+      });
+
+      await new Promise((resolve, reject) => {
+        const tx    = idb.transaction("customerSalesDB", "readwrite");
+        const store = tx.objectStore("customerSalesDB");
+        store.put({ ...existing, catatan, catatanUpdatedAt: now });
+        tx.oncomplete = () => resolve();
+        tx.onerror    = () => reject(tx.error);
+      });
+
+      if (navigator.onLine) {
+        try {
+          await window.updateDoc(
+            window.doc(window.db, "customerSales", idCustomer),
+            { catatan, catatanUpdatedAt: now }
+          );
+        } catch { }
+      }
+
+      simpanTxt.textContent = "Tersimpan ✓";
+      setTimeout(() => {
+        overlay.classList.remove("active");
+        simpanTxt.textContent = "Simpan";
+        simpanBtn.disabled = false;
+
+        // Update badge di list tanpa reload
+        const itemEl = document.querySelector(`.customer-sales-item[data-id="${idCustomer}"]`);
+        if (itemEl) {
+          const nameEl = itemEl.querySelector(".customer-sales-name");
+          if (nameEl) {
+            const badgeExisting = nameEl.querySelector(".cs-badge-catatan");
+            if (catatan && !badgeExisting) {
+              nameEl.insertAdjacentHTML("beforeend", `<span class="cs-badge-catatan">✍︎</span>`);
+            } else if (!catatan && badgeExisting) {
+              badgeExisting.remove();
+            }
+          }
+        }
+      }, 800);
+    } catch {
+      simpanBtn.disabled    = false;
+      simpanTxt.textContent = "Gagal, coba lagi";
+      setTimeout(() => { simpanTxt.textContent = "Simpan"; }, 2000);
+    }
+  };
+};
+function compressFotoSales(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width, h = img.height;
+        const maxSize = 400;
+        if (w > h) { if (w > maxSize) { h *= maxSize/w; w = maxSize; } }
+        else { if (h > maxSize) { w *= maxSize/h; h = maxSize; } }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.3));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 window.openCustomerSalesPopup = async function(idCustomer) {
+  // Kalau mode select aktif, jangan buka popup
+  if (document.getElementById("csSelectCancel")) return;
   const popup     = document.getElementById("popupCustomerSales");
   const inputNama = document.getElementById("inputNamaCustomerSales");
   const inputAlamat = document.getElementById("alamatCustomerSales");
@@ -383,12 +528,17 @@ window.openCustomerSalesPopup = async function(idCustomer) {
       inputKamera.onchange = async function() {
         const file = inputKamera.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          window.salesFotoBaru = e.target.result;
-          fotoCard.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">`;
-        };
-        reader.readAsDataURL(file);
+        setTimeout(async () => {
+          const url = URL.createObjectURL(file);
+          fotoCard.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">`;
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          if (navigator.onLine) {
+            window.salesFotoBaru = file;
+          } else {
+            const compressed = await compressFotoSales(file);
+            window.salesFotoBaru = compressed;
+          }
+        }, 500);
       };
       inputKamera.click();
     };
@@ -432,20 +582,12 @@ document.getElementById("btnUpdateSales")?.addEventListener("click", async funct
     existing.hari = window._salesEditHari || existing.hari;
     // Foto baru
     if (window.salesFotoBaru) {
-      const compressed = await new Promise(resolve => {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement("canvas");
-          let w = img.width, h = img.height;
-          const maxSize = 600;
-          if (w > h) { if (w > maxSize) { h *= maxSize/w; w = maxSize; } }
-          else { if (h > maxSize) { w *= maxSize/h; h = maxSize; } }
-          canvas.width = w; canvas.height = h;
-          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL("image/jpeg", 0.4));
-        };
-        img.src = window.salesFotoBaru;
-      });
+      let compressed;
+      if (typeof window.salesFotoBaru === "string") {
+        compressed = window.salesFotoBaru;
+      } else {
+        compressed = await compressFotoSales(window.salesFotoBaru);
+      }
       existing.fotoLokal = compressed;
       existing.foto      = compressed;
       window.salesFotoBaru = null;
@@ -536,7 +678,250 @@ document.getElementById("btnUpdateSales")?.addEventListener("click", async funct
     console.log("Update sales error:", e);
   }
 });
+// ── LONG PRESS HAPUS ──
+(function() {
+  let pressTimer     = null;
+  let isSelectMode   = false;
+  let selectedIds    = new Set();
 
+  function enterSelectMode(id) {
+    isSelectMode = true;
+    selectedIds.clear();
+    selectedIds.add(id);
+    renderSelectMode();
+  }
+
+  function exitSelectMode() {
+    isSelectMode = false;
+    selectedIds.clear();
+
+    const header    = document.getElementById("customerSalesHeader");
+    const selectBar = document.getElementById("csSelectBar");
+
+    // Sembunyikan select bar, tampilkan konten header asli
+    if (selectBar) selectBar.remove();
+    if (header) {
+      header.classList.remove("select-mode");
+      header.querySelectorAll(":scope > *:not(#csSelectBar)").forEach(el => {
+        el.style.display = "";
+      });
+    }
+
+    document.getElementById("customerSalesList")?.querySelectorAll(".cs-check").forEach(c => c.remove());
+    document.getElementById("customerSalesList")?.querySelectorAll(".customer-sales-item").forEach(item => {
+      item.classList.remove("cs-selected");
+    });
+  }
+  function renderSelectMode() {
+    const header    = document.getElementById("customerSalesHeader");
+    const listEl    = document.getElementById("customerSalesList");
+    if (!header) return;
+    if (isSelectMode) {
+      header.classList.add("select-mode");
+
+      // Sembunyikan konten header asli
+      header.querySelectorAll(":scope > *").forEach(el => {
+        el.style.display = "none";
+      });
+
+      // Inject select bar
+      const bar = document.createElement("div");
+      bar.id        = "csSelectBar";
+      bar.className = "cs-select-header";
+      bar.innerHTML = `
+        <button class="cs-select-cancel" id="csSelectCancel">✕</button>
+        <div class="cs-select-count" id="csSelectCount">${selectedIds.size} dipilih</div>
+        <button class="cs-select-hapus" id="csSelectHapus">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14H6L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+            <path d="M9 6V4h6v2"/>
+          </svg>
+          Hapus
+        </button>
+      `;
+      header.appendChild(bar);
+
+      document.getElementById("csSelectCancel").onclick = exitSelectMode;
+      document.getElementById("csSelectHapus").onclick  = konfirmasiHapus;
+
+      // Update tampilan item
+      listEl.querySelectorAll(".customer-sales-item").forEach(item => {
+        const id = item.dataset.id;
+        item.classList.toggle("cs-selected", selectedIds.has(id));
+        if (!item.querySelector(".cs-check")) {
+          const check = document.createElement("div");
+          check.className = "cs-check";
+          item.prepend(check);
+        }
+      });
+
+    } else {
+      const selectBar = document.getElementById("csSelectBar");
+      if (selectBar) selectBar.remove();
+      header.classList.remove("select-mode");
+      header.querySelectorAll(":scope > *:not(#csSelectBar)").forEach(el => {
+        el.style.display = "";
+      });
+      listEl.querySelectorAll(".cs-check").forEach(c => c.remove());
+      listEl.querySelectorAll(".customer-sales-item").forEach(item => {
+        item.classList.remove("cs-selected");
+      });
+    }
+
+    const countEl = document.getElementById("csSelectCount");
+    if (countEl) countEl.textContent = `${selectedIds.size} dipilih`;
+
+    const hapusBtn = document.getElementById("csSelectHapus");
+    if (hapusBtn) hapusBtn.disabled = selectedIds.size === 0;
+  }
+  function konfirmasiHapus() {
+    if (!navigator.onLine) {
+      const toast = document.createElement("div");
+      toast.textContent = "Tidak dapat menghapus, cek koneksi internet";
+      toast.style.cssText = `
+        position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+        background:#e53935;color:#fff;padding:10px 20px;border-radius:20px;
+        font-size:13px;font-weight:600;z-index:99999;
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+      return;
+    }
+
+    const existing = document.getElementById("csKonfirmasiOverlay");
+    if (existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "csKonfirmasiOverlay";
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:99999;
+      background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
+      display:flex;align-items:center;justify-content:center;
+      padding:24px;
+    `;
+    overlay.innerHTML = `
+      <div style="
+        background:var(--bg-card,#fff);border-radius:20px;
+        padding:24px;width:100%;max-width:340px;text-align:center;
+      ">
+        <div style="font-size:40px;margin-bottom:12px;">🗑️</div>
+        <div style="font-size:17px;font-weight:700;color:var(--text-primary,#2d2d2d);margin-bottom:8px;">
+          Hapus ${selectedIds.size} Customer?
+        </div>
+        <div style="font-size:13px;color:var(--text-secondary,#7a6a5a);line-height:1.5;margin-bottom:20px;">
+          Data yang dihapus tidak dapat dikembalikan. Pastikan kamu sudah yakin sebelum melanjutkan.
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button id="csBatalHapus" style="
+            flex:1;padding:12px;border:1.5px solid var(--border-color,#e0d6cc);
+            border-radius:12px;background:none;font-size:14px;font-weight:600;
+            color:var(--text-primary,#2d2d2d);cursor:pointer;
+          ">Batal</button>
+          <button id="csOkHapus" style="
+            flex:1;padding:12px;border:none;border-radius:12px;
+            background:#e53935;color:#fff;font-size:14px;font-weight:700;cursor:pointer;
+          ">Ya, Hapus</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById("csBatalHapus").onclick = () => overlay.remove();
+    document.getElementById("csOkHapus").onclick    = () => { overlay.remove(); eksekusiHapus(); };
+  }
+  async function eksekusiHapus() {
+    const ids    = [...selectedIds];
+    const uid    = window.auth?.currentUser?.uid;
+    const total  = ids.length;
+
+    // Toast progress
+    const toast = document.createElement("div");
+    toast.id = "csHapusToast";
+    toast.style.cssText = `
+      position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+      background:#333;color:#fff;padding:10px 20px;border-radius:20px;
+      font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;
+    `;
+    toast.textContent = `Menghapus 0 dari ${total}...`;
+    document.body.appendChild(toast);
+
+    try {
+      // Hapus Firestore pakai batch
+      const batchSize = 500;
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const chunk = ids.slice(i, i + batchSize);
+        const batch = window.writeBatch(window.db);
+        chunk.forEach(id => {
+          batch.delete(window.doc(window.db, "customerSales", id));
+        });
+        await batch.commit();
+        toast.textContent = `Menghapus ${Math.min(i + batchSize, total)} dari ${total}...`;
+      }
+
+      // Hapus IndexedDB
+      const idb = await window.openAppDB();
+      await new Promise((resolve, reject) => {
+        const tx    = idb.transaction("customerSalesDB", "readwrite");
+        const store = tx.objectStore("customerSalesDB");
+        ids.forEach(id => store.delete(id));
+        tx.oncomplete = () => resolve();
+        tx.onerror    = () => reject(tx.error);
+      });
+
+      toast.style.background = "#2eaf62";
+      toast.textContent = `✓ ${total} customer berhasil dihapus`;
+      setTimeout(() => toast.remove(), 2000);
+
+      exitSelectMode();
+      window.initCustomerSalesView();
+    } catch(e) {
+      console.log("Hapus error:", e);
+      toast.style.background = "#e53935";
+      toast.textContent = "Gagal menghapus, coba lagi";
+      setTimeout(() => toast.remove(), 2500);
+    }
+  }
+
+  // Event delegation long press
+  document.addEventListener("touchstart", e => {
+    const item = e.target.closest(".customer-sales-item");
+    if (!item) return;
+    pressTimer = setTimeout(() => {
+      const id = item.dataset.id;
+      if (!id) return;
+      if (!isSelectMode) {
+        enterSelectMode(id);
+      }
+    }, 600);
+  }, { passive: true });
+  document.addEventListener("touchend",  () => clearTimeout(pressTimer), { passive: true });
+  document.addEventListener("touchmove", () => clearTimeout(pressTimer), { passive: true });
+  // Tap item saat mode centang
+  document.addEventListener("click", e => {
+    if (!isSelectMode) return;
+    const item = e.target.closest(".customer-sales-item");
+    if (!item) return;
+    e.stopPropagation();
+    const id = item.dataset.id;
+    if (!id) return;
+    if (selectedIds.has(id)) selectedIds.delete(id);
+    else selectedIds.add(id);
+    item.classList.toggle("cs-selected", selectedIds.has(id));
+
+    // Auto exit kalau semua batal dicentang
+    if (selectedIds.size === 0) {
+      exitSelectMode();
+      return;
+    }
+
+    const countEl = document.getElementById("csSelectCount");
+    if (countEl) countEl.textContent = `${selectedIds.size} dipilih`;
+    const hapusBtn = document.getElementById("csSelectHapus");
+    if (hapusBtn) hapusBtn.disabled = false;
+  });
+})();
 // Swipe close
 (function() {
   let startY = 0, currentY = 0, isDragging = false, canSwipe = false;

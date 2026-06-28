@@ -1,7 +1,5 @@
 
 window.initCustomerView = function() {
-  console.log("👥 Customer View");
-
   const hariEl = document.getElementById("customerHari");
   const hariMenu = document.getElementById("hariMenu");
   const searchInput = document.getElementById("searchCustomer");
@@ -40,7 +38,6 @@ window.initCustomerView = function() {
       selectedHari = item.dataset.hari;
       hariEl.innerHTML = `${selectedHari} <i class="fa-solid fa-chevron-down"></i>`;
       hariMenu.classList.remove("active");
-      console.log("HARI:", selectedHari);
       window.loadCustomerFromIndexDB(selectedHari, searchInput.value);
     };
   });
@@ -50,6 +47,126 @@ window.initCustomerView = function() {
   if (btnMapHari) {
     btnMapHari.onclick = function() {
       window.openMapView();
+    };
+  }
+  // Filter
+  window._customerFilter = window._customerFilter || {};
+  const btnFilter  = document.getElementById("btnFilterCustomer");
+  const filterDrop = document.getElementById("customerFilterDropdown");
+
+  btnFilter?.addEventListener("click", e => {
+    e.stopPropagation();
+    filterDrop.classList.toggle("open");
+  });
+
+  document.addEventListener("click", e => {
+    if (!e.target.closest("#customerFilterWrap")) {
+      filterDrop?.classList.remove("open");
+    }
+  });
+
+  filterDrop?.querySelectorAll(".customer-filter-item").forEach(item => {
+    const f = item.dataset.filter;
+    // Init state
+    if (window._customerFilter[f]) item.classList.add("active");
+
+    item.addEventListener("click", () => {
+      window._customerFilter[f] = !window._customerFilter[f];
+      item.classList.toggle("active", window._customerFilter[f]);
+
+      // Update icon tombol filter
+      const hasActive = Object.values(window._customerFilter).some(v => v);
+      btnFilter.classList.toggle("active-filter", hasActive);
+
+      filterDrop.classList.remove("open");
+      window.loadCustomerFromIndexDB(selectedHari, searchInput.value);
+    });
+  });
+
+  // Init icon filter
+  const hasActive = Object.values(window._customerFilter).some(v => v);
+  btnFilter?.classList.toggle("active-filter", hasActive);
+  const btnReload = document.getElementById("btnReloadCustomer");
+  if (btnReload) {
+    btnReload.onclick = async function() {
+      if (btnReload.classList.contains("loading")) return;
+
+      // Blok jika Semua Hari
+      if (selectedHari === "Semua Hari") {
+        const toast = document.createElement("div");
+        toast.textContent = "Pilih hari terlebih dahulu";
+        toast.style.cssText = `
+          position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
+          background:#333;color:#fff;padding:10px 20px;border-radius:20px;
+          font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;
+          animation:csToastIn .3s cubic-bezier(.34,1.56,.64,1) both;
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+        return;
+      }
+
+      btnReload.classList.add("loading");
+      btnReload.disabled = true;
+
+      try {
+        const uid = window.auth.currentUser?.uid;
+        if (!uid) return;
+
+        const snap = await window.getDocs(window.query(
+          window.collection(window.db, "customer"),
+          window.where("pemilik", "==", uid),
+          window.where("status",  "==", true),
+          window.where("hari",    "==", selectedHari)
+        ));
+
+        const data = snap.docs.map(d => {
+          const dd = d.data();
+          return {
+            id: d.id,
+            ...dd,
+            lokasiCustomer: window.normalizeGeoPoint(dd.lokasiCustomer)
+          };
+        });
+
+        const idb = await window.openAppDB();
+        await new Promise((resolve, reject) => {
+          const tx    = idb.transaction("customerHarianDB", "readwrite");
+          const store = tx.objectStore("customerHarianDB");
+          store.put({ id: `${uid}_${selectedHari}`, data, updatedAt: Date.now() });
+          tx.oncomplete = () => resolve();
+          tx.onerror    = () => reject(tx.error);
+        });
+
+        window.loadCustomerFromIndexDB(selectedHari, searchInput.value);
+
+        // Toast sukses
+        const toast = document.createElement("div");
+        toast.textContent = `✓ ${data.length} customer diperbarui`;
+        toast.style.cssText = `
+          position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
+          background:#2eaf62;color:#fff;padding:10px 20px;border-radius:20px;
+          font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;
+          animation:csToastIn .3s cubic-bezier(.34,1.56,.64,1) both;
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+
+      } catch {
+        const toast = document.createElement("div");
+        toast.textContent = "Gagal reload, coba lagi";
+        toast.style.cssText = `
+          position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
+          background:#e53935;color:#fff;padding:10px 20px;border-radius:20px;
+          font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;
+          animation:csToastIn .3s cubic-bezier(.34,1.56,.64,1) both;
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      } finally {
+        btnReload.classList.remove("loading");
+        btnReload.disabled = false;
+      }
     };
   }
   document.addEventListener("click", function(e) {
@@ -135,9 +252,7 @@ window.openMapRoutingHari = async function(hari) {
     localStorage.setItem("routingPinFilter", "customerHarianDB");
     const cid = lokasiValid.idCustomer || lokasiValid.id;
     window.openMapRouting(cid, "customerHarianDB", false);
-  } catch(err) {
-    console.log("openMapRoutingHari error:", err);
-  }
+  } catch(err) { }
 };
 window.renderCustomer = function(hari, keyword = "", dataArray = []) {
   const listEl = document.getElementById("customerList");
@@ -173,7 +288,17 @@ window.renderCustomer = function(hari, keyword = "", dataArray = []) {
           <div class="customer-info">
             <div class="customer-nama">${data.namaCustomer || "-"}</div>
             <div class="customer-alamat">${data.alamatCustomer || "-"}</div>
-            <div class="customer-jarak">${Number(data.jarak || 0).toFixed(2)} km</div>
+            <div class="customer-kemarin-row">
+              ${(()=>{
+                const dk = data?.dataKemarin || {};
+                const keys = Object.keys(dk);
+                if (!keys.length) return "";
+                return keys.map(key => {
+                  const qty = Number(dk[key]?.qty || 0);
+                  return `<span class="customer-kemarin-chip ${qty>0?"highlight":""}">${key}: ${qty}</span>`;
+                }).join("");
+              })()}
+            </div>
           </div>
         </div>
         <div class="customer-action">
@@ -255,10 +380,14 @@ window.loadCustomerFromIndexDB = async function(hari, keyword = "") {
         (x.namaCustomer || "").toLowerCase().includes(k)
       );
     }
+
+    // Apply filter
+    if (window._customerFilter?.catatan) {
+      dataArray = dataArray.filter(x => x.catatan?.pesan?.trim());
+    }
     window._customerViewData = dataArray;
     window.renderCustomer(hari, keyword, dataArray);
   } catch (err) {
-    console.log(err);
     listEl.innerHTML = `<div class="customer-empty">Gagal memuat</div>`;
   }
 };
@@ -335,20 +464,35 @@ window.openCatatanCustomer = function(data) {
             });
           }
         }
-      } catch(e) {
-        console.log("Update catatan IndexDB error:", e);
-      }
+      } catch(e) { }
       btn.classList.remove("loading");
       btn.classList.add("success");
       btnText.innerText = "Sukses";
       updateEl.innerText = "Update: Baru saja";
+
+      // Update badge catatan di list
+      const customerId = data.idCustomer || data.id;
+      const listItems  = document.querySelectorAll(".customer-list-item");
+      listItems.forEach(item => {
+        const namaEl = item.querySelector(".customer-nama");
+        if (namaEl && namaEl.textContent.trim() === (data.namaCustomer || "-")) {
+          const badgeExisting = item.querySelector(".customer-note-badge");
+          const fotoWrapper   = item.querySelector(".customer-foto-wrapper");
+          const pesan         = textEl.value.trim();
+          if (pesan && !badgeExisting && fotoWrapper) {
+            fotoWrapper.insertAdjacentHTML("beforeend", `<div class="customer-note-badge"><i class="fa-solid fa-bookmark"></i></div>`);
+          } else if (!pesan && badgeExisting) {
+            badgeExisting.remove();
+          }
+        }
+      });
+
       setTimeout(() => {
         btn.classList.remove("success");
         btnText.innerText = "Simpan";
         btn.disabled = false;
       }, 1500);
     } catch(err) {
-      console.log(err);
       btn.classList.remove("loading");
       btn.classList.add("error");
       btnText.innerText = "Gagal";
@@ -365,7 +509,6 @@ window.syncPendingCustomer = async function() {
     if (!navigator.onLine) return;
     const uid = window.auth.currentUser?.uid;
     if (!uid) return;
-    console.log("🔄 Sync customer pending...");
     const db = await window.openAppDB();
     const tx = db.transaction("customerHarianDB", "readwrite");
     const store = tx.objectStore("customerHarianDB");
@@ -411,10 +554,7 @@ window.syncPendingCustomer = async function() {
             );
             item.data[i].syncStatus = "synced";
             changed = true;
-            console.log("✅ Synced:", customer.namaCustomer);
-          } catch(err){
-            console.log("❌ Sync gagal:", customer.namaCustomer, err);
-          }
+          } catch(err){  }
         }
         if (changed) {
           const db2 = await window.openAppDB();
@@ -426,12 +566,8 @@ window.syncPendingCustomer = async function() {
           });
         }
       }
-
-      console.log("✅ Sync selesai");
     };
-  } catch(err){
-    console.log("Sync error:", err);
-  }
+  } catch(err){ }
 };
 
 window.addEventListener("online",
@@ -481,7 +617,6 @@ window.inputCustomer = function() {
   navigator.geolocation.getCurrentPosition((pos) => {
     customerLat = pos.coords.latitude;
     customerLng = pos.coords.longitude;
-    console.log("DEFAULT LOKASI:", customerLat, customerLng);
   });
   const btnLokasi     = document.getElementById("btnLokasi");
   const btnLokasiText = document.getElementById("btnLokasiText");

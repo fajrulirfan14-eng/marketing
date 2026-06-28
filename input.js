@@ -94,7 +94,7 @@ window.initInputView = async function(){
       e.stopPropagation();
       const action = item.dataset.action;
 
-      if (["keterangan", "fee_disable", "penyesuaian", "produktif", "stabil", "non_produktif"].includes(action)) {
+      if (["keterangan", "fee_disable", "penyesuaian", "produktif", "stabil", "non_produktif", "catatan"].includes(action)) {
         window.inputFilterMode = window.inputFilterMode === action ? "all" : action;
         localStorage.setItem("inputFilterMode", window.inputFilterMode);
         updateFilterUI();
@@ -410,21 +410,25 @@ window.initInputView = async function(){
       }
 
       // === CEK PERBEDAAN KONSINYASI ===
-      if(dataHarian?.konsinyasi){
-        const kemarinKeys = new Set(Object.keys(dataKemarin));
-        const konsinyasiKeys = new Set(Object.keys(dataHarian.konsinyasi));
-      
-        const sameKeys =
-          kemarinKeys.size === konsinyasiKeys.size &&
-          [...kemarinKeys].every(key => konsinyasiKeys.has(key));
-      
-        if(!sameKeys){
+      const kemarinKeys = Object.keys(dataKemarin).filter(k => Number(dataKemarin[k]?.qty || 0) > 0);
+
+      if (kemarinKeys.length > 0) {
+        if (!dataHarian?.konsinyasi) {
+          // Belum diinput hari ini tapi kemarin ada titipan → pasti beda
           hasKonsinyasiDiff = true;
         } else {
-          // CEK NILAI QTY JUGA
-          hasKonsinyasiDiff = [...kemarinKeys].some(key =>
-            Number(dataHarian.konsinyasi[key]) !== Number(dataKemarin[key]?.qty || 0)
-          );
+          const konsinyasi = dataHarian.konsinyasi;
+          const sameKeys =
+            kemarinKeys.length === Object.keys(konsinyasi).length &&
+            kemarinKeys.every(key => konsinyasi.hasOwnProperty(key));
+
+          if (!sameKeys) {
+            hasKonsinyasiDiff = true;
+          } else {
+            hasKonsinyasiDiff = kemarinKeys.some(key =>
+              Number(konsinyasi[key]) !== Number(dataKemarin[key]?.qty || 0)
+            );
+          }
         }
       }
 
@@ -498,6 +502,9 @@ window.initInputView = async function(){
         }
         if (window.inputFilterMode === "non_produktif") {
           if ((window.trikotomiResult||{})[customerId] !== "red") return;
+        }
+        if (window.inputFilterMode === "catatan") {
+          if (!data.catatan?.pesan?.trim()) return;
         }
 
         customerHtml += `
@@ -741,7 +748,7 @@ window.initInputView = async function(){
       </div>
     `;
   }
-  window.compressImageInput = function(file, maxWidth = 600, quality = 0.4) {
+  window.compressImageInput = function(file, maxWidth = 400, quality = 0.3) {
     return new Promise(resolve => {
       const reader = new FileReader();
       reader.onload = e => {
@@ -1131,10 +1138,7 @@ window.initInputView = async function(){
   
     bodyEl.innerHTML = html;
     function validate(){
-      const hasInput = [
-          ...bodyEl.querySelectorAll(".popup-fd-input")
-        ].some(input => input.value !== "");
-      submitBtn.disabled = !hasInput;
+      submitBtn.disabled = false;
     }
     bodyEl.querySelectorAll(".popup-fd-input").forEach(input=>{
         input.addEventListener("input", validate);
@@ -1579,7 +1583,7 @@ window.initInputView = async function(){
             const ctx = canvas.getContext("2d");
             let width = img.width;
             let height = img.height;
-            const maxSize = 600;
+            const maxSize = 400;
             if(width > height){
               if(width > maxSize){
                 height *= maxSize / width;
@@ -1595,7 +1599,7 @@ window.initInputView = async function(){
             canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
             resolve(
-              canvas.toDataURL("image/jpeg", 0.4)
+              canvas.toDataURL("image/jpeg", 0.3)
             );
           };
           img.src = e.target.result;
@@ -2014,17 +2018,21 @@ window.initInputView = async function(){
               kemarinData[key] = qty;
             }
           });
-          const lainnyaData = groupData.lainnya;
-          const kKeys = Object.keys(kemarinData);
-          const lKeys = Object.keys(lainnyaData);
-          const sameLength = kKeys.length === lKeys.length;
-          const sameData = kKeys.every(key=>
+
+          // Kalau dataKemarin kosong — boleh simpan langsung
+          if(Object.keys(kemarinData).length > 0){
+            const lainnyaData = groupData.lainnya;
+            const kKeys = Object.keys(kemarinData);
+            const lKeys = Object.keys(lainnyaData);
+            const sameLength = kKeys.length === lKeys.length;
+            const sameData = kKeys.every(key=>
               lKeys.includes(key) &&
               Number(lainnyaData[key]) ===
               Number(kemarinData[key])
             );
-          if(!sameLength || !sameData){
-            isValid = false;
+            if(!sameLength || !sameData){
+              isValid = false;
+            }
           }
         }else if(
           status === "pending" ||
@@ -2090,11 +2098,23 @@ window.initInputView = async function(){
     cameraInput.onchange = function(e){
       const file = e.target.files[0];
       if(!file) return;
-      fotoPreview.src = URL.createObjectURL(file);
-      fotoPreview.style.display = "block";
-      fotoPlaceholder.style.display = "none";
-      window.popupFotoLainnya = file;
-      validateSubmit();
+      setTimeout(async () => {
+        const url = URL.createObjectURL(file);
+        fotoPreview.src = url;
+        fotoPreview.style.display = "block";
+        fotoPlaceholder.style.display = "none";
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+        if (navigator.onLine) {
+          // Online — simpan file langsung, upload saat submit
+          window.popupFotoLainnya = file;
+        } else {
+          // Offline — compress dan simpan base64
+          const base64 = await compressImage(file);
+          window.popupFotoLainnya = base64;
+        }
+        validateSubmit();
+      }, 500);
     };
     submitBtn.onclick = function(){
       if(submitBtn.disabled) return;
@@ -2170,6 +2190,166 @@ window.initInputView = async function(){
         }else{sheet.style.transform = "";}
       }
     );
+  };
+  window.openBottomSheetPenjualanLangsung = async function(existing, activeKeys, today) {
+    const existingEl = document.getElementById("penjualanLangsungOverlay");
+    if (existingEl) existingEl.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "penjualanLangsungOverlay";
+    overlay.className = "popup-overlay active";
+
+    const itemsHtml = activeKeys.map(key => `
+      <div class="popup-input-item">
+        <input type="number" min="0" placeholder="${key}"
+          value="${existing[key] || ""}"
+          class="popup-input-number pl-input"
+          data-key="${key}">
+      </div>
+    `).join("");
+
+    overlay.innerHTML = `
+      <div class="popup-content popup-pl-content">
+        <div class="popup-handle"></div>
+        <div class="popup-title">Penjualan Langsung</div>
+        <div class="popup-group">
+          <div class="popup-group-list">${itemsHtml}</div>
+        </div>
+        <button class="btn-simpan-customer" id="btnSimpanPenjualanLangsung">
+          <span id="btnSimpanPLText">Simpan</span>
+        </button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Swipe close
+    const content = overlay.querySelector(".popup-content");
+    let startY = 0;
+    content.addEventListener("touchstart", e => { startY = e.touches[0].clientY; }, { passive: true });
+    content.addEventListener("touchmove", e => {
+      const d = e.touches[0].clientY - startY;
+      if (d > 0) content.style.transform = `translateY(${d}px)`;
+    }, { passive: true });
+    content.addEventListener("touchend", e => {
+      const d = e.changedTouches[0].clientY - startY;
+      content.style.transition = ".3s ease";
+      if (d > 120) { overlay.remove(); } else { content.style.transform = ""; }
+    });
+
+    overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+
+    document.getElementById("btnSimpanPenjualanLangsung").onclick = async function() {
+      const btn     = this;
+      const btnText = document.getElementById("btnSimpanPLText");
+      btn.disabled  = true;
+      btnText.textContent = "Menyimpan...";
+
+      try {
+        const uid  = window.auth.currentUser?.uid;
+        const user = window.currentUser || {};
+
+        const penjualanLangsung = {};
+        overlay.querySelectorAll(".pl-input").forEach(input => {
+          if (input.value !== "") {
+            penjualanLangsung[input.dataset.key] = Number(input.value);
+          }
+        });
+
+        const varianMap = {};
+        (window.globalVarian || []).forEach(item => {
+          Object.keys(item).forEach(k => { varianMap[k] = item[k]; });
+        });
+
+        const pay = {};
+        let bayarKonsumen = 0;
+        Object.entries(penjualanLangsung).forEach(([key, qty]) => {
+          if (qty > 0) {
+            pay[key] = qty;
+            bayarKonsumen += qty * Number(varianMap[key]?.hargaKonsumen || 0);
+          }
+        });
+
+        const pembayaran = { bayarKonsumen };
+
+        const payload = {
+          id: `${uid}_${today}`,
+          uid,
+          pemilik: uid,
+          idCabang: user.idCabang || "",
+          tanggal: today,
+          penjualanLangsung,
+          pay,
+          pembayaran,
+          isSync: false,
+          updatedAt: Date.now()
+        };
+
+        // Simpan IDB
+        const idb = await window.openAppDB();
+        await new Promise((resolve, reject) => {
+          const tx    = idb.transaction("penjualanLangsungDB", "readwrite");
+          tx.objectStore("penjualanLangsungDB").put(payload);
+          tx.oncomplete = () => resolve();
+          tx.onerror    = () => reject(tx.error);
+        });
+
+        // Hitung pay dan pembayaran
+        const varianMap = {};
+        (window.globalVarian || []).forEach(item => {
+          Object.keys(item).forEach(k => { varianMap[k] = item[k]; });
+        });
+
+        const pay = {};
+        let bayarKonsumen = 0;
+        Object.entries(penjualanLangsung).forEach(([key, qty]) => {
+          if (qty > 0) {
+            pay[key] = qty;
+            bayarKonsumen += qty * Number(varianMap[key]?.hargaKonsumen || 0);
+          }
+        });
+
+        const pembayaran = { bayarKonsumen };
+
+        // Sync Firestore jika online
+        if (navigator.onLine) {
+          try {
+            await window.setDoc(
+              window.doc(window.db, "users", uid, "penjualanLangsung", today),
+              {
+                uid,
+                pemilik: uid,
+                idCabang: user.idCabang || "",
+                tanggal: today,
+                penjualanLangsung,
+                pay,
+                pembayaran,
+                updatedAt: window.serverTimestamp()
+              }
+            );
+            // Update isSync
+            const idb2 = await window.openAppDB();
+            await new Promise((resolve, reject) => {
+              const tx    = idb2.transaction("penjualanLangsungDB", "readwrite");
+              tx.objectStore("penjualanLangsungDB").put({ ...payload, isSync: true });
+              tx.oncomplete = () => resolve();
+              tx.onerror    = () => reject(tx.error);
+            });
+          } catch { }
+        }
+
+        btnText.textContent = "Tersimpan ✓";
+        setTimeout(() => {
+          overlay.remove();
+          // Buka ulang popup detail supaya data terupdate
+          window.openPopupHeaderDetail();
+        }, 800);
+
+      } catch {
+        btn.disabled = false;
+        btnText.textContent = "Gagal, coba lagi";
+        setTimeout(() => { btnText.textContent = "Simpan"; btn.disabled = false; }, 2000);
+      }
+    };
   };
   window.openPopupHeaderDetail = async function () {
     const today = new Date().toISOString().split("T")[0];
@@ -2325,10 +2505,56 @@ window.initInputView = async function(){
     renderGroup("Fee",          summary.fee,      "fee");
     renderGroup("Disable",      summary.disable,  "disable");
     renderGroup("Closing",      summary.closing,  "closing");
-    renderGroup("Saldo Barang", saldoBarang,      "saldo");
+
+    // Load penjualan langsung dari IDB
+    let penjualanLangsung = {};
+    try {
+      const uid  = window.auth.currentUser?.uid;
+      const idbP = await window.openAppDB();
+      const rawP = await new Promise(resolve => {
+        const tx  = idbP.transaction("penjualanLangsungDB", "readonly");
+        const req = tx.objectStore("penjualanLangsungDB").get(`${uid}_${today}`);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => resolve(null);
+      });
+      console.log("rawP penjualan:", rawP);
+      penjualanLangsung = rawP?.penjualanLangsung || {};
+    } catch(e) { console.log("error penjualan:", e); }
+
+    // Hitung saldo barang ikut penjualan langsung
+    activeKeys.forEach(key => {
+      saldoBarang[key] = (saldoBarang[key] || 0) - Number(penjualanLangsung[key] || 0);
+    });
+
+    // Section penjualan langsung
+    html += `
+      <div class="popup-detail-section penjualan">
+        <div class="popup-detail-section-header">
+          <div class="popup-detail-section-title">Penjualan Langsung</div>
+          <button class="popup-detail-edit-btn" id="btnEditPenjualanLangsung">
+            ${Object.keys(penjualanLangsung).length > 0 ? "Edit" : "Input"}
+          </button>
+        </div>
+        <div class="popup-detail-inline-list">
+          ${activeKeys.map(key => `
+            <div class="popup-detail-chip penjualan">
+              ${key}: ${Number(penjualanLangsung[key] || 0)}
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+
+    renderGroup("Saldo Barang", saldoBarang, "saldo");
   
     popupHeaderDetailBody.innerHTML = html;
     popupHeaderDetailOverlay.classList.add("active");
+
+    // Tombol edit penjualan langsung
+    document.getElementById("btnEditPenjualanLangsung")?.addEventListener("click", () => {
+      popupHeaderDetailOverlay.classList.remove("active");
+      window.openBottomSheetPenjualanLangsung(penjualanLangsung, activeKeys, today);
+    });
   };
   inputDetailBtn.onclick = async function(){
       await openPopupHeaderDetail();
@@ -2528,9 +2754,11 @@ window.initInputView = async function(){
       }
 
       if (!lokasiMap) {
+        const savedMapType = localStorage.getItem("mapType") || "hybrid";
         lokasiMap = new google.maps.Map(mapContainer, {
           center: { lat, lng }, zoom: 17,
           mapId: "3f6f47bf59913618a195fe2e",
+          mapTypeId: savedMapType,
           zoomControl: true, mapTypeControl: false,
           streetViewControl: false, fullscreenControl: false
         });
@@ -2578,57 +2806,89 @@ window.initInputView = async function(){
     lokasiPhotoInput.addEventListener("change", async () => {
       const file = lokasiPhotoInput.files[0];
       if (!file) return;
-      lokasiPhotoBlob = await window.compressImageInput(file, 800, 0.75);
-      const url = URL.createObjectURL(lokasiPhotoBlob);
-      lokasiPhotoPreview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:10px;">`;
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(async () => {
+        if (navigator.onLine) {
+          // Online — compress ringan, langsung siap upload, tidak simpan base64
+          lokasiPhotoBlob = await window.compressImageInput(file, 400, 0.3);
+        } else {
+          // Offline — compress, simpan base64
+          lokasiPhotoBlob = await window.compressImageInput(file, 400, 0.3);
+        }
+        const url = URL.createObjectURL(lokasiPhotoBlob);
+        lokasiPhotoPreview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:10px;">`;
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }, 500);
     });
 
     // Ambil GPS
     document.getElementById("lokasiAmbilBtn").onclick = function() {
-      const btn  = this;
-      const text = document.getElementById("lokasiAmbilText");
-      btn.disabled = true;
-      text.textContent = "Mengambil...";
-      function onGPSSuccess(pos) {
-        selectedLat = pos.coords.latitude;
-        selectedLng = pos.coords.longitude;
-        btn.disabled = false;
-        text.textContent = "Ambil Lokasi GPS";
-        document.getElementById("lokasiStatusText").textContent = `📍 ${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`;
-        document.getElementById("lokasiSimpanBtn").disabled = false;
-        document.getElementById("lokasiSimpanBtn").style.opacity = "1";
-        // Tampilkan peta hanya jika online, offline cukup koordinat
-        try {
-          tampilkanPeta(selectedLat, selectedLng);
-        } catch { }
-      }
+        const btn  = this;
+        const text = document.getElementById("lokasiAmbilText");
+        btn.disabled = true;
 
-      function onGPSError(err) {
-        // Fallback: coba tanpa high accuracy
-        if (err.code === 1 || err.code === 2) {
-          navigator.geolocation.getCurrentPosition(
-            onGPSSuccess,
-            finalErr => {
-              btn.disabled = false;
-              text.textContent = "Gagal, coba lagi";
-              setTimeout(() => { text.textContent = "Ambil Lokasi GPS"; }, 2000);
-            },
-            { enableHighAccuracy: false, timeout: 15000, maximumAge: 30000 }
-          );
-        } else {
-          btn.disabled = false;
-          text.textContent = "Gagal, coba lagi";
-          setTimeout(() => { text.textContent = "Ambil Lokasi GPS"; }, 2000);
+        let bestPos    = null;
+        let attempts   = 0;
+        const MAX_ATTEMPTS       = 3;
+        const ACCURACY_THRESHOLD = 20;
+
+        const pesanProgress = [
+          "Mendeteksi sinyal GPS...",
+          "Mencari titik terbaik...",
+          "Mengunci lokasi akurat...",
+        ];
+
+        function onSuccess(pos) {
+          attempts++;
+          text.textContent = pesanProgress[attempts - 1] || "Mengambil...";
+
+          if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
+            bestPos = pos;
+          }
+
+          if (pos.coords.accuracy <= ACCURACY_THRESHOLD || attempts >= MAX_ATTEMPTS) {
+            selectedLat = bestPos.coords.latitude;
+            selectedLng = bestPos.coords.longitude;
+            btn.disabled = false;
+            text.textContent = "Ambil Lokasi GPS";
+            document.getElementById("lokasiStatusText").textContent = `📍 ${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`;
+            document.getElementById("lokasiSimpanBtn").disabled = false;
+            document.getElementById("lokasiSimpanBtn").style.opacity = "1";
+            try { tampilkanPeta(selectedLat, selectedLng); } catch { }
+          } else {
+            setTimeout(tryGetPosition, 1000);
+          }
         }
-      }
 
-      navigator.geolocation.getCurrentPosition(
-        onGPSSuccess,
-        onGPSError,
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-      );
-    };
+        function onError(err) {
+          attempts++;
+          if (bestPos && attempts >= MAX_ATTEMPTS) {
+            selectedLat = bestPos.coords.latitude;
+            selectedLng = bestPos.coords.longitude;
+            btn.disabled = false;
+            text.textContent = "Ambil Lokasi GPS";
+            document.getElementById("lokasiStatusText").textContent = `📍 ${selectedLat.toFixed(6)}, ${selectedLng.toFixed(6)}`;
+            document.getElementById("lokasiSimpanBtn").disabled = false;
+            document.getElementById("lokasiSimpanBtn").style.opacity = "1";
+            try { tampilkanPeta(selectedLat, selectedLng); } catch { }
+          } else if (attempts >= MAX_ATTEMPTS) {
+            btn.disabled = false;
+            text.textContent = "Gagal, coba lagi";
+            setTimeout(() => { text.textContent = "Ambil Lokasi GPS"; }, 2000);
+          } else {
+            setTimeout(tryGetPosition, 1000);
+          }
+        }
+
+        function tryGetPosition() {
+          navigator.geolocation.getCurrentPosition(
+            onSuccess, onError,
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+          );
+        }
+
+        text.textContent = "Mendeteksi sinyal GPS...";
+        tryGetPosition();
+      };
 
     // Simpan
     document.getElementById("lokasiSimpanBtn").onclick = async function() {

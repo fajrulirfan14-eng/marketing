@@ -56,19 +56,20 @@ CUSTOMER PAGE
   color: var(--home-menu-icon);
 }
 .customer-item {
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
 }
 
 .btn-map-hari {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   background: #e8f0fe;
   border: 0;
   border-radius: 8px;
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -78,9 +79,145 @@ CUSTOMER PAGE
   transition: background 0.2s;
 }
 
-.btn-map-hari:hover {
+.btn-map-hari:active {
   background: #d2e3fc;
 }
+
+.btn-reload-hari {
+  background: var(--bg-soft, #f5ede3);
+  border: 0;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+.btn-reload-hari:active {
+  background: var(--bg-hover);
+}
+
+@keyframes customer-spin {
+  to { transform: rotate(360deg); }
+}
+
+.btn-reload-hari.loading i {
+  animation: customer-spin 0.7s linear infinite;
+}
+.customer-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.hari-dropdown {
+  flex: 1;
+}
+
+/* ── FILTER CUSTOMER ── */
+.customer-filter-wrap {
+  position: relative;
+}
+
+.btn-filter-hari {
+  background: var(--bg-soft, #f5ede3);
+  border: 0;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 15px;
+  transition: background 0.2s;
+}
+
+.btn-filter-hari:active {
+  background: var(--bg-hover);
+}
+
+.btn-filter-hari.active-filter {
+  background: var(--accent);
+  color: #fff;
+}
+
+.customer-filter-dropdown {
+  display: none;
+  position: absolute;
+  top: 44px;
+  left: -100px;
+  background: var(--bg-card);
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.13);
+  overflow: hidden;
+  z-index: 999;
+  min-width: 180px;
+  animation: csBarIn .2s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+.customer-filter-dropdown.open {
+  display: block;
+}
+
+.customer-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.customer-filter-item:active {
+  background: var(--bg-hover);
+}
+
+.customer-filter-item i {
+  font-size: 13px;
+  color: var(--accent);
+  width: 16px;
+}
+
+.customer-filter-item span {
+  flex: 1;
+}
+
+.customer-filter-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  transition: all .2s;
+}
+
+.customer-filter-item.active .customer-filter-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.customer-filter-item.active .customer-filter-check::after {
+  content: "✓";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  height: 100%;
+}
+
 .customer-total{
   font-size:15px;
   font-weight:700;
@@ -424,8 +561,8 @@ CUSTOMER PAGE
 }
 .customer-foto-wrapper{
   position:relative;
-  width:52px;
-  height:52px;
+  width:42px;
+  height:42px;
   flex-shrink:0;
 }
 .customer-note-badge{
@@ -488,8 +625,8 @@ CUSTOMER PAGE
   }
 }
 .customer-foto{
-  width:52px;
-  height:52px;
+  width:42px;
+  height:42px;
   border-radius:50%;
   object-fit:cover;
   background: var(--customer-photo-bg);
@@ -499,9 +636,30 @@ CUSTOMER PAGE
   flex-direction:column;
 }
 .customer-nama{
-  font-size:15px;
+  font-size:14px;
   font-weight:600;
   color: var(--customer-name);
+}
+.customer-kemarin-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.customer-kemarin-chip {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-weight: 500;
+}
+
+.customer-kemarin-chip.highlight {
+  color: var(--accent-dark);
+  background: rgba(201,166,123,.15);
+  font-weight: 700;
 }
 .customer-empty{
   padding:24px;
@@ -525,12 +683,12 @@ CUSTOMER PAGE
 }
 .customer-action{
   display:flex;
-  gap:10px;
+  gap:8px;
   align-items:center;
 }
 .customer-icon-btn{
-  width:30px;
-  height:30px;
+  width:25px;
+  height:25px;
   border:none;
   background:transparent;
   color:#b3874f;

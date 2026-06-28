@@ -334,6 +334,31 @@
   font-size: 12px;
   font-weight: 700;
 }
+/* ── PENJUALAN LANGSUNG ── */
+.popup-detail-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.popup-detail-edit-btn {
+  padding: 4px 12px;
+  border: 1.5px solid var(--accent);
+  border-radius: 20px;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.popup-detail-chip.penjualan {
+  background: rgba(201,166,123,.15);
+  color: var(--accent-dark);
+}
+.popup-pl-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
 
 /* ── HARI & BAWA ── */
 .input-hari {

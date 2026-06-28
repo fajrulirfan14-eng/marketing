@@ -1531,9 +1531,11 @@ window.openHomeCustomerPopup = async function() {
     });
 
     const mapEl = document.getElementById("customerMapElHome");
+    const savedMapType = localStorage.getItem("mapType") || "roadmap";
     lokasiMapHome = new google.maps.Map(mapEl, {
       center: { lat, lng }, zoom: 18,
       mapId: "3f6f47bf59913618a195fe2e",
+      mapTypeId: savedMapType,
       zoomControl: true, mapTypeControl: false,
       streetViewControl: false, fullscreenControl: false,
       gestureHandling: "greedy",
@@ -1572,39 +1574,83 @@ window.openHomeCustomerPopup = async function() {
     }
     btnLokasiHome.disabled = true;
     btnLokasiSpinnerHome.style.display = "inline-block";
-    btnLokasiTextHome.innerText = "Mengambil...";
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        btnLokasiSpinnerHome.style.display = "none";
-        btnLokasiHome.disabled = false;
-        tampilkanPetaHome(pos.coords.latitude, pos.coords.longitude);
-      },
-      err => {
-        btnLokasiHome.disabled = false;
-        btnLokasiSpinnerHome.style.display = "none";
-        btnLokasiTextHome.innerText = "Gagal, Coba Lagi";
-        setTimeout(() => { btnLokasiTextHome.innerText = "Ambil Lokasi Sekarang"; }, 2500);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    btnLokasiTextHome.innerText = "Mendeteksi sinyal GPS...";
+
+    // Ambil GPS beberapa kali, pakai yang paling akurat
+    let bestPos = null;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 3;
+    const ACCURACY_THRESHOLD = 20; // meter — stop lebih awal kalau sudah akurat
+
+    function tryGetPosition() {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          attempts++;
+          // Update progress
+          const pesanProgress = [
+            "Mendeteksi sinyal GPS...",
+            "Mencari titik terbaik...",
+            "Mengunci lokasi akurat...",
+          ];
+          btnLokasiTextHome.innerText = pesanProgress[attempts - 1] || "Mengambil...";
+          // Simpan posisi terbaik (akurasi terkecil = lebih akurat)
+          if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
+            bestPos = pos;
+          }
+
+          // Stop kalau sudah cukup akurat atau sudah max attempts
+          if (pos.coords.accuracy <= ACCURACY_THRESHOLD || attempts >= MAX_ATTEMPTS) {
+            btnLokasiSpinnerHome.style.display = "none";
+            btnLokasiHome.disabled = false;
+            tampilkanPetaHome(bestPos.coords.latitude, bestPos.coords.longitude);
+          } else {
+            // Tunggu sebentar lalu coba lagi
+            setTimeout(tryGetPosition, 1000);
+          }
+        },
+        err => {
+          attempts++;
+          if (bestPos && attempts >= MAX_ATTEMPTS) {
+            // Ada hasil sebelumnya — pakai saja
+            btnLokasiSpinnerHome.style.display = "none";
+            btnLokasiHome.disabled = false;
+            tampilkanPetaHome(bestPos.coords.latitude, bestPos.coords.longitude);
+          } else if (attempts >= MAX_ATTEMPTS) {
+            btnLokasiHome.disabled = false;
+            btnLokasiSpinnerHome.style.display = "none";
+            btnLokasiTextHome.innerText = "Gagal, Coba Lagi";
+            setTimeout(() => { btnLokasiTextHome.innerText = "Ambil Lokasi Sekarang"; }, 2500);
+          } else {
+            setTimeout(tryGetPosition, 1000);
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    tryGetPosition();
   };
 
   // FOTO PREVIEW
   const fotoInputHome = document.getElementById("fotoInputHome");
   const fotoCardHome = document.getElementById("fotoCardHome");
 
-  fotoInputHome.addEventListener("change", (e) => {
+  fotoInputHome.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
+    setTimeout(async () => {
+      const url = URL.createObjectURL(file);
       fotoCardHome.innerHTML = `
-        <img src="${ev.target.result}"
-          style="width:100%;height:100%;object-fit:cover;border-radius:16px;">
+        <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">
       `;
-      window.fotoBase64Home = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      if (navigator.onLine) {
+        window.fotoBase64Home = file;
+      } else {
+        window.fotoBase64Home = await compressImageHome(url);
+      }
+    }, 500);
   });
 
   // COMPRESS IMAGE
@@ -1614,13 +1660,13 @@ window.openHomeCustomerPopup = async function() {
       img.onload = function() {
         const canvas = document.createElement("canvas");
         let w = img.width, h = img.height;
-        const maxSize = 600;
+        const maxSize = 400;
         if (w > h) { if (w > maxSize) { h *= maxSize / w; w = maxSize; } }
         else { if (h > maxSize) { w *= maxSize / h; h = maxSize; } }
         canvas.width = w;
         canvas.height = h;
         canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.4));
+        resolve(canvas.toDataURL("image/jpeg", 0.3));
       };
       img.src = base64;
     });
@@ -1773,6 +1819,7 @@ window.openHomeCustomerPopup = async function() {
         foto,
         idCabang: user.idCabang || "",
         createdBy: uid,
+        pemilik: uid,
         jarak,
         ...(Object.keys(konsinyasi).length ? { konsinyasi } : {}),
         ...(Object.keys(cash).length ? { cash } : {}),
@@ -1783,7 +1830,15 @@ window.openHomeCustomerPopup = async function() {
       // Compress foto
       let fotoBase64Compressed = null;
       if (window.fotoBase64Home) {
-        fotoBase64Compressed = await compressImageHome(window.fotoBase64Home);
+        if (typeof window.fotoBase64Home === "string") {
+          // Sudah base64 (offline) — pakai langsung
+          fotoBase64Compressed = window.fotoBase64Home;
+        } else {
+          // File object (online) — compress
+          fotoBase64Compressed = await compressImageHome(
+            URL.createObjectURL(window.fotoBase64Home)
+          );
+        }
       }
 
       const storeNama    = roleUser === "sales" ? "customerSalesDB" : "customerBaruDB";
