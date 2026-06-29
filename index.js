@@ -110,6 +110,35 @@ onAuthStateChanged(auth, async(user)=>{
     if(navigator.onLine && window.currentUser?.uid){
       window.syncCustomerHarian?.();
     }
+    // Sync kantor cabang ke IDB saat online
+    if (navigator.onLine && window.currentUser?.idCabang) {
+      try {
+        const idCabang  = window.currentUser.idCabang;
+        const idbK      = await window.openAppDB();
+        const existing  = await new Promise(resolve => {
+          const tx  = idbK.transaction("kantorDB", "readonly");
+          const req = tx.objectStore("kantorDB").get(idCabang);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror   = () => resolve(null);
+        });
+        if (!existing) {
+          const kantorSnap = await window.getDoc(window.doc(window.db, "kantorCabang", idCabang));
+          if (kantorSnap.exists()) {
+            const kantorData = kantorSnap.data();
+            const idbK2 = await window.openAppDB();
+            await new Promise((resolve, reject) => {
+              const tx    = idbK2.transaction("kantorDB", "readwrite");
+              tx.objectStore("kantorDB").put({ id: idCabang, data: kantorData, updatedAt: Date.now() });
+              tx.oncomplete = () => resolve();
+              tx.onerror    = () => reject(tx.error);
+            });
+            window.globalKantor = kantorData;
+          }
+        } else {
+          window.globalKantor = existing.data;
+        }
+      } catch { }
+    }
     initNavbar();
     showView("home");
   } else {

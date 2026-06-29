@@ -149,6 +149,45 @@
 .map-setting-item:last-child{border-bottom:none}
 .map-setting-expandable{cursor:pointer}
 .map-setting-arrow{transition:transform .2s ease}
+.map-setting-item-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.map-setting-hide-all {
+  border-top: 1px solid var(--border-color);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.map-setting-hide-all.active .map-setting-checkbox {
+  background: #e53935;
+  border-color: #e53935;
+}
+.map-setting-hide-all.active .map-setting-checkbox::after {
+  content: "✓";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  height: 100%;
+}
+.map-pin-kantor {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.3));
+}
+.map-search-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.map-search-item-pemilik {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
 
 /* ── EXPAND BODY ── */
 .map-setting-expand-body{

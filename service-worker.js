@@ -1,4 +1,4 @@
-const CACHE_NAME = "ttn-marketing-v7";
+const CACHE_NAME = "ttn-marketing-v8";
 
 const STATIC_ASSETS = [
   "/",

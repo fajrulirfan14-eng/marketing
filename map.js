@@ -220,9 +220,13 @@ window.openMapView = function() {
         if (c.type) return false;
         const loc = c.lokasiCustomer;
         return !!(loc?.lat && loc?.lng);
-      }).map(c => ({ ...c, _isNew: true, pemilik: c.pemilik || c.createdBy || "" }));
+      })
+      .filter(c => filterHari.length === 0 || filterHari.includes(c.hari))
+      .map(c => ({ ...c, _isNew: true, pemilik: c.pemilik || c.createdBy || "" }));
       // Load customerLainDB — filter by user yang dicentang + filter hari
-      const filterUsers = JSON.parse(localStorage.getItem("mapFilterUsers") || "[]");
+      const filterUsersRaw = JSON.parse(localStorage.getItem("mapFilterUsers") || "[]");
+      const isHideAll      = filterUsersRaw.includes("__hide_all__");
+      const filterUsers    = isHideAll ? [] : filterUsersRaw;
       const filterHariLain = JSON.parse(localStorage.getItem("mapFilterHari") || "[]");
 
       const allLain = await new Promise(resolve => {
@@ -231,7 +235,7 @@ window.openMapView = function() {
         req.onsuccess = () => resolve(req.result || []);
         req.onerror   = () => resolve([]);
       });
-      const customerLain = allLain
+      const customerLain = isHideAll ? [] : allLain
         .filter(c => filterUsers.length === 0 || filterUsers.includes(c.pemilik))
         .filter(c => filterHariLain.length === 0 || filterHariLain.includes(c.hari))
         .map(c => ({ ...c, _isLain: true }));
@@ -243,7 +247,7 @@ window.openMapView = function() {
         req.onsuccess = () => resolve(req.result || []);
         req.onerror   = () => resolve([]);
       });
-      const customerHunterLain = allHunter
+      const customerHunterLain = isHideAll ? [] : allHunter
         .filter(c => filterUsers.length === 0 || filterUsers.includes(c.pemilik))
         .filter(c => filterHariLain.length === 0 || filterHariLain.includes(c.hari))
         .map(c => ({ ...c, _isNewLain: true }));
@@ -256,6 +260,7 @@ window.openMapView = function() {
       });
       const customerSales = allSales
         .filter(c => !!(c.lokasiCustomer?.lat && c.lokasiCustomer?.lng))
+        .filter(c => filterHari.length === 0 || filterHari.includes(c.hari))
         .map(c => ({ ...c, _isSales: true, pemilik: c.pemilik || c.createdBy || "" }));
 
       // Load customerSalesLainDB — data sales lain
@@ -265,7 +270,7 @@ window.openMapView = function() {
         req.onsuccess = () => resolve(req.result || []);
         req.onerror   = () => resolve([]);
       });
-      const customerSalesLain = allSalesLain
+      const customerSalesLain = isHideAll ? [] : allSalesLain
         .filter(c => filterUsers.length === 0 || filterUsers.includes(c.pemilik))
         .filter(c => filterHariLain.length === 0 || filterHariLain.includes(c.hari))
         .map(c => ({ ...c, _isSalesLain: true }));
@@ -700,7 +705,89 @@ window.openMapView = function() {
     }
     pinVisible = true; updateBtnPin(true);
   }
+  // ── PIN KANTOR CABANG ──
+  async function tampilkanPinKantor() {
+    try {
+      const user = window.currentUser || {};
+      const idb  = await window.openAppDB();
+      const kantorRaw = await new Promise(resolve => {
+        const tx  = idb.transaction("kantorDB", "readonly");
+        const req = tx.objectStore("kantorDB").get(user.idCabang || "");
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror   = () => resolve(null);
+      });
 
+      const kantor = kantorRaw?.data || kantorRaw;
+      const lok    = kantor?.lokasiCabang;
+      if (!lok) return;
+
+      const cabangLat = lok._lat ?? lok.latitude ?? lok.lat;
+      const cabangLng = lok._long ?? lok.longitude ?? lok.lng;
+      if (!cabangLat || !cabangLng) return;
+
+      const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+      const pinEl = document.createElement("img");
+      pinEl.src       = "pin.png";
+      pinEl.className = "map-pin-kantor";
+
+      const marker = new AdvancedMarkerElement({
+        map,
+        position: { lat: Number(cabangLat), lng: Number(cabangLng) },
+        content: pinEl,
+        title: kantor?.namaCabang || "Kantor Cabang",
+        zIndex: 1000,
+      });
+
+      // Klik pin kantor tampil info
+      marker.addListener("gmp-click", () => {
+        const oldSheet = document.getElementById("mapPinSheet");
+        if (oldSheet) oldSheet.remove();
+
+        const sheet = document.createElement("div");
+        sheet.id        = "mapPinSheet";
+        sheet.className = "map-pin-sheet";
+        sheet.innerHTML = `
+          <div class="map-pin-sheet-drag"></div>
+          <button class="map-pin-sheet-close" id="mapPinSheetClose">✕</button>
+          <div class="map-pin-sheet-body">
+            <div class="map-pin-sheet-info" style="width:100%;">
+              <div class="map-pin-sheet-nama">${kantor?.namaCabang || "Kantor Cabang"}</div>
+              <div class="map-pin-sheet-row">Alamat: <span>${kantor?.alamatCabang || "-"}</span></div>
+            </div>
+          </div>
+        `;
+        mapEl.appendChild(sheet);
+        requestAnimationFrame(() => sheet.classList.add("active"));
+
+        document.getElementById("mapPinSheetClose").onclick = () => {
+          sheet.classList.remove("active");
+          setTimeout(() => sheet.remove(), 300);
+        };
+
+        map.panTo({ lat: Number(cabangLat), lng: Number(cabangLng) });
+      });
+
+    } catch { }
+  }
+
+  tampilkanPinKantor();
+  // Preload users cabang ke cache
+  (async () => {
+    try {
+      if (window._mapUsersCabangCache?.length) return;
+      const user     = window.currentUser;
+      const idCabang = user?.idCabang;
+      if (!idCabang) return;
+
+      const snap = await window.getDocs(window.query(
+        window.collection(window.db, "users"),
+        window.where("idCabang", "==", idCabang),
+        window.where("role", "in", ["kurir","hunter","sales"])
+      ));
+
+      window._mapUsersCabangCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch { }
+  })();
   // Auto tampilkan pin saat buka
   tampilkanPinCustomer();
 
@@ -733,16 +820,86 @@ window.openMapView = function() {
   let tempPinMarker  = null;
   let allCustomers   = [];
 
-  // Load semua customer ke memory sekali
-  window.openAppDB().then(idb => {
-    const tx  = idb.transaction("customerHarianDB", "readonly");
-    const req = tx.objectStore("customerHarianDB").getAll();
-    req.onsuccess = () => {
-      const all = req.result || [];
-      all.forEach(item => {
-        if (Array.isArray(item.data)) allCustomers.push(...item.data);
-      });
-    };
+  // Load semua customer ke memory dari semua store
+  window.openAppDB().then(async idb => {
+    // customerHarianDB
+    await new Promise(resolve => {
+      const tx  = idb.transaction("customerHarianDB", "readonly");
+      const req = tx.objectStore("customerHarianDB").getAll();
+      req.onsuccess = () => {
+        (req.result || []).forEach(item => {
+          if (Array.isArray(item.data)) allCustomers.push(...item.data);
+        });
+        resolve();
+      };
+      req.onerror = () => resolve();
+    });
+
+    // customerBaruDB
+    await new Promise(resolve => {
+      const tx  = idb.transaction("customerBaruDB", "readonly");
+      const req = tx.objectStore("customerBaruDB").getAll();
+      req.onsuccess = () => {
+        (req.result || []).filter(c => !c.type && !c.diserahkan).forEach(c => {
+          allCustomers.push({ ...c, _isNew: true });
+        });
+        resolve();
+      };
+      req.onerror = () => resolve();
+    });
+
+    // customerLainDB
+    await new Promise(resolve => {
+      const tx  = idb.transaction("customerLainDB", "readonly");
+      const req = tx.objectStore("customerLainDB").getAll();
+      req.onsuccess = () => {
+        (req.result || []).forEach(c => {
+          allCustomers.push({ ...c, _isLain: true });
+        });
+        resolve();
+      };
+      req.onerror = () => resolve();
+    });
+
+    // customerHunterDB
+    await new Promise(resolve => {
+      const tx  = idb.transaction("customerHunterDB", "readonly");
+      const req = tx.objectStore("customerHunterDB").getAll();
+      req.onsuccess = () => {
+        (req.result || []).forEach(c => {
+          allCustomers.push({ ...c, _isNewLain: true });
+        });
+        resolve();
+      };
+      req.onerror = () => resolve();
+    });
+
+    // customerSalesDB
+    await new Promise(resolve => {
+      const tx  = idb.transaction("customerSalesDB", "readonly");
+      const req = tx.objectStore("customerSalesDB").getAll();
+      req.onsuccess = () => {
+        (req.result || []).forEach(c => {
+          allCustomers.push({ ...c, _isSales: true });
+        });
+        resolve();
+      };
+      req.onerror = () => resolve();
+    });
+
+    // customerSalesLainDB
+    await new Promise(resolve => {
+      const tx  = idb.transaction("customerSalesLainDB", "readonly");
+      const req = tx.objectStore("customerSalesLainDB").getAll();
+      req.onsuccess = () => {
+        (req.result || []).forEach(c => {
+          allCustomers.push({ ...c, _isSalesLain: true });
+        });
+        resolve();
+      };
+      req.onerror = () => resolve();
+    });
+
   }).catch(() => {});
 
   const searchWrap = document.createElement("div");
@@ -781,12 +938,29 @@ window.openMapView = function() {
       if (!results.length) { closeSuggest(); return; }
 
       searchSuggest.style.display = "block";
-      searchSuggest.innerHTML = results.map((c, i) => `
-        <div class="map-search-item" data-index="${i}">
-          <div class="map-search-item-nama">${c.namaCustomer || "-"}</div>
-          <span class="map-search-item-hari" style="background:${HARI_COLOR[c.hari]||'#757575'}">${c.hari||"-"}</span>
-        </div>
-      `).join("");
+      // Ambil nama pemilik dari cache
+      function getNamaPemilik(uid) {
+        if (!uid) return "";
+        const fromCabang = (window._mapUsersCabangCache || []).find(u => u.id === uid || u.uid === uid);
+        if (fromCabang) return fromCabang.nama || "";
+        const fromGlobal = (window.globalUsersCache || []).find(u => u.id === uid || u.uid === uid);
+        if (fromGlobal) return fromGlobal.nama || "";
+        return "";
+      }
+
+      searchSuggest.innerHTML = results.map((c, i) => {
+        const pemilikUid  = c.pemilik || c.createdBy || c.idMarketing || "";
+        const namaPemilik = getNamaPemilik(pemilikUid);
+        return `
+          <div class="map-search-item" data-index="${i}">
+            <div class="map-search-item-nama">${c.namaCustomer || "-"}</div>
+            <div class="map-search-item-meta">
+              ${namaPemilik ? `<span class="map-search-item-pemilik">${namaPemilik}</span>` : ""}
+              <span class="map-search-item-hari" style="background:${HARI_COLOR[c.hari]||'#757575'}">${c.hari||"-"}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
 
       searchSuggest.querySelectorAll(".map-search-item").forEach((el, i) => {
         el.addEventListener("click", async () => {
@@ -1076,13 +1250,15 @@ window.openMapView = function() {
 
     function renderUsersCabang(users) {
       const saved = JSON.parse(localStorage.getItem("mapFilterUsers") || "[]");
+      const isHideAll = saved.includes("__hide_all__");
+
       if (!users.length) {
         expandCustBody.innerHTML = `<div class="map-setting-loading">Tidak ada user lain</div>`;
         return;
       }
       const roleLabel = { kurir: "Kurir", hunter: "Hunter", sales: "Sales" };
       expandCustBody.innerHTML = users.map(u => `
-        <div class="map-setting-check-item ${saved.includes(u.id) ? "active" : ""}" data-user="${u.id}">
+        <div class="map-setting-check-item ${!isHideAll && saved.includes(u.id) ? "active" : ""} ${isHideAll ? "map-setting-item-disabled" : ""}" data-user="${u.id}">
           <div class="map-setting-check-info">
             <span class="map-setting-check-name">${u.nama || u.email || "-"}</span>
             <span class="map-setting-check-role">${roleLabel[u.role?.toLowerCase()] || u.role || "-"}</span>
@@ -1091,17 +1267,47 @@ window.openMapView = function() {
         </div>
       `).join("");
 
+      expandCustBody.innerHTML += `
+        <div class="map-setting-check-item map-setting-hide-all ${isHideAll ? "active" : ""}" id="mapHideAllUsers">
+          <div class="map-setting-check-info">
+            <span class="map-setting-check-name">Sembunyikan Semua</span>
+            <span class="map-setting-check-role">Non-aktifkan semua customer lain</span>
+          </div>
+          <div class="map-setting-checkbox"></div>
+        </div>
+      `;
+
+      // Listener per user
       expandCustBody.querySelectorAll(".map-setting-check-item[data-user]").forEach(item => {
         item.addEventListener("click", () => {
+          const hideAll = JSON.parse(localStorage.getItem("mapFilterUsers") || "[]").includes("__hide_all__");
+          if (hideAll) return; // blocked saat hide all aktif
+
           item.classList.toggle("active");
-          const active = [...expandCustBody.querySelectorAll(".map-setting-check-item.active")]
+          const active = [...expandCustBody.querySelectorAll(".map-setting-check-item[data-user].active")]
             .map(i => i.dataset.user);
           localStorage.setItem("mapFilterUsers", JSON.stringify(active));
-          // Refresh pin
           pinMarkers.forEach(m => { try { m.map = null; } catch { } });
           pinMarkers = []; pinVisible = false;
           tampilkanPinCustomer();
         });
+      });
+
+      // Listener hide all
+      document.getElementById("mapHideAllUsers")?.addEventListener("click", () => {
+        const isNowHideAll = !JSON.parse(localStorage.getItem("mapFilterUsers") || "[]").includes("__hide_all__");
+
+        if (isNowHideAll) {
+          localStorage.setItem("mapFilterUsers", JSON.stringify(["__hide_all__"]));
+        } else {
+          localStorage.setItem("mapFilterUsers", JSON.stringify([]));
+        }
+
+        // Re-render supaya state update
+        renderUsersCabang(users);
+        pinMarkers.forEach(m => { try { m.map = null; } catch { } });
+        pinMarkers = []; pinVisible = false;
+        tampilkanPinCustomer();
       });
     }
 

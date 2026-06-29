@@ -546,12 +546,7 @@ window.initHomeView = async function(){
                 });
   
               req.onsuccess = function () {};
-              req.onerror = function () {
-                  console.log(
-                    `IndexedDB save gagal → ${store}`,
-                    req.error
-                  );
-                };
+              req.onerror = function () {};
               tx.oncomplete = () => resolve(true);
               tx.onerror = () => reject(tx.error);
             }
@@ -586,12 +581,8 @@ window.initHomeView = async function(){
               const kantorData = kantorSnap.data();
               await saveToIndexDB("kantorDB", idCabang, kantorData);
               window.globalKantor = kantorData;
-            } else {
-              console.log("Kantor tidak ditemukan:", idCabang);
             }
-          } catch(err) {
-            console.log("Gagal fetch kantorCabang:", err);
-          }
+          } catch { }
         } else { }        
         const roleUser = (userData.role || "").toLowerCase();
         if (roleUser !== "hunter" && roleUser !== "sales") {
@@ -660,8 +651,12 @@ window.initHomeView = async function(){
             });
           } catch { }
         }
-      } catch (err) {
-        console.log(err); alert("Gagal reload data");
+      } catch {
+        const t = document.createElement("div");
+        t.textContent = "Gagal reload data";
+        t.style.cssText = "position:fixed;bottom:200px;left:50%;transform:translateX(-50%);background:#e53935;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;";
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
       } finally {
         reloadBtn.disabled = false;
         reloadBtn.classList.remove("loading");
@@ -812,9 +807,7 @@ window.loadSalesCard = async function() {
         elStatus.style.display = "none";
       }
     }
-  } catch(e) {
-    console.log("loadSalesCard error:", e);
-  }
+  } catch { }
 };
 window.loadLaporanKemarin = async function() {
   try {
@@ -834,37 +827,73 @@ window.loadLaporanKemarin = async function() {
     const tanggalEl = document.getElementById("laporanKemarinTanggal");
     if (tanggalEl) tanggalEl.innerText = tanggalLabel;
 
-    // Baca dari IndexedDB laporanMarketingDB
+    const omzetEl    = document.getElementById("laporanKemarinOmset");
+    const kasbonEl   = document.getElementById("laporanKemarinKasbon");
+    const potonganEl = document.getElementById("laporanKemarinPotongan");
+    const bonusEl    = document.getElementById("laporanKemarinBonus");
+
+    function renderLaporan(data) {
+      if (omzetEl)    omzetEl.innerText    = Number(data?.distribusi?.keuangan?.inputOmset || 0).toLocaleString("id-ID");
+      if (kasbonEl)   kasbonEl.innerText   = Number(data?.distribusi?.keuangan?.Kasbon || 0).toLocaleString("id-ID");
+      if (potonganEl) potonganEl.innerText = Number(data?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0).toLocaleString("id-ID");
+      if (bonusEl)    bonusEl.innerText    = Number(data?.distribusi?.keuangan?.bonus?.jumlahBonus || 0).toLocaleString("id-ID");
+    }
+
+    function renderTidakTersedia() {
+      if (omzetEl)    omzetEl.innerText    = "Laporan belum tersedia";
+      if (kasbonEl)   kasbonEl.innerText   = "-";
+      if (potonganEl) potonganEl.innerText = "-";
+      if (bonusEl)    bonusEl.innerText    = "-";
+    }
+
+    // Cek IDB dulu
     const idb = await window.openAppDB();
-    const data = await new Promise((resolve) => {
-      const tx = idb.transaction("laporanMarketingDB", "readonly");
-      const store = tx.objectStore("laporanMarketingDB");
-      const req = store.get(tanggalKemarin);
+    const dataIdb = await new Promise((resolve) => {
+      const tx  = idb.transaction("laporanMarketingDB", "readonly");
+      const req = tx.objectStore("laporanMarketingDB").get(tanggalKemarin);
       req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => resolve(null);
+      req.onerror   = () => resolve(null);
     });
 
-    const omzetEl   = document.getElementById("laporanKemarinOmset");
-    const kasbonEl  = document.getElementById("laporanKemarinKasbon");
-    const potonganEl= document.getElementById("laporanKemarinPotongan");
-    const bonusEl   = document.getElementById("laporanKemarinBonus");
-
-    if (!data) {
-      if (omzetEl)   omzetEl.innerText   = "0";
-      if (kasbonEl)  kasbonEl.innerText  = "0";
-      if (potonganEl)potonganEl.innerText = "0";
-      if (bonusEl)   bonusEl.innerText   = "0";
+    if (dataIdb) {
+      renderLaporan(dataIdb);
       return;
     }
 
-    if (omzetEl)    omzetEl.innerText    = Number(data?.distribusi?.keuangan?.inputOmset || 0).toLocaleString("id-ID");
-    if (kasbonEl)   kasbonEl.innerText   = Number(data?.distribusi?.keuangan?.Kasbon || 0).toLocaleString("id-ID");
-    if (potonganEl) potonganEl.innerText = Number(data?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0).toLocaleString("id-ID");
-    if (bonusEl)    bonusEl.innerText    = Number(data?.distribusi?.keuangan?.bonus?.jumlahBonus || 0).toLocaleString("id-ID");
+    // IDB kosong — fetch Firestore
+    if (!navigator.onLine) {
+      renderTidakTersedia();
+      return;
+    }
 
-  } catch(e) {
-    console.log("loadLaporanKemarin error:", e);
-  }
+    try {
+      const uid    = window.auth.currentUser?.uid;
+      const docRef = window.doc(window.db, "users", uid, "laporanMarketing", tanggalKemarin);
+      const snap   = await window.getDoc(docRef);
+
+      if (!snap.exists()) {
+        renderTidakTersedia();
+        return;
+      }
+
+      const fresh = snap.data();
+
+      // Simpan ke IDB
+      const idb2 = await window.openAppDB();
+      await new Promise((resolve, reject) => {
+        const tx    = idb2.transaction("laporanMarketingDB", "readwrite");
+        const store = tx.objectStore("laporanMarketingDB");
+        store.put({ id: tanggalKemarin, tanggal: tanggalKemarin, idMarketing: uid, ...fresh, cachedAt: Date.now() });
+        tx.oncomplete = () => resolve();
+        tx.onerror    = () => reject(tx.error);
+      });
+
+      renderLaporan(fresh);
+    } catch {
+      renderTidakTersedia();
+    }
+
+  } catch { }
 };
 window.loadRingkasanCustomer = async function() {
   const bodyEl = document.getElementById("ringkasanCustomerBody");
@@ -948,8 +977,7 @@ window.loadRingkasanCustomer = async function() {
       `;
     }).join("");
 
-  } catch(e) {
-    console.log("loadRingkasanCustomer error:", e);
+  } catch {
     bodyEl.innerHTML = `<div class="extra-item"><span>Gagal memuat</span></div>`;
   }
 };
@@ -1007,10 +1035,7 @@ window.updateHomeStats = async function() {
       });
       const kantorData = kantorRaw?.data || kantorRaw;
       upahHunter = Number(kantorData?.upahHunter || 0);
-    } catch(e) {
-      console.log("Gagal load upahHunter:", e);
-    }
-
+    } catch { }
     // TOTAL BAYARAN
     const totalBayaran = jumlahCustomer * upahHunter;
 
@@ -1027,9 +1052,7 @@ window.updateHomeStats = async function() {
     countUp(elCash, totalCash);
     countUpRupiah(elBayaran, totalBayaran);
 
-  } catch(err) {
-    console.log("updateHomeStats error:", err);
-  }
+  } catch { }
 };
 window.syncPendingSales = async function() {
   try {
@@ -1471,10 +1494,7 @@ window.openHomeCustomerPopup = async function() {
       if (cashContainer) cashContainer.innerHTML = `<div class="customer-empty">Tidak ada data varian</div>`;
     }
 
-  } catch(err) {
-    console.log("Gagal load varian:", err);
-  }
-
+  } catch { }
   window.selectedPaymentType = null;
   popup.classList.add("active");
   // BUTTON LOKASI + GOOGLE MAPS FULLSCREEN
@@ -1729,10 +1749,7 @@ window.openHomeCustomerPopup = async function() {
           const key = Object.keys(item)[0];
           if (key) varianMap[key] = item[key];
         });
-      } catch(e) {
-        console.log("Gagal load varian:", e);
-      }
-
+      } catch { }
       // HITUNG KETERANGAN
       let hargaPendam = 0;
       let hargaJual   = 0;
@@ -1802,9 +1819,7 @@ window.openHomeCustomerPopup = async function() {
             });
           }
         }
-      } catch(e) {
-        console.log("Gagal hitung jarak:", e);
-      }
+      } catch(e) { }
 
       let foto = "";
       const roleUser = (user.role || "").toLowerCase();
@@ -1927,7 +1942,6 @@ window.openHomeCustomerPopup = async function() {
       }, 800);
 
     } catch(err) {
-      console.log(err);
       btnSimpanHome.disabled = false;
       btnSimpanHome.style.background = "#e53935";
       btnSimpanTextHome.innerText = err.message || "Gagal";

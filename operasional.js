@@ -57,6 +57,17 @@ window.initOperasionalView = async function () {
       currentDate <= new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
     const hari = index + 1;
+
+    // Ambil data dari IDB jika ada
+    const day = String(index + 1).padStart(2, "0");
+    const monthStr = String(month + 1).padStart(2, "0");
+    const tanggalId = `${year}-${monthStr}-${day}`;
+    const d = laporanMap[tanggalId] || null;
+
+    const omzet   = d ? Number(d?.distribusi?.keuangan?.inputOmset || 0).toLocaleString("id-ID") : "0";
+    const kasbon  = d ? Number(d?.distribusi?.keuangan?.Kasbon || 0).toLocaleString("id-ID") : "0";
+    const potongan = d ? Number(d?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0).toLocaleString("id-ID") : "0";
+    const bonus   = d ? Number(d?.distribusi?.keuangan?.bonus?.jumlahBonus || 0).toLocaleString("id-ID") : "0";
   
     return `
       <div class="op-item ${isActive ? "active" : ""}">
@@ -79,22 +90,22 @@ window.initOperasionalView = async function () {
           <div class="operasional-card-grid">
             <div class="operasional-box omzet">
               <div class="operasional-box-label">Omset</div>
-              <div class="operasional-box-value">0</div>
+              <div class="operasional-box-value">${omzet}</div>
             </div>
   
             <div class="operasional-box kasbon">
               <div class="operasional-box-label">Kasbon</div>
-              <div class="operasional-box-value">0</div>
+              <div class="operasional-box-value">${kasbon}</div>
             </div>
   
             <div class="operasional-box potongan">
               <div class="operasional-box-label">Potongan</div>
-              <div class="operasional-box-value">0</div>
+              <div class="operasional-box-value">${potongan}</div>
             </div>
   
             <div class="operasional-box bonus">
               <div class="operasional-box-label">Bonus</div>
-              <div class="operasional-box-value">0</div>
+              <div class="operasional-box-value">${bonus}</div>
             </div>
           </div>
   
@@ -103,7 +114,6 @@ window.initOperasionalView = async function () {
       </div>
     `;
   }).join("");
-
   window.operasionalDummyData = dummy;
   window.operasionalLaporanMap = laporanMap;
 };
@@ -148,52 +158,96 @@ window.toggleOperasionalCard = function(index, el) {
 
     const detailHTML = `
       <div class="operasional-detail">
-
         <div class="operasional-detail-title">Keterangan Lengkap</div>
-
         <div class="operasional-detail-columns">
-
-          <!-- KIRI -->
           <div class="operasional-col kiri">
-
             ${buildKiriHTML(d)}
-
           </div>
-
-          <!-- KANAN -->
           <div class="operasional-col kanan">
-
             ${buildKananHTML(d)}
-
           </div>
-
         </div>
-
-        <!-- GARIS PEMBATAS -->
         <div class="operasional-detail-divider"></div>
-
-        <!-- DETAIL BAWAH -->
         <div class="operasional-detail-bottom">
           <div class="operasional-bottom-item">
             <span class="operasional-bottom-label">Jumlah Upah</span>
             <span class="operasional-bottom-value" id="jumlahUpahEl_${index}">-</span>
           </div>
         </div>
-
-        <button class="operasional-refresh-btn" onclick="event.stopPropagation(); refreshOperasionalDetail(${index}, this)">
-          Refresh Data
-        </button>
-
       </div>
     `;
 
     el.insertAdjacentHTML("beforeend", detailHTML);
 
-    // Isi jumlah upah async
+    // Isi jumlah upah dari cache dulu
     buildJumlahUpah(d).then(val => {
       const upahEl = document.getElementById(`jumlahUpahEl_${index}`);
       if (upahEl) upahEl.innerText = val;
     });
+
+    // Auto fetch Firestore saat expand
+    if (navigator.onLine) {
+      (async () => {
+        try {
+          const uid = window.auth.currentUser?.uid;
+          if (!uid) return;
+
+          const day2    = String(index + 1).padStart(2, "0");
+          const month2  = String(window.operasionalFilter.bulan + 1).padStart(2, "0");
+          const year2   = window.operasionalFilter.tahun;
+          const tanggalId = `${year2}-${month2}-${day2}`;
+
+          const docRef = window.doc(window.db, "users", uid, "laporanMarketing", tanggalId);
+          const snap   = await window.getDoc(docRef);
+          if (!snap.exists()) return;
+
+          const fresh = snap.data();
+
+          // Simpan ke IDB
+          const idb = await window.openAppDB();
+          await new Promise((resolve, reject) => {
+            const tx    = idb.transaction("laporanMarketingDB", "readwrite");
+            const store = tx.objectStore("laporanMarketingDB");
+            store.put({ id: tanggalId, tanggal: tanggalId, idMarketing: uid, ...fresh, cachedAt: Date.now() });
+            tx.oncomplete = () => resolve();
+            tx.onerror    = () => reject(tx.error);
+          });
+
+          // Update memory
+          if (!window.operasionalLaporanMap) window.operasionalLaporanMap = {};
+          window.operasionalLaporanMap[tanggalId] = { id: tanggalId, tanggal: tanggalId, idMarketing: uid, ...fresh, cachedAt: Date.now() };
+
+          // Re-render detail
+          const detailEl = el.querySelector(".operasional-detail");
+          if (detailEl) {
+            const kiriEl  = detailEl.querySelector(".operasional-col.kiri");
+            const kananEl = detailEl.querySelector(".operasional-col.kanan");
+            if (kiriEl)  kiriEl.innerHTML  = buildKiriHTML(window.operasionalLaporanMap[tanggalId]);
+            if (kananEl) kananEl.innerHTML = buildKananHTML(window.operasionalLaporanMap[tanggalId]);
+          }
+
+          // Update jumlah upah
+          const upahEl = document.getElementById(`jumlahUpahEl_${index}`);
+          if (upahEl) {
+            buildJumlahUpah(window.operasionalLaporanMap[tanggalId]).then(val => {
+              upahEl.innerText = val;
+            });
+          }
+
+          // Update card summary
+          const omzet    = Number(fresh?.distribusi?.keuangan?.inputOmset || 0).toLocaleString("id-ID");
+          const kasbon   = Number(fresh?.distribusi?.keuangan?.Kasbon || 0).toLocaleString("id-ID");
+          const potongan = Number(fresh?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0).toLocaleString("id-ID");
+          const bonus    = Number(fresh?.distribusi?.keuangan?.bonus?.jumlahBonus || 0).toLocaleString("id-ID");
+
+          el.querySelector(".operasional-box.omzet .operasional-box-value").innerText   = omzet;
+          el.querySelector(".operasional-box.kasbon .operasional-box-value").innerText  = kasbon;
+          el.querySelector(".operasional-box.potongan .operasional-box-value").innerText = potongan;
+          el.querySelector(".operasional-box.bonus .operasional-box-value").innerText   = bonus;
+
+        } catch { }
+      })();
+    }
 
     return;
   }
@@ -247,7 +301,7 @@ function buildKiriHTML(d) {
 
   // CLOSING
   const closing = d?.pembayaran?.closing || {};
-  const closingKeys = Object.keys(closing);
+  const closingKeys = Object.keys(closing).filter(k => k !== "createdAt");
   const closingJumlah = closingKeys.reduce((sum, k) => sum + Number(closing[k] || 0), 0);
 
   let closingHTML = closingKeys.length
@@ -265,7 +319,7 @@ function buildKiriHTML(d) {
 
   // EXPIRED
   const expired = d?.distribusi?.expired || {};
-  const expiredKeys = Object.keys(expired);
+  const expiredKeys = Object.keys(expired).filter(k => k.toLowerCase() !== "margin");
   const expiredJumlah = expiredKeys.reduce((sum, k) => sum + Number(expired[k] || 0), 0);
   const expiredPersen = payJumlah > 0
     ? Math.round((expiredJumlah / payJumlah) * 100) + "%"
@@ -327,125 +381,6 @@ function buildKananHTML(d) {
     </div>
   `).join("");
 }
-window.refreshOperasionalDetail = async function (index, btn) {
-  const data = window.operasionalDummyData?.[index];
-  if (!data) return;
-  // Konversi tanggal dari format "Senin, 1 Januari 2026" ke "yyyy-mm-dd"
-  const year = window.operasionalFilter.tahun;
-  const month = String(window.operasionalFilter.bulan + 1).padStart(2, "0");
-  const day = String(index + 1).padStart(2, "0");
-  const tanggalId = `${year}-${month}-${day}`;
-
-  try {
-    btn.disabled = true;
-    btn.innerHTML = `
-      <span style="
-        display:inline-block;
-        width:14px;
-        height:14px;
-        border:2px solid #4361ee;
-        border-top-color:transparent;
-        border-radius:50%;
-        animation:spin .7s linear infinite;
-      "></span>
-      Memuat...
-    `;
-
-    // Delay 1 detik dulu sebelum fetch
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const uid = window.auth.currentUser?.uid;
-    if (!uid) throw new Error("User tidak ditemukan");
-
-    const docRef = window.doc(
-      window.db,
-      "users", uid,
-      "laporanMarketing", tanggalId
-    );
-
-    const snapList = await window.getDoc(docRef);
-    const snap = snapList.exists() ? snapList : null;
-
-    if (!snap) {
-      const detailElEmpty = btn.closest(".operasional-detail");
-      const kiriElEmpty = detailElEmpty?.querySelector(".operasional-col.kiri");
-      if (kiriElEmpty) {
-        kiriElEmpty.innerHTML = `
-          <div class="operasional-detail-empty">
-            Belum ada laporan untuk tanggal ini
-          </div>
-        `;
-      }
-      return;
-    }
-    const d = snap.data();
-    // Update IndexedDB
-    try {
-      const idb = await window.openAppDB();
-      const txIdb = idb.transaction("laporanMarketingDB", "readwrite");
-      const storeIdb = txIdb.objectStore("laporanMarketingDB");
-      storeIdb.put({
-        id: tanggalId,
-        tanggal: tanggalId,
-        idMarketing: uid,
-        ...d,
-        cachedAt: Date.now()
-      });
-    } catch { }
-    // Update memory map
-    if (!window.operasionalLaporanMap) window.operasionalLaporanMap = {};
-    window.operasionalLaporanMap[tanggalId] = {
-      id: tanggalId,
-      tanggal: tanggalId,
-      idMarketing: uid,
-      ...d,
-      cachedAt: Date.now()
-    };
-    // Re-render detail pakai buildKiriHTML & buildKananHTML
-    const detailEl = btn.closest(".operasional-detail");
-    if (detailEl) {
-      const kiriEl = detailEl.querySelector(".operasional-col.kiri");
-      const kananEl = detailEl.querySelector(".operasional-col.kanan");
-      if (kiriEl) kiriEl.innerHTML = buildKiriHTML(window.operasionalLaporanMap[tanggalId]);
-      if (kananEl) kananEl.innerHTML = buildKananHTML(window.operasionalLaporanMap[tanggalId]);
-    }
-    // Update jumlah upah setelah refresh
-    const upahEl = document.getElementById(`jumlahUpahEl_${index}`);
-    if (upahEl) {
-      buildJumlahUpah(window.operasionalLaporanMap[tanggalId]).then(val => {
-        upahEl.innerText = val;
-      });
-    }
-
-    // Update card summary (omzet, kasbon, potongan, bonus)
-    const cardEl = btn.closest(".operasional-card");
-    if (cardEl) {
-      const omzet = Number(d?.distribusi?.keuangan?.inputOmset || 0).toLocaleString("id-ID");
-      const kasbon = Number(d?.distribusi?.keuangan?.Kasbon || 0).toLocaleString("id-ID");
-      const potongan = Number(d?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0).toLocaleString("id-ID");
-      const bonus = Number(d?.distribusi?.keuangan?.bonus?.jumlahBonus || 0).toLocaleString("id-ID");
-
-      cardEl.querySelector(".operasional-box.omzet .operasional-box-value").innerText = omzet;
-      cardEl.querySelector(".operasional-box.kasbon .operasional-box-value").innerText = kasbon;
-      cardEl.querySelector(".operasional-box.potongan .operasional-box-value").innerText = potongan;
-      cardEl.querySelector(".operasional-box.bonus .operasional-box-value").innerText = bonus;
-    }
-
-  } catch (err) {
-    const detailEl = btn.closest(".operasional-detail");
-    const kiriEl = detailEl?.querySelector(".operasional-col.kiri");
-    if (kiriEl) {
-      kiriEl.innerHTML = `
-        <div class="operasional-detail-empty">
-          Gagal memuat data
-        </div>
-      `;
-    }
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = "🔄 Refresh Data";
-  }
-};
 window.operasionalFilter = {
   bulan: new Date().getMonth(),
   tahun: new Date().getFullYear()
