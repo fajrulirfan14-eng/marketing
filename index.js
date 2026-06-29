@@ -339,17 +339,37 @@ function showSyncToast(pesan, sukses = true) {
 
   const toast = document.createElement("div");
   toast.id = "syncToastEl";
-  toast.textContent = pesan;
   toast.style.cssText = `
     position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
     background:${sukses ? "#2eaf62" : "#e53935"};
     color:#fff;padding:10px 20px;border-radius:20px;
     font-size:13px;font-weight:600;z-index:99999;
-    white-space:nowrap;max-width:90vw;text-align:center;
+    max-width:90vw;text-align:center;
     animation:csToastIn .3s cubic-bezier(.34,1.56,.64,1) both;
+    display:flex;align-items:center;gap:10px;
   `;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), sukses ? 2000 : 5000);
+
+  if (sukses) {
+    toast.textContent = pesan;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+  } else {
+    toast.innerHTML = `
+      <span>${pesan}</span>
+      <button id="syncRetryBtn" style="
+        background:rgba(255,255,255,0.25);
+        border:1px solid rgba(255,255,255,0.4);
+        color:#fff;padding:4px 12px;border-radius:12px;
+        font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;
+      ">Kirim Ulang</button>
+    `;
+    document.body.appendChild(toast);
+
+    document.getElementById("syncRetryBtn").onclick = async () => {
+      toast.remove();
+      await window.syncOfflineDataHarian();
+    };
+  }
 }
 async function doSyncAll(pendingHarian, pendingPenjualan, db) {
   const BATCH_SIZE = 500;
