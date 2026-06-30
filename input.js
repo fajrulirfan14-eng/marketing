@@ -1471,7 +1471,7 @@ window.initInputView = async function(){
           </div>
         </div>
   
-        <input type="file" id="popupCameraInput" accept="image/*" capture="environment" hidden>
+        <input type="file" id="popupCameraInput" accept="image/*" hidden>
       </div>
   
       <!-- STATUS -->
@@ -1580,14 +1580,20 @@ window.initInputView = async function(){
     async function compressImage(file){
       return new Promise(resolve=>{
         const reader = new FileReader();
+    
         reader.onload = function(e){
           const img = new Image();
+    
           img.onload = function(){
+    
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
-            let width = img.width;
+    
+            let width  = img.width;
             let height = img.height;
+    
             const maxSize = 400;
+    
             if(width > height){
               if(width > maxSize){
                 height *= maxSize / width;
@@ -1599,15 +1605,113 @@ window.initInputView = async function(){
                 height = maxSize;
               }
             }
-            canvas.width = width;
+    
+            canvas.width  = width;
             canvas.height = height;
+    
             ctx.drawImage(img, 0, 0, width, height);
+    
+            // ==========================
+            // WATERMARK INFO
+            // ==========================
+    
+            const now = new Date();
+    
+            const hari = [
+              "Minggu","Senin","Selasa",
+              "Rabu","Kamis","Jumat","Sabtu"
+            ];
+    
+            const bulan = [
+              "Januari","Februari","Maret",
+              "April","Mei","Juni",
+              "Juli","Agustus","September",
+              "Oktober","November","Desember"
+            ];
+    
+            const tanggalText =
+              `${hari[now.getDay()]}, ${now.getDate()} ${bulan[now.getMonth()]} ${now.getFullYear()}`;
+    
+            const namaCustomer =
+              data?.namaCustomer || "-";
+    
+            let lokasiText = "-";
+    
+            const loc =
+              window.normalizeGeoPoint?.(
+                data?.lokasiCustomer
+              ) || data?.lokasiCustomer;
+    
+            if(loc?.lat && loc?.lng){
+              lokasiText =
+                `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`;
+            }
+    
+            const lines = [
+              namaCustomer,
+              tanggalText,
+              lokasiText
+            ];
+    
+            // ==========================
+            // WATERMARK STYLE (CSS-like config)
+            // ==========================
+            const wmStyle = {
+              fontFamily: "Arial",
+              fontWeight: "600",
+              fontSize: Math.max(8, Math.round(width * 0.022)),
+              lineHeight: 1.3,
+              color: "#ffffff",
+              shadowColor: "rgba(0,0,0,0.85)",
+              shadowBlur: 3,
+              shadowOffsetX: 1,
+              shadowOffsetY: 1,
+              paddingLeft: 6,
+              paddingBottom: 130
+            };
+    
+            ctx.font =
+              `${wmStyle.fontWeight} ${wmStyle.fontSize}px ${wmStyle.fontFamily}`;
+            ctx.textBaseline = "alphabetic";
+            ctx.fillStyle = wmStyle.color;
+            ctx.shadowColor = wmStyle.shadowColor;
+            ctx.shadowBlur = wmStyle.shadowBlur;
+            ctx.shadowOffsetX = wmStyle.shadowOffsetX;
+            ctx.shadowOffsetY = wmStyle.shadowOffsetY;
+    
+            const lineHeightPx =
+              wmStyle.fontSize * wmStyle.lineHeight;
+    
+            const x = wmStyle.paddingLeft;
+            const startY =
+              height - wmStyle.paddingBottom -
+              ((lines.length - 1) * lineHeightPx);
+    
+            lines.forEach((line, index) => {
+              ctx.fillText(
+                line,
+                x,
+                startY + (index * lineHeightPx)
+              );
+            });
+    
+            // reset shadow biar gak kebawa ke render lain
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+    
             resolve(
-              canvas.toDataURL("image/jpeg", 0.3)
+              canvas.toDataURL(
+                "image/jpeg",
+                0.3
+              )
             );
           };
+    
           img.src = e.target.result;
         };
+    
         reader.readAsDataURL(file);
       });
     }
@@ -1719,27 +1823,23 @@ window.initInputView = async function(){
           try {
             let fotoBlob = null;
 
-            if (typeof window.popupFotoLainnya === "string") {
-              // Sudah base64 — konversi ke blob
-              const base64 = window.popupFotoLainnya;
-              const arr    = base64.split(",");
-              const mime   = arr[0].match(/:(.*?);/)[1];
-              const bstr   = atob(arr[1]);
-              let n        = bstr.length;
-              const u8arr  = new Uint8Array(n);
-              while (n--) u8arr[n] = bstr.charCodeAt(n);
-              fotoBlob = new Blob([u8arr], { type: mime });
-            } else {
-              // File object — compress dulu
-              const base64Compressed = await compressImage(window.popupFotoLainnya);
-              const arr    = base64Compressed.split(",");
-              const mime   = arr[0].match(/:(.*?);/)[1];
-              const bstr   = atob(arr[1]);
-              let n        = bstr.length;
-              const u8arr  = new Uint8Array(n);
-              while (n--) u8arr[n] = bstr.charCodeAt(n);
-              fotoBlob = new Blob([u8arr], { type: mime });
+            const base64 = window.popupFotoLainnya;
+            
+            const arr   = base64.split(",");
+            const mime  = arr[0].match(/:(.*?);/)[1];
+            const bstr  = atob(arr[1]);
+            
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            
+            while (n--) {
+              u8arr[n] = bstr.charCodeAt(n);
             }
+            
+            fotoBlob = new Blob(
+              [u8arr],
+              { type: mime }
+            );
 
             if (fotoBlob) {
               const fileName = `fotoKeterangan/${getCustomerId(data)}_${Date.now()}.jpg`;
@@ -2126,22 +2226,19 @@ window.initInputView = async function(){
     cameraInput.onchange = function(e){
       const file = e.target.files[0];
       if(!file) return;
+    
       setTimeout(async () => {
-        const url = URL.createObjectURL(file);
-        fotoPreview.src = url;
+    
+        const base64 = await compressImage(file);
+    
+        fotoPreview.src = base64;
         fotoPreview.style.display = "block";
         fotoPlaceholder.style.display = "none";
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-        if (navigator.onLine) {
-          // Online — simpan file langsung, upload saat submit
-          window.popupFotoLainnya = file;
-        } else {
-          // Offline — compress dan simpan base64
-          const base64 = await compressImage(file);
-          window.popupFotoLainnya = base64;
-        }
+    
+        window.popupFotoLainnya = base64;
+    
         validateSubmit();
+    
       }, 500);
     };
     submitBtn.onclick = function(){
@@ -2719,7 +2816,7 @@ window.initInputView = async function(){
               </svg>
               <span style="font-size:12px;color:var(--primary,#C9A67B);font-weight:600;">Ambil Foto</span>
             </div>
-            <input type="file" id="lokasiPhotoInput" accept="image/*" capture="environment" style="display:none">
+            <input type="file" id="lokasiPhotoInput" accept="image/*" style="display:none">
           </div>
 
           <div id="lokasiStatusText" style="font-size:13px;color:var(--text-secondary,#7a6a5a);text-align:center;"></div>
