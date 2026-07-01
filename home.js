@@ -1553,12 +1553,12 @@ window.openHomeCustomerPopup = async function() {
     const mapEl = document.getElementById("customerMapElHome");
     const savedMapType = localStorage.getItem("mapType") || "roadmap";
     lokasiMapHome = new google.maps.Map(mapEl, {
-      center: { lat, lng }, zoom: 18,
-      mapId: "3f6f47bf59913618a195fe2e",
+      center: { lat, lng }, zoom: 17,
       mapTypeId: savedMapType,
       zoomControl: true, mapTypeControl: false,
       streetViewControl: false, fullscreenControl: false,
       gestureHandling: "greedy",
+      disableDefaultUI: true,
     });
     lokasiMarkerHome = new google.maps.Marker({
       position: { lat, lng }, map: lokasiMapHome,
@@ -1569,7 +1569,13 @@ window.openHomeCustomerPopup = async function() {
     function closeMapHome() {
       mapOverlay.style.opacity = "0";
       document.getElementById("customerMapBoxHome").style.transform = "translateY(100%)";
-      setTimeout(() => { mapOverlay.remove(); lokasiMapHome = null; lokasiMarkerHome = null; }, 300);
+      setTimeout(() => {
+        if (lokasiMarkerHome) lokasiMarkerHome.setMap(null);
+        if (lokasiMapHome) google.maps.event.clearInstanceListeners(lokasiMapHome);
+        mapOverlay.remove();
+        lokasiMapHome = null;
+        lokasiMarkerHome = null;
+      }, 300);
     }
 
     document.getElementById("customerMapTutupHome").onclick = closeMapHome;
@@ -1962,7 +1968,7 @@ if (!window._homeSwipeListenerAttached) {
     const popup   = document.getElementById("popupHomeCustomer");
     const content = document.getElementById("popupHomeCustomerContent");
     if (!popup || !content || !popup.classList.contains("active")) return;
-    if (e.target.closest("#mapPopupHome")) { canSwipe = false; return; }
+    if (e.target.closest("#customerMapOverlayHome")) { canSwipe = false; return; }
     if (e.target.closest("input, textarea, select")) { canSwipe = false; return; }
     if (content.scrollTop > 0) { canSwipe = false; return; }
     canSwipe = true; isDragging = true;
