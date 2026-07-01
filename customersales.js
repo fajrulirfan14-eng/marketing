@@ -42,37 +42,6 @@ window.initCustomerSalesView = async function() {
     if (!e.target.closest("#customerSalesHariWrapper")) dropdown?.classList.remove("open");
   });
 
-  // Filter bulan & tahun
-  const selectBulan = document.getElementById("customerSalesFilterBulan");
-  const selectTahun = document.getElementById("customerSalesFilterTahun");
-
-  window.salesFilterBulan = now.getMonth() + 1;
-  window.salesFilterTahun = now.getFullYear();
-
-  if (selectTahun && !selectTahun.options.length) {
-    const tahunIni = now.getFullYear();
-    for (let y = tahunIni; y >= tahunIni - 3; y--) {
-      const opt = document.createElement("option");
-      opt.value = y; opt.textContent = y;
-      selectTahun.appendChild(opt);
-    }
-  }
-  if (selectBulan) selectBulan.value = window.salesFilterBulan;
-  if (selectTahun) selectTahun.value = window.salesFilterTahun;
-
-  if (selectBulan) {
-    selectBulan.onchange = function() {
-      window.salesFilterBulan = Number(this.value);
-      window.initCustomerSalesView();
-    };
-  }
-  if (selectTahun) {
-    selectTahun.onchange = function() {
-      window.salesFilterTahun = Number(this.value);
-      window.initCustomerSalesView();
-    };
-  }
-
   // Reload
   const btnReload = document.getElementById("btnReloadCustomerSales");
   if (btnReload) {
@@ -80,18 +49,22 @@ window.initCustomerSalesView = async function() {
       btnReload.classList.add("loading");
       btnReload.disabled = true;
       try {
-        const uid         = window.auth.currentUser.uid;
-        const bulanFilter = window.salesFilterBulan;
-        const tahunFilter = window.salesFilterTahun;
-        const tglAwal     = `${tahunFilter}-${String(bulanFilter).padStart(2,"0")}-01`;
-        const tglAkhir    = `${tahunFilter}-${String(bulanFilter).padStart(2,"0")}-31`;
+        const uid     = window.auth.currentUser.uid;
+        const hariSel = window.salesFilterHari;
+        const isHariSpesifik = hariSel && hariSel !== "Hari Ini" && hariSel !== "Semua";
 
-        const snap = await window.getDocs(window.query(
+        const queryConstraints = [
           window.collection(window.db, "customerSales"),
-          window.where("createdBy", "==", uid),
-          window.where("tanggal", ">=", tglAwal),
-          window.where("tanggal", "<=", tglAkhir)
-        ));
+          window.where("createdBy", "==", uid)
+        ];
+        if (isHariSpesifik) {
+          queryConstraints.push(window.where("hari", "==", hariSel));
+        }
+
+        console.log("[reload] uid:", uid, "hariSel:", hariSel, "isHariSpesifik:", isHariSpesifik);
+
+        const snap = await window.getDocs(window.query(...queryConstraints));
+        console.log("[reload] jumlah dokumen dari Firestore:", snap.docs.length);
 
         const docs = snap.docs.map(d => {
           const data = d.data();
@@ -107,8 +80,9 @@ window.initCustomerSalesView = async function() {
           tx.oncomplete = () => resolve();
           tx.onerror    = () => reject(tx.error);
         });
+        console.log("[reload] selesai simpan ke IDB, total:", docs.length);
       } catch(e) {
-        console.log("Gagal reload sales:", e);
+        console.log("[reload] ERROR:", e);
       } finally {
         btnReload.classList.remove("loading");
         btnReload.disabled = false;
@@ -129,23 +103,19 @@ window.initCustomerSalesView = async function() {
 
     const todayStr    = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
     const uid         = window.auth.currentUser?.uid;
-    const bulan       = window.salesFilterBulan;
-    const tahun       = window.salesFilterTahun;
-
-    function dalamBulanTahun(item) {
-      if (!item.tanggal) return false;
-      const [y, m] = item.tanggal.split("-").map(Number);
-      return m === bulan && y === tahun;
-    }
+    const hariIniNama = hariNama[now.getDay()];
+    const normHari = v => String(v || "").trim().toLowerCase();
 
     let filtered = data.filter(item => item.diserahkan !== true && item.createdBy === uid);
 
     if (window.salesFilterHari === "Hari Ini") {
-      filtered = filtered.filter(item => item.tanggal === todayStr);
+      filtered = filtered.filter(item =>
+        normHari(item.hari) === normHari(hariIniNama)
+      );
     } else if (window.salesFilterHari !== "Semua") {
-      filtered = filtered.filter(item => item.hari === window.salesFilterHari && dalamBulanTahun(item));
-    } else {
-      filtered = filtered.filter(item => dalamBulanTahun(item));
+      filtered = filtered.filter(item =>
+        normHari(item.hari) === normHari(window.salesFilterHari)
+      );
     }
 
     const elJumlah = document.getElementById("customerSalesJumlah");
