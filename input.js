@@ -1,3 +1,4 @@
+
 // INIT VIEW
 window.initInputView = async function(){
   if(window._inputViewCleanup){
