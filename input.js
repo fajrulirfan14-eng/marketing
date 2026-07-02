@@ -95,7 +95,7 @@ window.initInputView = async function(){
       e.stopPropagation();
       const action = item.dataset.action;
 
-      if (["keterangan", "fee_disable", "penyesuaian", "produktif", "stabil", "non_produktif", "catatan"].includes(action)) {
+      if (["keterangan","fee_disable","penyesuaian","produktif","stabil","non_produktif","catatan","return","expired"].includes(action)) {
         window.inputFilterMode = window.inputFilterMode === action ? "all" : action;
         localStorage.setItem("inputFilterMode", window.inputFilterMode);
         updateFilterUI();
@@ -452,8 +452,8 @@ window.initInputView = async function(){
           window.inputSummaryData.disable[key] = (window.inputSummaryData.disable[key] || 0) + Number(val);
         });
 
-        hasFee     = Object.keys(dh.fee     || {}).length > 0;
-        hasDisable = Object.keys(dh.disable  || {}).length > 0;
+        hasFee     = Object.values(dh.fee     || {}).some(v => Number(v) > 0);
+        hasDisable = Object.values(dh.disable || {}).some(v => Number(v) > 0);
 
         const status = String(dh?.keterangan?.status || "").trim().toLowerCase();
         if      (status === "pending") statusBadge = "PN";
@@ -510,6 +510,18 @@ window.initInputView = async function(){
         }
         if (window.inputFilterMode === "catatan") {
           if (!data.catatan?.pesan?.trim()) return;
+        }
+        if (window.inputFilterMode === "return") {
+          const dh = window._dataHarianMap?.[customerId] || null;
+          const ret = dh?.return || {};
+          const hasReturn = Object.values(ret).some(v => Number(v) > 0);
+          if (!hasReturn) return;
+        }
+        if (window.inputFilterMode === "expired") {
+          const dh = window._dataHarianMap?.[customerId] || null;
+          const exp = dh?.expired || {};
+          const hasExpired = Object.values(exp).some(v => Number(v) > 0);
+          if (!hasExpired) return;
         }
 
         customerHtml += `
@@ -603,8 +615,8 @@ window.initInputView = async function(){
             const entry = customerList.find(x => (x.idCustomer || x.id) === id);
             if (entry) {
               entry.sudahInput  = true;
-              entry.hasFee      = Object.keys(fresh.fee     || {}).length > 0;
-              entry.hasDisable  = Object.keys(fresh.disable || {}).length > 0;
+              entry.hasFee      = Object.values(fresh.fee     || {}).some(v => Number(v) > 0);
+              entry.hasDisable  = Object.values(fresh.disable || {}).some(v => Number(v) > 0);
               const st = String(fresh?.keterangan?.status || "").trim().toLowerCase();
               entry.statusBadge = st === "pending" ? "PN" : st === "tutup" ? "TP" : st === "putus" ? "PT" : "";
             }
@@ -1126,9 +1138,10 @@ window.initInputView = async function(){
           const barang = item[key];
           if(barang?.isAktif === true){
             const preload = existingData?.[keyGroup]?.[key];
+            const displayPreload = (preload === 0 || preload === "0") ? "" : (preload ?? "");
             html += `
               <div class="popup-input-item">
-                <input type="number" min="0" placeholder="${key}" value="${preload ?? ""}"
+                <input type="number" min="0" placeholder="${key}" value="${displayPreload}"
                   class="popup-input-number popup-fd-input ${keyGroup}">
               </div>
             `;
@@ -1164,16 +1177,14 @@ window.initInputView = async function(){
           );
     
           group.querySelectorAll("input").forEach(input => {
-            if (input.value !== "") {
-              const value = Number(input.value);
-    
-              if (groupName === "fee") {
-                fee[input.placeholder] = value;
-              }
-    
-              if (groupName === "disable") {
-                disable[input.placeholder] = value;
-              }
+            const value = input.value !== "" ? Number(input.value) : 0;
+
+            if (groupName === "fee") {
+              fee[input.placeholder] = value;
+            }
+
+            if (groupName === "disable") {
+              disable[input.placeholder] = value;
             }
           });
         });
@@ -1433,13 +1444,12 @@ window.initInputView = async function(){
           if(barang?.isAktif === true){
             const qtyKemarin = dataKemarin?.[key]?.qty || 0;
             const hasKemarin = qtyKemarin > 0;
-            const preloadValue = existingData?.[
-              tipe.toLowerCase()
-            ]?.[key];
+            const preloadValue = existingData?.[tipe.toLowerCase()]?.[key];
+            const displayValue = (preloadValue === 0 || preloadValue === "0") ? "" : (preloadValue ?? "");
   
             html += `
               <div class="popup-input-item">
-                <input type="number" min="0" placeholder="${key}" value="${preloadValue ?? ""}"
+                <input type="number" min="0" placeholder="${key}" value="${displayValue}"
                   class="popup-input-number ${hasKemarin ? 'active-kemarin' : ''}">
               </div>
             `;
@@ -1578,7 +1588,7 @@ window.initInputView = async function(){
       });
       previewPay.innerText = "Rp" + totalPay.toLocaleString("id-ID");
     }
-    async function compressImage(file){
+    async function compressImage(file, skipWatermark = false){
       return new Promise(resolve=>{
         const reader = new FileReader();
     
@@ -1612,10 +1622,7 @@ window.initInputView = async function(){
     
             ctx.drawImage(img, 0, 0, width, height);
     
-            // ==========================
             // WATERMARK INFO
-            // ==========================
-    
             const now = new Date();
     
             const hari = [
@@ -1648,59 +1655,58 @@ window.initInputView = async function(){
                 `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`;
             }
     
-            const lines = [
-              namaCustomer,
-              tanggalText,
-              lokasiText
-            ];
+            if (!skipWatermark) {
+              const lines = [
+                namaCustomer,
+                tanggalText,
+                lokasiText
+              ];
+              // WATERMARK STYLE (CSS-like config)
+              const wmStyle = {
+                fontFamily: "Arial",
+                fontWeight: "600",
+                fontSize: Math.max(8, Math.round(width * 0.022)),
+                lineHeight: 1.3,
+                color: "#ffffff",
+                shadowColor: "rgba(0,0,0,0.85)",
+                shadowBlur: 3,
+                shadowOffsetX: 1,
+                shadowOffsetY: 1,
+                paddingLeft: 6,
+                paddingBottom: 130
+              };
     
-            // ==========================
-            // WATERMARK STYLE (CSS-like config)
-            // ==========================
-            const wmStyle = {
-              fontFamily: "Arial",
-              fontWeight: "600",
-              fontSize: Math.max(8, Math.round(width * 0.022)),
-              lineHeight: 1.3,
-              color: "#ffffff",
-              shadowColor: "rgba(0,0,0,0.85)",
-              shadowBlur: 3,
-              shadowOffsetX: 1,
-              shadowOffsetY: 1,
-              paddingLeft: 6,
-              paddingBottom: 130
-            };
+              ctx.font =
+                `${wmStyle.fontWeight} ${wmStyle.fontSize}px ${wmStyle.fontFamily}`;
+              ctx.textBaseline = "alphabetic";
+              ctx.fillStyle = wmStyle.color;
+              ctx.shadowColor = wmStyle.shadowColor;
+              ctx.shadowBlur = wmStyle.shadowBlur;
+              ctx.shadowOffsetX = wmStyle.shadowOffsetX;
+              ctx.shadowOffsetY = wmStyle.shadowOffsetY;
     
-            ctx.font =
-              `${wmStyle.fontWeight} ${wmStyle.fontSize}px ${wmStyle.fontFamily}`;
-            ctx.textBaseline = "alphabetic";
-            ctx.fillStyle = wmStyle.color;
-            ctx.shadowColor = wmStyle.shadowColor;
-            ctx.shadowBlur = wmStyle.shadowBlur;
-            ctx.shadowOffsetX = wmStyle.shadowOffsetX;
-            ctx.shadowOffsetY = wmStyle.shadowOffsetY;
+              const lineHeightPx =
+                wmStyle.fontSize * wmStyle.lineHeight;
     
-            const lineHeightPx =
-              wmStyle.fontSize * wmStyle.lineHeight;
+              const x = wmStyle.paddingLeft;
+              const startY =
+                height - wmStyle.paddingBottom -
+                ((lines.length - 1) * lineHeightPx);
     
-            const x = wmStyle.paddingLeft;
-            const startY =
-              height - wmStyle.paddingBottom -
-              ((lines.length - 1) * lineHeightPx);
+              lines.forEach((line, index) => {
+                ctx.fillText(
+                  line,
+                  x,
+                  startY + (index * lineHeightPx)
+                );
+              });
     
-            lines.forEach((line, index) => {
-              ctx.fillText(
-                line,
-                x,
-                startY + (index * lineHeightPx)
-              );
-            });
-    
-            // reset shadow biar gak kebawa ke render lain
-            ctx.shadowColor = "transparent";
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+              // reset shadow biar gak kebawa ke render lain
+              ctx.shadowColor = "transparent";
+              ctx.shadowBlur = 0;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 0;
+            }
     
             resolve(
               canvas.toDataURL(
@@ -1909,28 +1915,7 @@ window.initInputView = async function(){
         syncSuccess = false;    
         if (navigator.onLine) {
           try {
-            if (isExistingDoc) {
-              await window.setDoc(
-                docRef,
-                {
-                  return: window.deleteField(),
-                  expired: window.deleteField(),
-                  konsinyasi: window.deleteField(),
-                  cash: window.deleteField(),
-                  lainnya: window.deleteField(),
-                  closing: window.deleteField(),
-                  pay: window.deleteField(),
-                  pembayaran: window.deleteField(),
-                  keterangan: window.deleteField(),
-                  dataKemarin: window.deleteField(),
-                  ...payload
-                },
-                { merge: true }
-              );
-            } else {
-              await window.setDoc(docRef, payload, { merge: true });
-            }
-    
+            await window.setDoc(docRef, payload, { merge: true });
             syncSuccess = true;
           } catch (err) {
             syncSuccess = false;
@@ -2230,7 +2215,9 @@ window.initInputView = async function(){
     
       setTimeout(async () => {
     
-        const base64 = await compressImage(file);
+        const isFromGallery = window.lastPhotoSource === "gallery";
+        window.lastPhotoSource = null; // reset biar gak kepake input lain
+        const base64 = await compressImage(file, isFromGallery);
     
         fotoPreview.src = base64;
         fotoPreview.style.display = "block";
@@ -2262,9 +2249,7 @@ window.initInputView = async function(){
         group.querySelectorAll(".popup-input-number").forEach(input=>{
           const key = input.placeholder;
           const value = input.value;
-          if(value !== ""){
-            groupData[groupName][key] = Number(value);
-          }
+          groupData[groupName][key] = value !== "" ? Number(value) : 0;
         });
       });
       const needWarning = checkWarningValidation(groupData);
@@ -2330,14 +2315,18 @@ window.initInputView = async function(){
       Object.keys(item).forEach(k => { varianMap[k] = item[k]; });
     });
 
-    const itemsHtml = activeKeys.map(key => `
-      <div class="popup-input-item">
-        <input type="number" min="0" placeholder="${key}"
-          value="${existing[key] || ""}"
-          class="popup-input-number pl-input"
-          data-key="${key}">
-      </div>
-    `).join("");
+    const itemsHtml = activeKeys.map(key => {
+      const val = existing[key];
+      const displayVal = (val === 0 || val === "0") ? "" : (val || "");
+      return `
+        <div class="popup-input-item">
+          <input type="number" min="0" placeholder="${key}"
+            value="${displayVal}"
+            class="popup-input-number pl-input"
+            data-key="${key}">
+        </div>
+      `;
+    }).join("");
 
     overlay.innerHTML = `
       <div class="popup-content popup-pl-content">
@@ -2398,9 +2387,7 @@ window.initInputView = async function(){
 
         const penjualanLangsung = {};
         overlay.querySelectorAll(".pl-input").forEach(input => {
-          if (input.value !== "") {
-            penjualanLangsung[input.dataset.key] = Number(input.value);
-          }
+          penjualanLangsung[input.dataset.key] = input.value !== "" ? Number(input.value) : 0;
         });
 
         const varianMap = {};
