@@ -1510,86 +1510,52 @@ window.openHomeCustomerPopup = async function() {
   let lokasiMapHome    = null;
   let lokasiMarkerHome = null;
 
+  // Tambah container map di dalam bottom sheet
+  const mapContainerHome = document.createElement("div");
+  mapContainerHome.id = "inlineMapContainerHome";
+  mapContainerHome.style.cssText = `
+    width:100%;height:220px;border-radius:14px;overflow:hidden;
+    display:none;border:1.5px solid var(--border-color);
+    margin-top:10px;position:relative;
+  `;
+  btnLokasiHome.insertAdjacentElement("afterend", mapContainerHome);
+
   function tampilkanPetaHome(lat, lng) {
-    const existingMap = document.getElementById("customerMapOverlayHome");
-    if (existingMap) existingMap.remove();
+    mapContainerHome.style.display = "block";
 
-    const mapOverlay = document.createElement("div");
-    mapOverlay.id = "customerMapOverlayHome";
-    mapOverlay.style.cssText = `
-      position:fixed;inset:0;z-index:99999;
-      background:rgba(0,0,0,.45);backdrop-filter:blur(4px);
-      display:flex;align-items:flex-end;justify-content:center;
-      opacity:0;transition:opacity .25s ease;
-    `;
-    mapOverlay.innerHTML = `
-      <div id="customerMapBoxHome" style="
-        width:100%;max-width:540px;
-        background:var(--bg-primary);border-radius:24px 24px 0 0;
-        display:flex;flex-direction:column;overflow:hidden;
-        transform:translateY(100%);transition:transform .3s cubic-bezier(.32,1,.4,1);
-        box-shadow:0 -8px 40px rgba(0,0,0,.15);
-      ">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-color);flex-shrink:0;">
-          <button id="customerMapTutupHome" style="width:34px;height:34px;border:none;border-radius:10px;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;cursor:pointer;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-          <div style="font-size:15px;font-weight:700;color:var(--text-heading);">Pilih Lokasi</div>
-          <button id="customerMapPilihHome" style="padding:8px 18px;border:none;border-radius:20px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Pilih</button>
-        </div>
-        <div id="customerMapElHome" style="height:55dvh;"></div>
-        <div style="padding:10px 20px 24px;font-size:12px;color:var(--text-secondary);text-align:center;">
-          Seret pin untuk memilih lokasi yang tepat
-        </div>
-      </div>
-    `;
-    document.body.appendChild(mapOverlay);
-
-    requestAnimationFrame(() => {
-      mapOverlay.style.opacity = "1";
-      document.getElementById("customerMapBoxHome").style.transform = "translateY(0)";
-    });
-
-    const mapEl = document.getElementById("customerMapElHome");
-    const savedMapType = localStorage.getItem("mapType") || "roadmap";
-    lokasiMapHome = new google.maps.Map(mapEl, {
-      center: { lat, lng }, zoom: 17,
-      mapTypeId: savedMapType,
-      zoomControl: true, mapTypeControl: false,
-      streetViewControl: false, fullscreenControl: false,
-      gestureHandling: "greedy",
-      disableDefaultUI: true,
-    });
-    lokasiMarkerHome = new google.maps.Marker({
-      position: { lat, lng }, map: lokasiMapHome,
-      draggable: true,
-      animation: google.maps.Animation.DROP,
-    });
-
-    function closeMapHome() {
-      mapOverlay.style.opacity = "0";
-      document.getElementById("customerMapBoxHome").style.transform = "translateY(100%)";
-      setTimeout(() => {
-        if (lokasiMarkerHome) lokasiMarkerHome.setMap(null);
-        if (lokasiMapHome) google.maps.event.clearInstanceListeners(lokasiMapHome);
-        mapOverlay.remove();
-        lokasiMapHome = null;
-        lokasiMarkerHome = null;
-      }, 300);
+    if (!lokasiMapHome) {
+      const savedMapType = localStorage.getItem("mapType") || "roadmap";
+      lokasiMapHome = new google.maps.Map(mapContainerHome, {
+        center: { lat, lng }, zoom: 17,
+        mapTypeId: savedMapType,
+        zoomControl: true, mapTypeControl: false,
+        streetViewControl: false, fullscreenControl: false,
+        gestureHandling: "greedy",
+        disableDefaultUI: true,
+      });
+      lokasiMarkerHome = new google.maps.Marker({
+        position: { lat, lng }, map: lokasiMapHome,
+        draggable: true,
+        animation: google.maps.Animation.DROP,
+      });
+      lokasiMarkerHome.addListener("dragend", e => {
+        customerLat = e.latLng.lat();
+        customerLng = e.latLng.lng();
+        lokasiSuccess = true;
+        btnLokasiHome.classList.add("success");
+        btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
+      });
+    } else {
+      lokasiMapHome.setCenter({ lat, lng });
+      lokasiMarkerHome.setPosition({ lat, lng });
+      google.maps.event.trigger(lokasiMapHome, "resize");
     }
 
-    document.getElementById("customerMapTutupHome").onclick = closeMapHome;
-    mapOverlay.addEventListener("click", e => { if (e.target === mapOverlay) closeMapHome(); });
-
-    document.getElementById("customerMapPilihHome").onclick = () => {
-      const pos = lokasiMarkerHome.getPosition();
-      customerLat   = pos.lat();
-      customerLng   = pos.lng();
-      lokasiSuccess = true;
-      closeMapHome();
-      btnLokasiHome.classList.add("success");
-      btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
-    };
+    customerLat = lat;
+    customerLng = lng;
+    lokasiSuccess = true;
+    btnLokasiHome.classList.add("success");
+    btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
   }
 
   // KLIK AMBIL LOKASI
@@ -1658,11 +1624,18 @@ window.openHomeCustomerPopup = async function() {
   };
 
   // FOTO PREVIEW
-  const fotoInputHome = document.getElementById("fotoInputHome");
-  const fotoCardHome = document.getElementById("fotoCardHome");
+  const fotoInputHome    = document.getElementById("fotoInputHome");
+  const fotoCardHome     = document.getElementById("fotoCardHome");
 
-  fotoInputHome.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
+  // Ganti input jadi dua — kamera dan galeri
+  fotoInputHome.removeAttribute("capture");
+  const fotoGaleriHome = document.createElement("input");
+  fotoGaleriHome.type = "file";
+  fotoGaleriHome.accept = "image/*";
+  fotoGaleriHome.hidden = true;
+  fotoCardHome.appendChild(fotoGaleriHome);
+
+  async function handleFotoHome(file) {
     if (!file) return;
     setTimeout(async () => {
       const url = URL.createObjectURL(file);
@@ -1670,14 +1643,61 @@ window.openHomeCustomerPopup = async function() {
         <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">
       `;
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-
       if (navigator.onLine) {
         window.fotoBase64Home = file;
       } else {
         window.fotoBase64Home = await compressImageHome(url);
       }
     }, 500);
-  });
+  }
+
+  fotoInputHome.addEventListener("change", e => handleFotoHome(e.target.files[0]));
+  fotoGaleriHome.addEventListener("change", e => handleFotoHome(e.target.files[0]));
+
+  fotoCardHome.onclick = function(e) {
+    // Hapus picker lama kalau ada
+    const oldPicker = document.getElementById("fotoPickerHome");
+    if (oldPicker) { oldPicker.remove(); return; }
+
+    const picker = document.createElement("div");
+    picker.id = "fotoPickerHome";
+    picker.style.cssText = `
+      position:absolute;bottom:110%;left:50%;transform:translateX(-50%);
+      background:var(--bg-card);border:1px solid var(--border-color);
+      border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:4px;
+      z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.15);min-width:140px;
+    `;
+    picker.innerHTML = `
+      <button id="fotoPickerKameraHome" style="padding:8px 14px;border:none;background:var(--bg-hover);border-radius:10px;font-size:13px;font-weight:600;color:var(--text-primary);text-align:left;cursor:pointer;">
+        📷 Kamera
+      </button>
+      <button id="fotoPickerGaleriHome" style="padding:8px 14px;border:none;background:var(--bg-hover);border-radius:10px;font-size:13px;font-weight:600;color:var(--text-primary);text-align:left;cursor:pointer;">
+        🖼️ Galeri
+      </button>
+    `;
+    fotoCardHome.style.position = "relative";
+    fotoCardHome.appendChild(picker);
+
+    document.getElementById("fotoPickerKameraHome").onclick = e => {
+      e.stopPropagation();
+      fotoInputHome.setAttribute("capture", "environment");
+      fotoInputHome.click();
+      picker.remove();
+    };
+    document.getElementById("fotoPickerGaleriHome").onclick = e => {
+      e.stopPropagation();
+      fotoGaleriHome.click();
+      picker.remove();
+    };
+
+    // Tutup picker kalau klik di luar
+    setTimeout(() => {
+      document.addEventListener("click", function closePicker() {
+        picker.remove();
+        document.removeEventListener("click", closePicker);
+      }, { once: true });
+    }, 100);
+  };
 
   // COMPRESS IMAGE
   async function compressImageHome(base64) {
@@ -1968,7 +1988,7 @@ if (!window._homeSwipeListenerAttached) {
     const popup   = document.getElementById("popupHomeCustomer");
     const content = document.getElementById("popupHomeCustomerContent");
     if (!popup || !content || !popup.classList.contains("active")) return;
-    if (e.target.closest("#customerMapOverlayHome")) { canSwipe = false; return; }
+    if (e.target.closest("#inlineMapContainerHome, .gm-style")) { canSwipe = false; return; }
     if (e.target.closest("input, textarea, select")) { canSwipe = false; return; }
     if (content.scrollTop > 0) { canSwipe = false; return; }
     canSwipe = true; isDragging = true;

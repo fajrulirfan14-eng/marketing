@@ -4,6 +4,7 @@
   height: 100%;
   overflow: hidden;
   background: var(--bg-primary);
+  padding: 5px;
 }
 
 #view-inputTabel.active {
@@ -19,7 +20,7 @@
   gap: 10px;
   padding: 0 12px;
   background: var(--bg-card);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1.5px solid var(--border-color);
   z-index: 10;
 }
 
@@ -87,7 +88,41 @@
   flex-shrink: 0;
 }
 
-/* ── CANVAS WRAP ── */
+/* ── ZOOM CONTROLS ── */
+.it-zoom-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.it-zoom-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.it-zoom-btn:active { opacity: 0.6; }
+
+.it-zoom-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 30px;
+  text-align: center;
+}
+
+/* ── SCROLL WRAP ── */
 .it-canvas-wrap {
   flex: 1;
   min-height: 0;
@@ -98,22 +133,13 @@
   flex-direction: column;
 }
 
-/* ── SCROLL WRAP ── */
 .it-scroll-wrap {
+  flex: 1;
   width: 100%;
-  height: 100%;
   overflow: scroll;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y;
   will-change: scroll-position;
-}
-
-.it-table {
-  transform-origin: top left;
-}
-.it-table {
-  transform-origin: top left;
-  transition: transform 0.1s ease;
 }
 
 /* ── TABLE ── */
@@ -123,24 +149,28 @@
   font-family: sans-serif;
   white-space: nowrap;
   table-layout: fixed;
+  transform-origin: top left;
 }
 
 /* ── HEADER ── */
 .it-th {
-  padding: 6px 6px;
+  padding: 5px 6px;
   text-align: center;
   font-weight: 700;
-  border: 1px solid #a89880;
+  border: 1.5px solid #6b584b;
   position: sticky;
   z-index: 3;
   font-size: 10px;
 }
+
 .it-th-row1 {
-  top: -3px;
+  top: 0;
 }
+
 .it-th-row2 {
-  top: 21px;
+  top: 25px;
 }
+
 .it-th-accent {
   background: var(--accent);
   color: #fff;
@@ -154,15 +184,18 @@
 /* ── CELLS ── */
 .it-td {
   padding: 5px 5px;
-  border: 1px solid #c4b9ad;
+  border: 1.5px solid #8a7a6a;
   text-align: center;
   font-size: 10px;
-  color: var(--text-primary);
+  color: var(--text-heading);
+  font-weight: 500;
 }
+
 .it-row:hover td {
-  background: rgba(179, 135, 79, 0.12) !important;
+  background: rgba(179, 135, 79, 0.15) !important;
   cursor: pointer;
 }
+
 .it-td-no {
   color: var(--text-secondary);
   width: 28px;
@@ -176,46 +209,83 @@
   max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text-heading);
 }
 
 .it-td-v {
-  width: 44px;
-  min-width: 44px;
+  width: 30px;
+  min-width: 30px;
+}
+/* ── BADGES ── */
+.it-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: #fff;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+.it-badge-fee {
+  background: #10b981;
+}
+.it-badge-disable {
+  background: #ef4444;
 }
 
 .it-td-ket {
   width: 48px;
   min-width: 48px;
+  font-weight: 700;
 }
 
 .it-td-pay {
   width: 80px;
   min-width: 80px;
   color: var(--accent-dark);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 9px;
 }
 
 /* ── TOTAL BAR ── */
-.it-total-bar {
+.it-total-wrap {
   flex-shrink: 0;
-  overflow: hidden;
   border-top: 2px solid var(--accent);
+  overflow-x: hidden;
+}
+
+.it-total-scroll {
+  overflow-x: scroll;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .it-table-total {
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: sans-serif;
+  white-space: nowrap;
   table-layout: fixed;
+  transform-origin: top left;
 }
 
 .it-total td {
   background: var(--accent) !important;
   color: #fff !important;
   font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 5px 5px;
+  text-align: center;
+  font-size: 10px;
 }
+
 .it-td-total-label {
-  text-align: left;
-  padding-left: 8px;
+  text-align: left !important;
+  padding-left: 8px !important;
 }
 
 .it-td-total {

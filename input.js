@@ -2282,25 +2282,28 @@ window.initInputView = async function(){
       }
     };
     let startY = 0;
+    let swipeActive = false;
     sheet.addEventListener("touchstart", e=>{
-        startY = e.touches[0].clientY;
-      }
-    );
+      if (e.target.closest("#customerMapOverlayHome, #lokasiMapContainer, .gm-style, [id^=popupLokasi]")) return;
+      startY = e.touches[0].clientY;
+      swipeActive = true;
+    });
     sheet.addEventListener("touchmove", e=>{
-        const diff = e.touches[0].clientY - startY;
-        if(diff > 0){
-          sheet.style.transform = `translateY(${diff}px)`;
-        }
+      if (!swipeActive) return;
+      const diff = e.touches[0].clientY - startY;
+      if(diff > 0){
+        sheet.style.transform = `translateY(${diff}px)`;
       }
-    );
+    });
     sheet.addEventListener("touchend", e=>{
-        const diff = e.changedTouches[0].clientY - startY;
-        if(diff > 120){
-          overlay.classList.remove("active");
-          sheet.style.transform = "";
-        }else{sheet.style.transform = "";}
-      }
-    );
+      if (!swipeActive) return;
+      swipeActive = false;
+      const diff = e.changedTouches[0].clientY - startY;
+      if(diff > 120){
+        overlay.classList.remove("active");
+        sheet.style.transform = "";
+      }else{sheet.style.transform = "";}
+    });
   };
   window.openBottomSheetPenjualanLangsung = async function(existing, activeKeys, today) {
     const existingEl = document.getElementById("penjualanLangsungOverlay");
@@ -3249,6 +3252,10 @@ window.initInputView = async function(){
     const box = document.getElementById("popupLokasiBox");
     let swipeStartY = 0, swipeCurY = 0, swipeActive = false;
     box.addEventListener("touchstart", e => {
+      if (e.target.closest("#lokasiMapContainer, .gm-style")) {
+        swipeActive = false;
+        return;
+      }
       if (box.scrollTop > 10) return;
       swipeStartY = swipeCurY = e.touches[0].clientY;
       swipeActive = true; box.style.transition = "none";
