@@ -415,20 +415,25 @@
   
   <!-- ===== INPUT TABEL VIEW ===== -->
   <div class="view" id="view-inputTabel">
-  <div class="it-toolbar">
-    <button class="it-back" onclick="window.showView('input','back')">
-      <i class="fa-solid fa-arrow-left"></i>
-    </button>
-    <div class="it-search-wrap">
-      <i class="fa-solid fa-magnifying-glass it-search-icon"></i>
-      <input type="text" class="it-search-input" id="itSearchInput" placeholder="Cari customer...">
-      <button class="it-search-clear" id="itSearchClear">
-        <i class="fa-solid fa-xmark"></i>
+    <div class="it-toolbar">
+      <button class="it-back" onclick="window.showView('input','back')">
+        <i class="fa-solid fa-arrow-left"></i>
       </button>
+      <div class="it-search-wrap">
+        <i class="fa-solid fa-magnifying-glass it-search-icon"></i>
+        <input type="text" class="it-search-input" id="itSearchInput" placeholder="Cari customer...">
+        <button class="it-search-clear" id="itSearchClear">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="it-zoom-wrap">
+        <button class="it-zoom-btn" id="itZoomOut">−</button>
+        <span class="it-zoom-label" id="itZoomLabel">100%</span>
+        <button class="it-zoom-btn" id="itZoomIn">+</button>
+      </div>
     </div>
+    <div class="it-canvas-wrap" id="inputTabelInner"></div>
   </div>
-  <div class="it-canvas-wrap" id="inputTabelInner"></div>
-</div>
   
   <!-- ===== CUSTOMER VIEW ===== -->
   <div class="view" id="view-customer">
