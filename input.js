@@ -35,7 +35,8 @@ window.initInputView = async function(){
   // =========================
   // LOAD STATE DARI LOCALSTORAGE
   // =========================
-  window.inputFilterMode = localStorage.getItem("inputFilterMode") || "all";
+  const savedModes = localStorage.getItem("inputFilterModes");
+  window.inputFilterModes = savedModes ? new Set(JSON.parse(savedModes)) : new Set();
   window.inputTampilanBersih = localStorage.getItem("inputTampilanBersih") === "true";
 
   // Apply tampilan bersih saat load
@@ -95,9 +96,13 @@ window.initInputView = async function(){
       e.stopPropagation();
       const action = item.dataset.action;
 
-      if (["keterangan","fee_disable","penyesuaian","produktif","stabil","non_produktif","catatan","return","expired"].includes(action)) {
-        window.inputFilterMode = window.inputFilterMode === action ? "all" : action;
-        localStorage.setItem("inputFilterMode", window.inputFilterMode);
+      if (["keterangan","fee_disable","penyesuaian","produktif","stabil","non_produktif","catatan","return","expired","analisis"].includes(action)) {
+        if (window.inputFilterModes.has(action)) {
+          window.inputFilterModes.delete(action);
+        } else {
+          window.inputFilterModes.add(action);
+        }
+        localStorage.setItem("inputFilterModes", JSON.stringify([...window.inputFilterModes]));
         updateFilterUI();
         window._renderCustomerList?.();
         return;
@@ -116,31 +121,24 @@ window.initInputView = async function(){
     });
   });
 
-  function updateFilterUI() {  
-    document.querySelectorAll(".analysis-item").forEach(item => {  
-      const action = item.dataset.action;  
-  
-      if (action === "tampilan") {  
-        item.textContent = window.inputTampilanBersih
-          ? "Tampilan Lengkap"
-          : "Tampilan Bersih";
-  
-        // 🔥 INI YANG KURANG
-        if (window.inputTampilanBersih) {
-          item.classList.add("active");
-        } else {
-          item.classList.remove("active");
-        }
-  
-        return;  
-      }  
-  
-      if (window.inputFilterMode === action) {  
-        item.classList.add("active");  
-      } else {  
-        item.classList.remove("active");  
-      }  
-    });  
+  function updateFilterUI() {
+    document.querySelectorAll(".analysis-item").forEach(item => {
+      const action = item.dataset.action;
+
+      if (action === "tampilan") {
+        const label = item.querySelector("#tampilan-label");
+        if (label) label.textContent = window.inputTampilanBersih ? "Tampilan Lengkap" : "Tampilan Bersih";
+        if (window.inputTampilanBersih) item.classList.add("active");
+        else item.classList.remove("active");
+        return;
+      }
+
+      if (window.inputFilterModes.has(action)) {
+        item.classList.add("active");
+      } else {
+        item.classList.remove("active");
+      }
+    });
   }
   updateFilterUI();
   let progressClosed = false;
@@ -168,9 +166,7 @@ window.initInputView = async function(){
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => resolve(null);
       });
-    } catch (e) {
-      console.log("IndexedDB error:", e);
-    }
+    } catch (e) {  }
     if(!userData || !userData.data){
       if(navigator.onLine){
         try{
@@ -489,39 +485,54 @@ window.initInputView = async function(){
       customerList.forEach(data => {
         const customerId = getCustomerId(data);
 
-        if (window.inputFilterMode === "keterangan") {
-          const status = (data.statusBadge || "").trim();
-          if (!status || !["TP","PN","PT"].includes(status)) return;
-        }
-        if (window.inputFilterMode === "fee_disable") {
-          if (!(data.hasFee || data.hasDisable)) return;
-        }
-        if (window.inputFilterMode === "penyesuaian") {
-          if (!data.hasKonsinyasiDiff) return;
-        }
-        if (window.inputFilterMode === "produktif") {
-          if ((window.trikotomiResult||{})[customerId] !== "green") return;
-        }
-        if (window.inputFilterMode === "stabil") {
-          if ((window.trikotomiResult||{})[customerId] !== "yellow") return;
-        }
-        if (window.inputFilterMode === "non_produktif") {
-          if ((window.trikotomiResult||{})[customerId] !== "red") return;
-        }
-        if (window.inputFilterMode === "catatan") {
-          if (!data.catatan?.pesan?.trim()) return;
-        }
-        if (window.inputFilterMode === "return") {
+        if (window.inputFilterModes.size > 0) {
           const dh = window._dataHarianMap?.[customerId] || null;
-          const ret = dh?.return || {};
-          const hasReturn = Object.values(ret).some(v => Number(v) > 0);
-          if (!hasReturn) return;
-        }
-        if (window.inputFilterMode === "expired") {
-          const dh = window._dataHarianMap?.[customerId] || null;
-          const exp = dh?.expired || {};
-          const hasExpired = Object.values(exp).some(v => Number(v) > 0);
-          if (!hasExpired) return;
+          const passAny = [...window.inputFilterModes].some(mode => {
+            if (mode === "keterangan") {
+              const status = (data.statusBadge || "").trim();
+              return status && ["TP","PN","PT"].includes(status);
+            }
+            if (mode === "fee_disable") return data.hasFee || data.hasDisable;
+            if (mode === "penyesuaian") {
+              const dk = data.dataKemarin || {};
+              const kemarinData = {};
+              Object.keys(dk).forEach(k => {
+                const qty = Number(dk[k]?.qty || 0);
+                if (qty > 0) kemarinData[k] = qty;
+              });
+              const konsinyasiHariIni = dh?.konsinyasi || {};
+              const kKeys = Object.keys(kemarinData);
+              const konsKeys = Object.keys(konsinyasiHariIni);
+              if (kKeys.length !== konsKeys.length) return true;
+              if (kKeys.length === 0 && konsKeys.length === 0) return false;
+              return konsKeys.some(key =>
+                Number(konsinyasiHariIni[key] || 0) !== Number(kemarinData[key] || 0)
+              ) || kKeys.some(key =>
+                Number(kemarinData[key] || 0) !== Number(konsinyasiHariIni[key] || 0)
+              );
+            }
+            if (mode === "produktif") return (window.trikotomiResult||{})[customerId] === "green";
+            if (mode === "stabil")    return (window.trikotomiResult||{})[customerId] === "yellow";
+            if (mode === "non_produktif") return (window.trikotomiResult||{})[customerId] === "red";
+            if (mode === "catatan")   return !!data.catatan?.pesan?.trim();
+            if (mode === "return") {
+              const ret = dh?.return || {};
+              return Object.values(ret).some(v => Number(v) > 0);
+            }
+            if (mode === "expired") {
+              const exp = dh?.expired || {};
+              return Object.values(exp).some(v => Number(v) > 0);
+            }
+            if (mode === "analisis") {
+              const a = data.analisis;
+              if (!a?.updateAt) return false;
+              const updateAtMs = a.updateAt?.seconds ? a.updateAt.seconds * 1000 : new Date(a.updateAt).getTime();
+              const diff = (Date.now() - updateAtMs) / (1000 * 60 * 60 * 24);
+              return diff <= 7;
+            }
+            return false;
+          });
+          if (!passAny) return;
         }
 
         customerHtml += `
@@ -541,6 +552,16 @@ window.initInputView = async function(){
               </div>` : ""}
               <div class="input-customer-info">
                 <div class="input-customer-nama-wrapper">
+                  ${(()=>{
+                    const a = data.analisis;
+                    if (!a?.updateAt) return "";
+                    const updateAtMs = a.updateAt?.seconds ? a.updateAt.seconds * 1000 : new Date(a.updateAt).getTime();
+                    const diff = (Date.now() - updateAtMs) / (1000 * 60 * 60 * 24);
+                    if (diff > 7) return "";
+                    const k = (a.kriteria || "").toLowerCase();
+                    const bg = k.includes("produktif") && !k.includes("non") ? "#2eaf62" : k.includes("stabil") ? "#f0a500" : k.includes("non") ? "#e74c3c" : "#888";
+                    return `<div class="customer-badge analisis-badge" style="background:${bg};color:#fff;" onclick="event.stopPropagation();window.openPopupAnalisisBadge('${customerId}');"><i class="fa-solid fa-chart-line"></i></div>`;
+                  })()}
                   <div class="input-customer-nama">${data.namaCustomer || "-"}</div>
                   <div class="input-customer-badge-wrap" id="badge-${customerId}" ${window.inputTampilanBersih ? 'style="display:none"' : ""}>
                     ${data.hasFee ? `<div class="customer-badge fee">F</div>` : ""}
@@ -848,9 +869,7 @@ window.initInputView = async function(){
           popupCatatanUpdate.innerText = "Update: " + date.toLocaleString("id-ID");
         }
       }
-    }catch(err){
-      console.log("Load catatan IndexedDB error:", err);
-    }
+    }catch(err){ }
     // FALLBACK FIRESTORE
     if(!loadedFromIndexedDB && navigator.onLine){
       try{
@@ -898,13 +917,9 @@ window.initInputView = async function(){
               id: uid,
               data: list
             });
-          }catch(err){
-            console.log("Cache catatan error:", err);
-          }
+          }catch{ }
         }
-      }catch(err){
-        console.log("Load catatan Firestore error:", err);
-      }
+      }catch{ }
     }
   
     // REALTIME SNAPSHOT
@@ -960,9 +975,7 @@ window.initInputView = async function(){
                 id: uid,
                 data: list
               });
-            }catch(err){
-              console.log("Cache catatan error:", err);
-            }
+            }catch(err){  }
           }
         );
     }
@@ -1015,8 +1028,7 @@ window.initInputView = async function(){
             });
         
             syncSuccess = true;
-          }catch(err){
-            console.log("Sync catatan gagal:", err);
+          }catch{
             syncSuccess = false;
           }
         }
@@ -1308,6 +1320,11 @@ window.initInputView = async function(){
     const barangEl = document.getElementById("popupInputBarang");
     namaEl.innerText = data.namaCustomer || "-";
     const bawaBarang = window.globalBawaBarang || [];
+
+    // Reset state foto dan status supaya tidak terbawa dari customer sebelumnya
+    window.popupFotoLainnya = null;
+    window.popupStatus      = null;
+    window.lastPhotoSource  = null;
   
     const today = new Date().toISOString().split("T")[0];
     const customerId = getCustomerId(data);
@@ -1724,7 +1741,7 @@ window.initInputView = async function(){
     }
     async function saveToFirestore(groupData) {
       let syncSuccess = false;
-    
+      let activeVarians = [];  
       try {
         submitBtn.disabled = true;
         submitBtn.innerText = "Menyimpan...";
@@ -1876,9 +1893,18 @@ window.initInputView = async function(){
           payload.dataKemarinTanggal = tanggalKemarin;
         }
     
-        // =========================
+        // Hitung newDataKemarin untuk disimpan ke IDB
+        const newDataKemarin = {};
+        (window.globalBawaBarang || [])
+          .filter(item => { const k = Object.keys(item)[0]; return item[k]?.isAktif; })
+          .map(item => Object.keys(item)[0])
+          .forEach(key => {
+            newDataKemarin[key] = {
+              qty: Number(groupData.konsinyasi?.[key] || 0) + Number(groupData.lainnya?.[key] || 0)
+            };
+          });
+
         // SAVE KE INDEXEDDB (SOURCE OF TRUTH OFFLINE)
-        // =========================
         const db = await window.openAppDB();
         const tx = db.transaction("dataHarianDB", "readwrite");
         const store = tx.objectStore("dataHarianDB");
@@ -1892,6 +1918,7 @@ window.initInputView = async function(){
             idCustomer: payload.idCustomer,
             ...payload,
             payload,
+            _newDataKemarin: newDataKemarin,
             isSync: false,
             updatedAt: Date.now()
           });
@@ -1902,9 +1929,7 @@ window.initInputView = async function(){
           req.onerror = () => reject(req.error);
         });
 
-        // =========================
         // FIRESTORE SYNC
-        // =========================
         const docRef = window.doc(
           window.db,
           "customer",
@@ -1917,6 +1942,44 @@ window.initInputView = async function(){
           try {
             await window.setDoc(docRef, payload, { merge: true });
             syncSuccess = true;
+
+            // Update dataKemarin di dokumen customer
+            await window.updateDoc(
+              window.doc(window.db, "customer", payload.idCustomer),
+              { dataKemarin: newDataKemarin }
+            );
+
+            // Update IDB customerHarianDB
+            const uid2     = window.auth.currentUser?.uid;
+            const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+            const hariAktif = hariNama[new Date().getDay()];
+            const cacheKey  = `${uid2}_${hariAktif}`;
+            const idbC      = await window.openAppDB();
+            const existingC = await new Promise(resolve => {
+              const tx  = idbC.transaction("customerHarianDB", "readonly");
+              const req = tx.objectStore("customerHarianDB").get(cacheKey);
+              req.onsuccess = () => resolve(req.result || null);
+              req.onerror   = () => resolve(null);
+            });
+            if (existingC?.data) {
+              const idx = existingC.data.findIndex(c => (c.idCustomer || c.id) === payload.idCustomer);
+              if (idx !== -1) {
+                existingC.data[idx] = { ...existingC.data[idx], dataKemarin: newDataKemarin };
+                const idbC2 = await window.openAppDB();
+                await new Promise((resolve, reject) => {
+                  const tx = idbC2.transaction("customerHarianDB", "readwrite");
+                  tx.objectStore("customerHarianDB").put({ ...existingC, updatedAt: Date.now() });
+                  tx.oncomplete = () => resolve();
+                  tx.onerror    = () => reject(tx.error);
+                });
+                // Update memory
+                const entry = window.listCustomerData?.find(x => (x.idCustomer || x.id) === payload.idCustomer);
+                if (entry) entry.dataKemarin = newDataKemarin;
+                if (window.customerDataMap?.[payload.idCustomer]) {
+                  window.customerDataMap[payload.idCustomer].dataKemarin = newDataKemarin;
+                }
+              }
+            }
           } catch (err) {
             syncSuccess = false;
           }
@@ -2020,22 +2083,29 @@ window.initInputView = async function(){
       }
     }
     function checkWarningValidation(groupData){
-      // Warning hanya jika konsinyasi berbeda dengan data kemarin
       const kemarinData = {};
       Object.keys(dataKemarin).forEach(key=>{
         const qty = dataKemarin[key]?.qty || 0;
         if(qty > 0) kemarinData[key] = qty;
       });
 
-      const konsinyasiKeys = Object.keys(groupData.konsinyasi);
-      if(konsinyasiKeys.length === 0) return false;
+      // Filter konsinyasi yang nilainya > 0 saja
+      const konsinyasiAktif = {};
+      Object.entries(groupData.konsinyasi || {}).forEach(([key, val]) => {
+        if (Number(val) > 0) konsinyasiAktif[key] = Number(val);
+      });
+
+      // Kalau konsinyasi semua 0 — tidak perlu warning
+      if (Object.keys(konsinyasiAktif).length === 0) return false;
 
       const kemarinKeys = Object.keys(kemarinData);
+      const konsinyasiKeys = Object.keys(konsinyasiAktif);
+
       const sameKonsinyasi =
         kemarinKeys.length === konsinyasiKeys.length &&
         kemarinKeys.every(key =>
           konsinyasiKeys.includes(key) &&
-          Number(groupData.konsinyasi[key]) === Number(kemarinData[key])
+          Number(konsinyasiAktif[key]) === Number(kemarinData[key])
         );
 
       return !sameKonsinyasi;
@@ -2478,68 +2548,108 @@ window.initInputView = async function(){
   };
   window.openPopupHeaderDetail = async function () {
     const today = new Date().toISOString().split("T")[0];
+    const uid   = window.auth.currentUser?.uid;
   
     const summary = {
       pembayaran: 0,
       expired: {},
       fee: {},
       disable: {},
-      closing: {} // ✅ FIX: pakai data asli
+      closing: {}
     };
-  
-    try {
-      const db = await window.openAppDB();
-      const tx = db.transaction("dataHarianDB", "readonly");
-      const store = tx.objectStore("dataHarianDB");
-  
-      const allData = await new Promise((resolve, reject) => {
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => reject(req.error);
-      });
-  
-      allData.forEach(record => {
+
+    function processRecords(records) {
+      records.forEach(record => {
         if (!record.tanggal || record.tanggal !== today) return;
-  
-        // Pembayaran
-        summary.pembayaran += Number(
-          record?.pembayaran?.bayarKonsumen || 0
-        );
-        
-        // Expired
-        Object.entries(record.expired || {}).forEach(([key, val]) => {  
-          summary.expired[key] =  
-            (summary.expired[key] || 0) + Number(val);  
-        });
-        
-        // Fee
-        Object.entries(record.fee || {}).forEach(([key, val]) => {  
-          summary.fee[key] =  
-            (summary.fee[key] || 0) + Number(val);  
-        });
-        
-        // Disable
-        Object.entries(record.disable || {}).forEach(([key, val]) => {  
-          summary.disable[key] =  
-            (summary.disable[key] || 0) + Number(val);  
-        });
-        
-        // Closing
-        Object.entries(record.closing || {}).forEach(([key, val]) => {  
-          summary.closing[key] =  
-            (summary.closing[key] || 0) + Number(val);  
-        });
+        summary.pembayaran += Number(record?.pembayaran?.bayarKonsumen || 0);
+        Object.entries(record.expired  || {}).forEach(([k, v]) => { summary.expired[k]  = (summary.expired[k]  || 0) + Number(v); });
+        Object.entries(record.fee      || {}).forEach(([k, v]) => { summary.fee[k]      = (summary.fee[k]      || 0) + Number(v); });
+        Object.entries(record.disable  || {}).forEach(([k, v]) => { summary.disable[k]  = (summary.disable[k]  || 0) + Number(v); });
+        Object.entries(record.closing  || {}).forEach(([k, v]) => { summary.closing[k]  = (summary.closing[k]  || 0) + Number(v); });
       });
-  
-    } catch (err) {
-      console.error("Gagal load summary dari IndexedDB:", err);
-  
-      const data = window.inputSummaryData || {};
-      summary.pembayaran = data.pembayaran || 0;
-      summary.expired = data.expired || {};
-      summary.fee = data.fee || {};
-      summary.disable = data.disable || {};
-      summary.closing = data.closing || {}; // ✅ FIX fallback
+    }
+
+    // Online → fetch Firestore langsung
+    if (navigator.onLine && uid) {
+      try {
+        const snap = await window.getDocs(window.query(
+          window.collectionGroup(window.db, "dataHarian"),
+          window.where("pemilik", "==", uid),
+          window.where("tanggal", "==", today)
+        ));
+        const records = snap.docs.map(d => d.data());
+        processRecords(records);
+
+        // Update IDB dari Firestore — 1 transaction untuk semua
+        try {
+          const idbU = await window.openAppDB();
+
+          // Baca semua existing sekali
+          const allExisting = await new Promise(resolve => {
+            const tx  = idbU.transaction("dataHarianDB", "readonly");
+            const req = tx.objectStore("dataHarianDB").getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror   = () => resolve([]);
+          });
+
+          const existingMap = {};
+          allExisting.forEach(item => { existingMap[item.id] = item; });
+
+          // Update semua dalam 1 transaction
+          await new Promise((resolve, reject) => {
+            const tx    = idbU.transaction("dataHarianDB", "readwrite");
+            const store = tx.objectStore("dataHarianDB");
+            records.forEach(record => {
+              if (!record.idCustomer || !record.tanggal) return;
+              const idKey    = `${record.idCustomer}_${record.tanggal}`;
+              const existing = existingMap[idKey] || null;
+              if (existing?.isSync === false) return; // skip — data lokal lebih baru
+              store.put({
+                ...(existing || {}),
+                ...record,
+                id: idKey,
+                tanggal: record.tanggal,
+                idCustomer: record.idCustomer,
+                payload: record,
+                isSync: true,
+                updatedAt: Date.now()
+              });
+            });
+            tx.oncomplete = () => resolve();
+            tx.onerror    = () => reject(tx.error);
+          });
+        } catch { }
+
+      } catch {
+        // Fallback ke IDB kalau query gagal
+        const db = await window.openAppDB();
+        const allData = await new Promise((resolve, reject) => {
+          const tx  = db.transaction("dataHarianDB", "readonly");
+          const req = tx.objectStore("dataHarianDB").getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror   = () => reject(req.error);
+        });
+        processRecords(allData);
+      }
+    } else {
+      // Offline → IDB
+      try {
+        const db = await window.openAppDB();
+        const allData = await new Promise((resolve, reject) => {
+          const tx  = db.transaction("dataHarianDB", "readonly");
+          const req = tx.objectStore("dataHarianDB").getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror   = () => reject(req.error);
+        });
+        processRecords(allData);
+      } catch {
+        const data = window.inputSummaryData || {};
+        summary.pembayaran = data.pembayaran || 0;
+        summary.expired    = data.expired    || {};
+        summary.fee        = data.fee        || {};
+        summary.disable    = data.disable    || {};
+        summary.closing    = data.closing    || {};
+      }
     }
   
     const activeKeys = [];
@@ -2548,30 +2658,37 @@ window.initInputView = async function(){
         if (item[key]?.isAktif) activeKeys.push(key);
       });
     });
-  
-    // ❌ HAPUS HITUNG ULANG CLOSING
-    // (tidak dipakai lagi)
-  
-    // Load penjualan langsung dari IDB
+
+    // Load penjualan langsung
     let penjualanLangsung = {};
     try {
-      const uid  = window.auth.currentUser?.uid;
-      const idbP = await window.openAppDB();
-      const rawP = await new Promise(resolve => {
-        const tx  = idbP.transaction("penjualanLangsungDB", "readonly");
-        const req = tx.objectStore("penjualanLangsungDB").get(`${uid}_${today}`);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror   = () => resolve(null);
-      });
-      penjualanLangsung = rawP?.penjualanLangsung || {};
-
-      // Tambah ke summary pembayaran
-      summary.pembayaran += Number(rawP?.pembayaran?.bayarKonsumen || 0);
-
-      // Tambah ke summary closing
-      Object.entries(penjualanLangsung).forEach(([key, qty]) => {
-        summary.closing[key] = (summary.closing[key] || 0) + Number(qty);
-      });
+        if (navigator.onLine && uid) {
+          const snapPL = await window.getDoc(
+            window.doc(window.db, "users", uid, "penjualanLangsung", today)
+          );
+          if (snapPL.exists()) {
+            const d = snapPL.data();
+            penjualanLangsung = d.penjualanLangsung || {};
+            summary.pembayaran += Number(d?.pembayaran?.bayarKonsumen || 0);
+            Object.entries(penjualanLangsung).forEach(([key, qty]) => {
+              summary.closing[key] = (summary.closing[key] || 0) + Number(qty);
+            });
+          }
+        } else {
+        // Offline → IDB
+        const idbP = await window.openAppDB();
+        const rawP = await new Promise(resolve => {
+          const tx  = idbP.transaction("penjualanLangsungDB", "readonly");
+          const req = tx.objectStore("penjualanLangsungDB").get(`${uid}_${today}`);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror   = () => resolve(null);
+        });
+        penjualanLangsung = rawP?.penjualanLangsung || {};
+        summary.pembayaran += Number(rawP?.pembayaran?.bayarKonsumen || 0);
+        Object.entries(penjualanLangsung).forEach(([key, qty]) => {
+          summary.closing[key] = (summary.closing[key] || 0) + Number(qty);
+        });
+      }
     } catch { }
 
     // Hitung Saldo Barang
@@ -3273,6 +3390,55 @@ window.initInputView = async function(){
       const d = swipeCurY - swipeStartY;
       box.style.transition = "transform .28s ease";
       if (d > 120) { closeLokasi(); } else { box.style.transform = ""; }
+    });
+  };
+  window.openPopupAnalisisBadge = function(customerId) {
+    const data = window.customerDataMap?.[customerId];
+    if (!data) return;
+    const a = data.analisis;
+    if (!a) return;
+
+    const existing = document.getElementById("popupAnalisisBadgeOverlay");
+    if (existing) existing.remove();
+
+    const k = (a.kriteria || "").toLowerCase();
+    const kriteriaColor = k.includes("produktif") && !k.includes("non") ? "#2eaf62" : k.includes("stabil") ? "#f0a500" : k.includes("non") ? "#e74c3c" : "#888";
+
+    const updateAtMs = a.updateAt?.seconds ? a.updateAt.seconds * 1000 : new Date(a.updateAt).getTime();
+    const d = new Date(updateAtMs);
+    const hari  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    const bulan = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    const updateAtLabel = `${hari[d.getDay()]}, ${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
+
+    const overlay = document.createElement("div");
+    overlay.id = "popupAnalisisBadgeOverlay";
+    overlay.className = "popup-analisis-badge-overlay";
+    overlay.innerHTML = `
+      <div class="popup-analisis-badge-card">
+        <div class="popup-analisis-badge-header">
+          <div class="popup-analisis-badge-nama">${data.namaCustomer || "-"}</div>
+          <div class="popup-analisis-badge-subtitle">${updateAtLabel}</div>
+        </div>
+        <div class="popup-analisis-badge-kriteria-wrap">
+          <span class="popup-analisis-badge-kriteria" style="background:${kriteriaColor};">${a.kriteria || "-"}</span>
+        </div>
+        <div class="popup-analisis-badge-catatan">${a.catatan || "-"}</div>
+        <button class="popup-analisis-badge-ok" id="btnAnalisisBadgeOk">OK</button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add("active"));
+
+    document.getElementById("btnAnalisisBadgeOk").onclick = () => {
+      overlay.classList.remove("active");
+      setTimeout(() => overlay.remove(), 250);
+    };
+    overlay.addEventListener("click", e => {
+      if (e.target === overlay) {
+        overlay.classList.remove("active");
+        setTimeout(() => overlay.remove(), 250);
+      }
     });
   };
   window._inputViewCleanup = function(){

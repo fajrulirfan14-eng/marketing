@@ -472,6 +472,185 @@
 .profil-card-icon.orange { background: var(--color-icon-orange-bg); color: var(--color-icon-orange); }
 .profil-card-icon.gray   { background: var(--color-icon-gray-bg);   color: var(--color-icon-gray); }
 
+/* ── AVATAR EDIT BTN ── */
+.profil-avatar-edit-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-card);
+  background: var(--accent);
+  color: var(--text-inverse);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.profil-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* ── EDIT PROFIL BOTTOM SHEET ── */
+.edit-profil-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.edit-profil-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.edit-profil-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-card);
+  border-radius: 24px 24px 0 0;
+  padding: 10px 20px 40px;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(.32,1,.4,1);
+  max-height: 85vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.edit-profil-overlay.active .edit-profil-sheet {
+  transform: translateY(0);
+}
+
+.edit-profil-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-color);
+  margin: 0 auto 16px;
+}
+
+.edit-profil-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-heading);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.edit-profil-foto-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.edit-profil-foto-wrap {
+  width: 80px;
+  height: 80px;
+}
+
+.edit-profil-foto {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  border: 2px solid var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.edit-profil-foto-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-profil-foto-initial {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.edit-profil-foto-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-profil-foto-btn {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--accent);
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-profil-foto-btn.danger {
+  border-color: #e53935;
+  color: #e53935;
+}
+
+.edit-profil-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.edit-profil-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.edit-profil-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.edit-profil-textarea:focus {
+  border-color: var(--accent);
+}
+
+.edit-profil-simpan {
+  width: 100%;
+  height: 46px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: var(--text-inverse);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
 /* ── CARD INFO ── */
 .profil-card-info {
   flex: 1;

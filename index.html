@@ -2,1696 +2,2534 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
 <!-- PWA Meta -->
-<meta name="theme-color" content="#C9A67B">
+<meta name="theme-color" content="#b3874f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="TTN Administrasi">
+<meta name="apple-mobile-web-app-title" content="TTN Marketing">
 
 <!-- Icons -->
 <link rel="icon" type="image/png" sizes="32x32" href="icon_32.png">
 <link rel="icon" type="image/png" sizes="48x48" href="icon_48.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon_512.png">
-<link rel="apple-touch-icon" sizes="512x512" href="icon_512.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon_192.png">
 
 <!-- Manifest -->
-<link rel="manifest" href="/manifest.json">
-<title>TTN Admin Cabang</title>
-<link rel="stylesheet" href="root.css">
-<link rel="stylesheet" href="index.css">
-<link rel="stylesheet" href="map.css">
-<link rel="stylesheet" href="maprolling.css">
-<link rel="stylesheet" href="home.css">
-<link rel="stylesheet" href="dataharian.css">
-<link rel="stylesheet" href="laporan.css">
-<link rel="stylesheet" href="customer.css">
-<link rel="stylesheet" href="dsm.css">
-<link rel="stylesheet" href="stockopname.css">
-<link rel="stylesheet" href="pengeluaran.css">
-<link rel="stylesheet" href="amplop.css">
-<link rel="stylesheet" href="akun.css">
+<link rel="manifest" href="manifest.json">
+<title>Marketing TTN</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="index.css">
+<link rel="stylesheet" href="home.css">
+<link rel="stylesheet" href="profil.css">
+<link rel="stylesheet" href="input.css">
+<link rel="stylesheet" href="tabel.css">
+<link rel="stylesheet" href="customer.css">
+<link rel="stylesheet" href="analisis.css">
+<link rel="stylesheet" href="rolling.css">
+<link rel="stylesheet" href="laporanharian.css">
+<link rel="stylesheet" href="customersales.css">
+<link rel="stylesheet" href="operasional.css">
+<link rel="stylesheet" href="tentang.css">
+<link rel="stylesheet" href="keamanan.css">
+<link rel="stylesheet" href="perjanjian.css">
+<link rel="stylesheet" href="slip.css">
+<link rel="stylesheet" href="chat.css">
+<link rel="stylesheet" href="rollingcustomer.css">
+<link rel="stylesheet" href="cleaner.css">
+<link rel="stylesheet" href="peraturan.css">
+<link rel="stylesheet" href="map.css">
+<link rel="stylesheet" href="root.css">
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
 </head>
 <body>
+
 <div id="app">
-
-  <!-- ── HAMBURGER FLOATING ── -->
-  <button class="hamburger" id="hamburger">
-    <span></span>
-    <span></span>
-    <span></span>
-  </button>
-
-  <!-- ── SIDEBAR ── -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">
-          <img src="LogoTTN.png" alt="TTN">
-        </div>
-        <div class="sidebar-logo-text">
-          <span class="sidebar-logo-title">TTN Cabang</span>
-          <span class="sidebar-logo-sub">Admin Cabang</span>
-        </div>
-      </div>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a class="nav-item active" data-view="home">
-        <div class="nav-icon"><i class="fa-solid fa-house"></i></div>
-        <span>Dashboard</span>
-      </a>
-      <a class="nav-item" data-view="dataharian">
-        <div class="nav-icon"><i class="fa-solid fa-chart-line"></i></div>
-        <span>Data Harian</span>
-      </a>
-      <a class="nav-item" data-view="laporan">
-        <div class="nav-icon"><i class="fa-solid fa-chart-bar"></i></div>
-        <span>Laporan</span>
-      </a>
-      <a class="nav-item" data-view="customer">
-        <div class="nav-icon"><i class="fa-solid fa-users"></i></div>
-        <span>Customer</span>
-      </a>
-      <a class="nav-item" data-view="dsm">
-        <div class="nav-icon"><i class="fa-solid fa-table-cells"></i></div>
-        <span>DSM</span>
-      </a>
-      <a class="nav-item" data-view="stockopname">
-        <div class="nav-icon"><i class="fa-solid fa-user-plus"></i></div>
-        <span>Stock Opname</span>
-      </a>
-      <a class="nav-item" data-view="pengeluaran">
-        <div class="nav-icon"><i class="fa-solid fa-user-plus"></i></div>
-        <span>Pengeluaran</span>
-      </a>
-      <a class="nav-item" data-view="amplop">
-        <div class="nav-icon"><i class="fa-solid fa-envelope"></i></div>
-        <span>Amplop</span>
-      </a>
-      <a class="nav-item" data-view="akun">
-        <div class="nav-icon"><i class="fa-solid fa-user-gear"></i></div>
-        <span>Akun</span>
-      </a>
-    </nav>
-  </aside>
-
-  <!-- ── OVERLAY ── -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-  <!-- ── BOTTOM NAV (mobile) ── -->
-  <nav class="bottom-nav" id="bottomNav">
-    <a class="bottom-nav-item active" data-view="home">
-      <i class="fa-solid fa-house"></i>
-      <span>Home</span>
-    </a>
-    <a class="bottom-nav-item" data-view="dataharian">
-      <i class="fa-solid fa-chart-line"></i>
-      <span>Harian</span>
-    </a>
-    <a class="bottom-nav-item" data-view="laporan">
-      <i class="fa-solid fa-chart-bar"></i>
-      <span>Laporan</span>
-    </a>
-    <a class="bottom-nav-item" data-view="customer">
-      <i class="fa-solid fa-chart-bar"></i>
-      <span>Customer</span>
-    </a>
-    <a class="bottom-nav-item" data-view="stockopname">
-      <i class="fa-solid fa-users"></i>
-      <span>Stock</span>
-    </a>
-    <a class="bottom-nav-item" data-view="pengeluaran">
-      <i class="fa-solid fa-users"></i>
-      <span>Pengeluaran</span>
-    </a>
-    <a class="bottom-nav-item" data-view="dsm">
-      <i class="fa-solid fa-table-cells"></i>
-      <span>DSM</span>
-    </a>
-    <a class="bottom-nav-item" data-view="amplop">
-      <i class="fa-solid fa-envelope"></i>
-      <span>Amplop</span>
-    </a>
-  </nav>
-
-  <!-- ── MAIN WRAPPER ── -->
-  <div class="main-wrapper" id="mainWrapper">
-    <div class="main-inner">
-
-      <!-- ── TOPBAR ── -->
-      <header class="topbar" id="topbar">
-        <div class="topbar-left">
-          <div class="topbar-title" id="topbarTitle">Dashboard</div>
-        </div>
-        <div class="topbar-right">
-          <button class="topbar-btn" id="topbarBackBtn" style="display:none">
-            <i class="fa-solid fa-arrow-left"></i>
-          </button>
-          <button class="topbar-btn" id="topbarReload" style="display:none">
-            <i class="fa-solid fa-rotate-right"></i>
-          </button>
-          <button class="topbar-btn" id="topbarTabel" style="display:none">
-            <i class="fa-solid fa-table-cells"></i>
-          </button>
-          <button class="topbar-btn" id="lapTopbarTabel" style="display:none">
-            <i class="fa-solid fa-table"></i>
-          </button>
-          <button class="topbar-btn" id="topbarTambahCustomer" style="display:none">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-          <button class="topbar-btn" id="topbarRumus">
-            <i class="fa-solid fa-envelope"></i>
-          </button>
-          <button class="topbar-btn" id="topbarMap">
-            <i class="fa-solid fa-map-location-dot"></i>
-          </button>
-          <button class="topbar-btn" id="topbarNotif">
-            <i class="fa-solid fa-bell"></i>
-            <span class="notif-dot" id="notifDot" style="display:none"></span>
-          </button>
-          <div class="topbar-avatar" id="topbarAvatar">A</div>
-        </div>
-      </header>
-
-      <!-- ── VIEWS ── -->
-      <main class="content-area" id="contentArea">
-
-        <!-- HOME -->
-        <div class="view active" id="view-home">
-          <div class="view-scroll" id="homeScroll">
-            <div class="home-page">
-
-              <div class="home-banner">
-                <div class="home-banner-left">
-                  <div class="home-banner-greeting" id="homeBannerGreeting">Selamat Datang 👋</div>
-                  <div class="home-banner-name" id="homeBannerName">Admin</div>
-                  <div class="home-banner-sub" id="homeBannerSub">—</div>
-                </div>
-                <div class="home-banner-right">
-                  <img src="LogoTTN.png" alt="TTN" class="home-banner-logo">
-                </div>
-              </div>
-
-              <div class="home-stat-grid" id="homeStatGrid">
-                <div class="stat-card sk-card">
-                  <div class="sk" style="height:13px;width:80px;margin-bottom:10px"></div>
-                  <div class="sk" style="height:28px;width:50px"></div>
-                </div>
-                <div class="stat-card sk-card">
-                  <div class="sk" style="height:13px;width:80px;margin-bottom:10px"></div>
-                  <div class="sk" style="height:28px;width:50px"></div>
-                </div>
-                <div class="stat-card sk-card">
-                  <div class="sk" style="height:13px;width:80px;margin-bottom:10px"></div>
-                  <div class="sk" style="height:28px;width:50px"></div>
-                </div>
-                <div class="stat-card sk-card">
-                  <div class="sk" style="height:13px;width:80px;margin-bottom:10px"></div>
-                  <div class="sk" style="height:28px;width:50px"></div>
-                </div>
-              </div>
-
-              <div class="home-section">
-                <div class="home-section-title">Daftar Anggota</div>
-                <div class="home-users-list" id="homeUsersList">
-                  <div class="home-users-empty">Memuat...</div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        <div class="view" id="view-amplop">
-          <div class="amplop-toolbar">
-            <div class="amplop-search-wrap">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="amplopSearchInput" placeholder="Cari tanggal / nominal...">
-            </div>
-            <button class="amplop-filter-btn" id="amplopBulanBtn">
-              <i class="fa-solid fa-calendar"></i>
-              <span id="amplopBulanLabel">Juni</span>
-              <i class="fa-solid fa-chevron-down"></i>
-            </button>
-            <button class="amplop-filter-btn" id="amplopTahunBtn">
-              <span id="amplopTahunLabel">2026</span>
-              <i class="fa-solid fa-chevron-down"></i>
-            </button>
-            <button class="amplop-filter-btn" id="amplopStatusBtn">
-              <span id="amplopStatusLabel">Semua</span>
-              <i class="fa-solid fa-chevron-down"></i>
-            </button>
-            <button class="amplop-filter-btn" id="amplopRangeBtn">
-              <i class="fa-solid fa-calendar-week"></i>
-            </button>
-          </div>
-
-          <div class="amplop-dropdown" id="amplopBulanDropdown" style="display:none">
-            <div class="amplop-dropdown-option" data-bulan="0">Januari</div>
-            <div class="amplop-dropdown-option" data-bulan="1">Februari</div>
-            <div class="amplop-dropdown-option" data-bulan="2">Maret</div>
-            <div class="amplop-dropdown-option" data-bulan="3">April</div>
-            <div class="amplop-dropdown-option" data-bulan="4">Mei</div>
-            <div class="amplop-dropdown-option selected" data-bulan="5">Juni</div>
-            <div class="amplop-dropdown-option" data-bulan="6">Juli</div>
-            <div class="amplop-dropdown-option" data-bulan="7">Agustus</div>
-            <div class="amplop-dropdown-option" data-bulan="8">September</div>
-            <div class="amplop-dropdown-option" data-bulan="9">Oktober</div>
-            <div class="amplop-dropdown-option" data-bulan="10">November</div>
-            <div class="amplop-dropdown-option" data-bulan="11">Desember</div>
-          </div>
-          <div class="amplop-dropdown" id="amplopTahunDropdown" style="display:none"></div>
-          <div class="amplop-dropdown" id="amplopStatusDropdown" style="display:none">
-            <div class="amplop-dropdown-option selected" data-status="semua">Semua</div>
-            <div class="amplop-dropdown-option" data-status="diterima">Diterima</div>
-            <div class="amplop-dropdown-option" data-status="pending">Belum Diterima</div>
-          </div>
-
-          <div class="amplop-range-overlay" id="amplopRangeOverlay" style="display:none">
-            <div class="amplop-range-box">
-              <div class="amplop-range-title">Filter Range Tanggal</div>
-              <div class="amplop-range-row">
-                <div class="amplop-range-group">
-                  <div class="amplop-range-label">Dari</div>
-                  <input type="date" class="amplop-range-input" id="amplopRangeDari">
-                </div>
-                <div class="amplop-range-group">
-                  <div class="amplop-range-label">Sampai</div>
-                  <input type="date" class="amplop-range-input" id="amplopRangeSampai">
-                </div>
-              </div>
-              <div class="amplop-range-actions">
-                <button class="amplop-range-reset" id="amplopRangeReset">Reset</button>
-                <button class="amplop-range-apply" id="amplopRangeApply">Terapkan</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="view-scroll" id="amplopScroll">
-            <div class="amplop-page">
-              <div class="amplop-list" id="amplopList">
-                <div class="amplop-list-empty">Memuat...</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="amplop-detail-overlay" id="amplopDetailOverlay"></div>
-          <div class="amplop-detail-panel" id="amplopDetailPanel">
-            <div class="amplop-detail-handle"></div>
-            <div class="amplop-detail-header">
-              <div class="amplop-detail-title" id="amplopDetailTitle">Detail Setoran</div>
-              <button class="amplop-detail-close" id="amplopDetailClose">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-            <div class="amplop-detail-body" id="amplopDetailBody"></div>
-          </div>
-        </div>
-
-        <!-- DATA HARIAN -->
-        <div class="view" id="view-dataharian">
-          <div class="dh-layout">
-
-            <!-- KIRI: LIST KURIR -->
-            <div class="dh-list-panel">
-              <div class="dh-list-header">
-                <div class="dh-list-title">Data Harian</div>
-              </div>
-              <div class="dh-list-scroll" id="dhKurirList"></div>
-            </div>
-            
-            <!-- TABEL REKAP -->
-              <div class="dh-tabel-wrapper" id="dhTabelWrapper">
-                <div class="dh-tabel-panel">
-
-                  <!-- HEADER -->
-                  <div class="dh-tabel-header">
-                    <button class="dh-tabel-period-btn" id="dhTabelPeriodBtn">
-                      <i class="fa-solid fa-calendar"></i>
-                      <span id="dhTabelPeriodLabel">Laporan Harian</span>
-                      <i class="fa-solid fa-chevron-down"></i>
-                    </button>
-                    <button class="dh-tabel-close-btn" id="dhTabelCloseBtn">
-                      <i class="fa-solid fa-xmark"></i>
-                    </button>
-                  </div>
-
-                  <!-- FILTER -->
-                  <div class="dh-tabel-filter">
-                    <button class="dh-tabel-chip active" data-filter="semua">Semua</button>
-                    <button class="dh-tabel-chip" data-filter="tunggakan">Tunggakan</button>
-                    <button class="dh-tabel-chip" data-filter="aktif">Hari Aktif</button>
-                  </div>
-
-                  <!-- CONTENT -->
-                  <div class="dh-tabel-scroll" id="dhTabelScroll">
-                    <div class="dh-ringkasan-empty">Memuat...</div>
-                  </div>
-
-                </div>
-
-                <!-- PERIOD POPUP -->
-                <div class="dh-period-overlay" id="dhPeriodOverlay">
-                  <div class="dh-period-card">
-                    <div class="dh-period-title">Pilih Periode</div>
-                    <div class="dh-period-row">
-                      <div class="dh-period-label">Bulan</div>
-                      <div class="dh-period-select" id="dhPeriodBulan"></div>
-                    </div>
-                    <div class="dh-period-row">
-                      <div class="dh-period-label">Tahun</div>
-                      <div class="dh-period-select" id="dhPeriodTahun"></div>
-                    </div>
-                    <button class="dh-period-apply" id="dhPeriodApply">Terapkan</button>
-                  </div>
-                </div>
-
-              </div>
-
-            <!-- KANAN: DETAIL -->
-            <div class="dh-detail-wrapper" id="dhDetailWrapper">
-              <div class="dh-detail-panel">
-                <div class="dh-detail-empty" id="dhDetailEmpty">
-                  <div class="dh-empty-icon"><i class="fa-solid fa-chart-bar"></i></div>
-                  <div class="dh-empty-title">Pilih Kurir</div>
-                  <div class="dh-empty-sub">Klik salah satu kurir untuk melihat data harian.</div>
-                </div>
-                <div class="dh-detail-content" id="dhDetailContent" style="display:none;">
-
-                  <!-- HEADER KURIR -->
-                  <div class="dh-detail-header">
-                    <div class="dh-detail-header-top">
-                      <div class="dh-detail-avatar" id="dhDetailAvatar">A</div>
-                      <div class="dh-detail-info">
-                        <div class="dh-detail-nama" id="dhDetailNama">-</div>
-                        <div class="dh-detail-role" id="dhDetailRole">-</div>
-                      </div>
-                      <input type="date" id="dhDetailDate" class="dh-detail-date-input">
-                      <button class="dh-reload-btn" id="dhReloadBtn" title="Reload">
-                        <i class="fa-solid fa-rotate-right"></i>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- BODY 2 KOLOM -->
-                  <div class="dh-body-wrap">
-
-                    <!-- KIRI: RINGKASAN -->
-                    <div class="dh-ringkasan-panel">
-                      <div class="dh-panel-title">Ringkasan</div>
-                    
-                      <div class="dh-ringkasan-scroll">
-                        <div id="dhRingkasanBody">
-                          <div class="dh-ringkasan-empty">Pilih kurir & tanggal</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- KANAN: FORM INPUT -->
-                    <div class="dh-form-panel">
-                      <div class="dh-panel-title">Input Data</div>
-                      <div class="dh-form-body" id="dhFormBody">
-                        <div class="dh-ringkasan-empty">Memuat varian...</div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- LAPORAN -->
-        <div class="view" id="view-laporan">
-          <div class="lap-layout">
-
-            <!-- KIRI: LIST KURIR -->
-            <div class="lap-list-panel">
-              <div class="lap-list-header">
-                <div class="lap-list-title">Laporan Distribusi</div>
-              </div>
-              <div class="lap-list-scroll" id="lapKurirList"></div>
-            </div>
-
-            <!-- KANAN: DETAIL -->
-            <div class="lap-detail-wrapper" id="lapDetailWrapper">
-              <div class="lap-detail-panel">
-
-                <!-- EMPTY STATE -->
-                <div class="lap-detail-empty" id="lapDetailEmpty">
-                  <div class="lap-empty-icon"><i class="fa-solid fa-file-chart-column"></i></div>
-                  <div class="lap-empty-title">Pilih Kurir</div>
-                  <div class="lap-empty-sub">Klik salah satu kurir untuk melihat laporan distribusi.</div>
-                </div>
-
-                <!-- DETAIL CONTENT -->
-                <div class="lap-detail-content" id="lapDetailContent" style="display:none;">
-
-                  <!-- HEADER -->
-                  <div class="lap-detail-header">
-                    <div class="lap-detail-header-top">
-                      <div class="lap-detail-avatar" id="lapDetailAvatar">A</div>
-                      <div class="lap-detail-info">
-                        <div class="lap-detail-nama" id="lapDetailNama">-</div>
-                        <div class="lap-detail-role" id="lapDetailRole">-</div>
-                      </div>
-                      <input type="date" id="lapDetailDate" class="lap-detail-date-input">
-                    </div>
-                  </div>
-
-                  <!-- BODY -->
-                  <div class="lap-detail-body">
-                    <div class="lap-card-grid">
-
-                      <!-- CLOSING -->
-                      <div class="lap-report-card closing">
-                        <div class="lap-report-card-title">Closing</div>
-                        <div class="lap-varian-grid">
-                          <div class="lap-varian-item"><div class="lap-varian-key">CB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BK</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">MC</div><div class="lap-varian-val">0</div></div>
-                        </div>
-                        <div class="lap-jumlah-row">
-                          <span class="lap-jumlah-label">Jumlah</span>
-                          <span class="lap-jumlah-val">0</span>
-                          <span class="lap-jumlah-arrow">↗</span>
-                        </div>
-                      </div>
-
-                      <!-- PAY -->
-                      <div class="lap-report-card pay">
-                        <div class="lap-report-card-title">Pay</div>
-                        <div class="lap-varian-grid">
-                          <div class="lap-varian-item"><div class="lap-varian-key">CB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BK</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">MC</div><div class="lap-varian-val">0</div></div>
-                        </div>
-                        <div class="lap-jumlah-row">
-                          <span class="lap-jumlah-label">Jumlah</span>
-                          <span class="lap-jumlah-val">0</span>
-                          <span class="lap-jumlah-arrow">↗</span>
-                        </div>
-                      </div>
-
-                      <!-- EXPIRED -->
-                      <div class="lap-report-card expired">
-                        <div class="lap-report-card-title">Expired</div>
-                        <div class="lap-varian-grid">
-                          <div class="lap-varian-item"><div class="lap-varian-key">CB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BK</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">MC</div><div class="lap-varian-val">0</div></div>
-                        </div>
-                        <div class="lap-jumlah-row">
-                          <span class="lap-jumlah-label">Jumlah</span>
-                          <span class="lap-jumlah-val">0</span>
-                          <span class="lap-jumlah-arrow">↗</span>
-                        </div>
-                      </div>
-                      
-                      <!-- FEE -->
-                      <div class="lap-report-card fee">
-                        <div class="lap-report-card-title">Fee</div>
-                        <div class="lap-varian-grid">
-                          <div class="lap-varian-item"><div class="lap-varian-key">CB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BK</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">MC</div><div class="lap-varian-val">0</div></div>
-                        </div>
-                        <div class="lap-jumlah-row">
-                          <span class="lap-jumlah-label">Jumlah</span>
-                          <span class="lap-jumlah-val">0</span>
-                          <span class="lap-jumlah-arrow">↗</span>
-                        </div>
-                      </div>
-
-                      <!-- DISABLE -->
-                      <div class="lap-report-card disable">
-                        <div class="lap-report-card-title">Disable</div>
-                        <div class="lap-varian-grid">
-                          <div class="lap-varian-item"><div class="lap-varian-key">CB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BB</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">BK</div><div class="lap-varian-val">0</div></div>
-                          <div class="lap-varian-item"><div class="lap-varian-key">MC</div><div class="lap-varian-val">0</div></div>
-                        </div>
-                        <div class="lap-jumlah-row">
-                          <span class="lap-jumlah-label">Jumlah</span>
-                          <span class="lap-jumlah-val">0</span>
-                          <span class="lap-jumlah-arrow">↗</span>
-                        </div>
-                      </div>
-
-                      <!-- INFO TARGET -->
-                      <div class="lap-report-card target" onclick="openTargetModal(document.getElementById('lapDetailDate')?.value)">
-                        <div class="lap-report-card-title">Info Target</div>
-                        <div class="lap-info-row"><span class="lap-info-key">Cust Lama</span><span class="lap-info-val">0</span></div>
-                        <div class="lap-info-row"><span class="lap-info-key">Tambahan</span><span class="lap-info-val">0</span></div>
-                        <div class="lap-info-row"><span class="lap-info-key">Baru</span><span class="lap-info-val">0</span></div>
-                        <div class="lap-info-row"><span class="lap-info-key">Jumlah Cust</span><span class="lap-info-val">0</span></div>
-                        <div class="lap-jumlah-row">
-                          <span class="lap-jumlah-label">Selengkapnya</span>
-                          <span class="lap-jumlah-arrow">↗</span>
-                        </div>
-                      <div class="lap-info-frozen" id="lapInfoFrozen">
-                        <i class="fa-solid fa-lock"></i> Data info target telah dibekukan
-                      </div>
-                      </div>
-
-                      <!-- KEUANGAN -->
-                      <div class="lap-report-card keuangan lap-card-full">
-                        <div class="lap-report-card-title">Keuangan</div>
-                        <div class="lap-keuangan-grid">
-                          <div class="lap-keuangan-item omset">
-                            <div class="lap-keuangan-label">Omset</div>
-                            <div class="lap-keuangan-val">Rp 0</div>
-                          </div>
-                          <div class="lap-keuangan-item bonus">
-                            <div class="lap-keuangan-label">Bonus</div>
-                            <div class="lap-keuangan-val">Rp 0</div>
-                          </div>
-                          <div class="lap-keuangan-item insentif">
-                            <div class="lap-keuangan-label">Insentif</div>
-                            <div class="lap-keuangan-val">Rp 0</div>
-                          </div>
-                          <div class="lap-keuangan-item kasbon">
-                            <div class="lap-keuangan-label">Kasbon</div>
-                            <div class="lap-keuangan-val">Rp 0</div>
-                          </div>
-                        </div>
-                        <button class="lap-keuangan-edit" onclick="openKeuModal(document.getElementById('lapDetailDate')?.value)">
-                          <i class="fa-solid fa-pen"></i> Edit Keuangan
-                        </button>
-                      </div>
-
-                    </div>
-                  </div>
-
-                </div>
-
-              </div>
-            </div>
-
-            <!-- TABEL DISTRIBUSI -->
-            <div class="lap-tabel-wrapper" id="lapTabelWrapper">
-              <div class="lap-tabel-panel">
-                <div class="lap-tabel-header">
-                  <div class="lap-tabel-header-left">
-                    <button class="lap-tabel-close" id="lapTabelClose"><i class="fa-solid fa-xmark"></i></button>
-                    <div class="lap-tabel-title">Tabel Distribusi</div>
-                  </div>
-                  <div class="lap-tabel-header-right">
-                    <button class="lap-tabel-action-btn" id="lapTabelExportPng"><i class="fa-solid fa-image"></i></button>
-                    <button class="lap-tabel-action-btn" id="lapTabelExportCsv"><i class="fa-solid fa-file-csv"></i></button>
-                  </div>
-                </div>
-                <div class="lap-tabel-filter">
-                  <div class="lap-tabel-dropdown" id="lapTabelDropdown">
-                    <div class="lap-tabel-dropdown-trigger" id="lapTabelDropdownTrigger">
-                      <span id="lapTabelDropdownLabel">-- Pilih Kurir --</span>
-                      <i class="fa-solid fa-chevron-down lap-tabel-dropdown-arrow"></i>
-                    </div>
-                    <div class="lap-tabel-dropdown-list" id="lapTabelDropdownList"></div>
-                    <input type="hidden" id="lapTabelFilterKurir">
-                  </div>
-                  <input type="date" class="lap-tabel-date" id="lapTabelDateFrom">
-                  <span class="lap-tabel-date-sep">—</span>
-                  <input type="date" class="lap-tabel-date" id="lapTabelDateTo">
-                  <button class="lap-tabel-filter-btn" id="lapTabelApply">Terapkan</button>
-                </div>
-                <div class="lap-tabel-scroll" id="lapTabelScroll">
-                  <div class="dh-ringkasan-empty">Pilih kurir & tanggal lalu Terapkan</div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-          <!-- MODAL EDIT KEUANGAN -->
-          <div class="lap-keu-overlay" id="lapKeuOverlay">
-            <div class="lap-keu-box" id="lapKeuBox">
-              <div class="lap-keu-header" id="lapKeuHeader">
-                <div class="lap-keu-header-left">
-                  <div class="lap-keu-title">Edit Keuangan</div>
-                  <div class="lap-keu-subtitle" id="lapKeuSubtitle">-</div>
-                </div>
-                <button class="lap-keu-close" id="lapKeuClose">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-              <div class="lap-keu-body">
-          
-                <!-- INPUT -->
-                <div class="lap-keu-section-title">Input Manual</div>
-                <div class="lap-keu-group">
-                  <div class="lap-keu-label">Omset</div>
-                  <input type="text" inputmode="numeric" class="lap-keu-input" id="lapKeuOmset" placeholder="0">
-                  <div class="lap-keu-omset-ref" id="lapKeuOmsetRef">Omset by data: Rp 0</div>
-                </div>
-                <div class="lap-keu-group">
-                  <div class="lap-keu-label">Klaim Insentif</div>
-                  <div style="position:relative;">
-                    <input type="text" inputmode="numeric" class="lap-keu-input" id="lapKeuInsentif" placeholder="0" style="width:100%">
-                    <div class="lap-keu-insentif-note" id="lapKeuInsentifNote" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;border-radius:10px;background:var(--bg-hover);pointer-events:none;">
-                      <i class="fa-solid fa-triangle-exclamation"></i>&nbsp;Off target data
-                    </div>
-                  </div>
-                </div>
-                <div class="lap-keu-group">
-                  <div class="lap-keu-label">Kasbon</div>
-                  <input type="text" inputmode="numeric" class="lap-keu-input" id="lapKeuKasbon" placeholder="0">
-                </div>
-          
-                <div class="lap-keu-divider"></div>
-          
-                <!-- BONUS -->
-                <div class="lap-keu-section-title">Bonus</div>
-                <div class="lap-keu-bonus-list">
-                  <div class="lap-keu-hasil-row">
-                    <span class="lap-keu-hasil-label">Bonus Pay</span>
-                    <span class="lap-keu-hasil-val" id="lapKeuBonusPay">Rp 0</span>
-                  </div>
-                  <div class="lap-keu-hasil-row">
-                    <span class="lap-keu-hasil-label">Bonus Kunjungan</span>
-                    <span class="lap-keu-hasil-val" id="lapKeuBonusKunjungan">Rp 0</span>
-                  </div>
-                  <div class="lap-keu-hasil-row">
-                    <span class="lap-keu-hasil-label">Insentif</span>
-                    <span class="lap-keu-hasil-val" id="lapKeuBonusInsentif">Rp 0</span>
-                  </div>
-                  <div class="lap-keu-hasil-row lap-keu-bonus-total-row">
-                    <span class="lap-keu-hasil-label">Total Bonus</span>
-                    <span class="lap-keu-hasil-val" id="lapKeuBonusTotal">Rp 0</span>
-                  </div>
-                </div>
-          
-              </div>
-              <div class="lap-keu-frozen" id="lapKeuFrozen">
-                <i class="fa-solid fa-lock"></i> Data info target telah dibekukan
-              </div>
-              <div class="lap-keu-footer">
-                <button class="lap-keu-save" id="lapKeuSave" onclick="simpanKeuangan()">Simpan</button>
-              </div>
-            </div>
-          </div>
-          <!-- MODAL SELENGKAPNYA INFO TARGET -->
-          <div class="lap-keu-overlay" id="lapTargetOverlay">
-            <div class="lap-keu-box" id="lapTargetBox">
-              <div class="lap-keu-header" id="lapTargetHeader">
-                <div class="lap-keu-header-left">
-                  <div class="lap-keu-title">Info Target</div>
-                  <div class="lap-keu-subtitle" id="lapTargetSubtitle">-</div>
-                </div>
-                <button class="lap-keu-close" id="lapTargetClose">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-              <div class="lap-keu-body">
-                <div class="lap-keu-hasil">
-                  <div class="lap-keu-hasil-row"><span class="lap-keu-hasil-label">Kunjungan</span><span class="lap-keu-hasil-val" id="lapTgtKunjungan">0</span></div>
-                  <div class="lap-keu-hasil-row"><span class="lap-keu-hasil-label">Target Data</span><span class="lap-keu-hasil-val" id="lapTgtData">0</span></div>
-                  <div class="lap-keu-hasil-row"><span class="lap-keu-hasil-label">Target Customer</span><span class="lap-keu-hasil-val" id="lapTgtCustomer">0</span></div>
-                </div>
-                <div class="lap-keu-divider"></div>
-                <div class="lap-keu-section-title">Keterangan</div>
-                <div class="lap-keu-hasil">
-                  <div class="lap-keu-hasil-row"><span class="lap-keu-hasil-label">Tutup</span><span class="lap-keu-hasil-val" id="lapTgtTutup">0</span></div>
-                  <div class="lap-keu-hasil-row"><span class="lap-keu-hasil-label">Pending</span><span class="lap-keu-hasil-val" id="lapTgtPending">0</span></div>
-                  <div class="lap-keu-hasil-row"><span class="lap-keu-hasil-label">Putus</span><span class="lap-keu-hasil-val" id="lapTgtPutus">0</span></div>
-                </div>
-                <div class="lap-keu-divider"></div>
-                <div class="lap-keu-section-title">Potongan Target</div>
-                <div class="lap-keu-hasil">
-                  <div class="lap-keu-hasil-row"><span class="lap-keu-hasil-label">Potongan Target Data</span><span class="lap-keu-hasil-val" id="lapTgtPotData">-</span></div>
-                  <div class="lap-keu-hasil-row"><span class="lap-keu-hasil-label">Potongan Target Customer</span><span class="lap-keu-hasil-val" id="lapTgtPotCustomer">-</span></div>
-                  <div class="lap-keu-hasil-row lap-keu-bonus-total-row"><span class="lap-keu-hasil-label">Jumlah Potongan</span><span class="lap-keu-hasil-val" id="lapTgtPotTotal">-</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- CUSTOMER -->
-        <div class="view" id="view-customer">
-          <div class="cust-layout">
-
-            <!-- KIRI -->
-            <div class="cust-list-panel" id="custListPanel">
-              <div class="cust-list-header">
-                <div class="cust-list-title">Customer</div>
-              </div>
-              <div class="cust-list-body" id="custListBody">
-
-                <!-- Customer Kurir -->
-                <div class="cust-group-item" id="custGroupKurir">
-                  <div class="cust-group-trigger" data-group="kurir">
-                    <div class="cust-group-left">
-                      <div class="cust-group-icon kurir"><i class="fa-solid fa-motorcycle"></i></div>
-                      <span class="cust-group-label">Customer Kurir</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-down cust-group-arrow"></i>
-                  </div>
-                  <div class="cust-group-expand" id="custExpandKurir"></div>
-                </div>
-
-                <!-- Customer Hunter -->
-                <div class="cust-group-item" id="custGroupHunter">
-                  <div class="cust-group-trigger" data-group="hunter">
-                    <div class="cust-group-left">
-                      <div class="cust-group-icon hunter"><i class="fa-solid fa-crosshairs"></i></div>
-                      <span class="cust-group-label">Customer Hunter</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-down cust-group-arrow"></i>
-                  </div>
-                  <div class="cust-group-expand" id="custExpandHunter"></div>
-                </div>
-
-                <!-- Customer Sales -->
-                <div class="cust-group-item" id="custGroupSales">
-                  <div class="cust-group-trigger" data-group="sales">
-                    <div class="cust-group-left">
-                      <div class="cust-group-icon sales"><i class="fa-solid fa-handshake"></i></div>
-                      <span class="cust-group-label">Customer Sales</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-down cust-group-arrow"></i>
-                  </div>
-                  <div class="cust-group-expand" id="custExpandSales"></div>
-                </div>
-
-                <div class="cust-list-divider"></div>
-
-                <!-- Rolling -->
-                <div class="cust-menu-item" data-menu="rolling">
-                  <div class="cust-group-icon rolling"><i class="fa-solid fa-rotate"></i></div>
-                  <span class="cust-group-label">Rolling Customer</span>
-                </div>
-
-                <!-- Non Aktif -->
-                <div class="cust-menu-item" data-menu="nonaktif">
-                  <div class="cust-group-icon nonaktif"><i class="fa-solid fa-user-slash"></i></div>
-                  <span class="cust-group-label">Non Aktif</span>
-                </div>
-
-                <!-- History -->
-                <div class="cust-menu-item" data-menu="history">
-                  <div class="cust-group-icon history"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                  <span class="cust-group-label">History</span>
-                </div>
-
-              </div>
-            </div>
-
-            <!-- PANEL TENGAH: LIST CUSTOMER -->
-            <div class="cust-middle-panel" id="custMiddlePanel">
-              <div class="cust-detail-empty" id="custDetailEmpty">
-                <i class="fa-solid fa-users" style="font-size:40px;color:var(--text-muted);margin-bottom:12px"></i>
-                <div style="font-size:13px;color:var(--text-muted)">Pilih kategori customer</div>
-              </div>
-              <div class="cust-detail-content" id="custDetailContent" style="display:none">
-                <div class="cust-detail-header">
-                  <div class="cust-detail-header-top">
-                    <div class="cust-detail-title" id="custDetailTitle">-</div>
-                    <div style="display:flex;gap:6px;align-items:center">
-                      <div class="peta-filter-wrap" id="custRollingHariWrap" style="display:none">
-                        <button class="peta-filter-btn" id="custRollingHariBtn">
-                          <i class="fa-solid fa-calendar"></i>
-                          <span id="custRollingHariLabel">Hari</span>
-                          <i class="fa-solid fa-chevron-down"></i>
-                        </button>
-                        <button class="peta-filter-clear" id="custRollingHariClear" style="display:none">
-                          <i class="fa-solid fa-xmark"></i>
-                        </button>
-                        <div class="peta-filter-dropdown" id="custRollingHariDropdown" style="display:none">
-                          <div class="peta-filter-option selected" data-hari="Senin">Senin</div>
-                          <div class="peta-filter-option" data-hari="Selasa">Selasa</div>
-                          <div class="peta-filter-option" data-hari="Rabu">Rabu</div>
-                          <div class="peta-filter-option" data-hari="Kamis">Kamis</div>
-                          <div class="peta-filter-option" data-hari="Jumat">Jumat</div>
-                          <div class="peta-filter-option" data-hari="Sabtu">Sabtu</div>
-                          <div class="peta-filter-option" data-hari="Minggu">Minggu</div>
-                        </div>
-                      </div>
-                      <button class="cust-reload-btn" id="custRollingMapBtn" style="display:none">
-                        <i class="fa-solid fa-shuffle"></i>
-                      </button>
-                      <button class="cust-reload-btn" id="custRollingCloseBtn" style="display:none">
-                        <i class="fa-solid fa-xmark"></i>
-                      </button>
-                      <button class="cust-reload-btn" id="custReloadBtn">
-                        <i class="fa-solid fa-rotate-right"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="cust-hari-chips" id="custHariChips">
-                    <div class="cust-hari-chip active" data-hari="Senin">Sen</div>
-                    <div class="cust-hari-chip" data-hari="Selasa">Sel</div>
-                    <div class="cust-hari-chip" data-hari="Rabu">Rab</div>
-                    <div class="cust-hari-chip" data-hari="Kamis">Kam</div>
-                    <div class="cust-hari-chip" data-hari="Jumat">Jum</div>
-                    <div class="cust-hari-chip" data-hari="Sabtu">Sab</div>
-                    <div class="cust-hari-chip" data-hari="Minggu">Min</div>
-                  </div>
-                  <div class="cust-search-wrap">
-                    <i class="fa-solid fa-magnifying-glass cust-search-icon"></i>
-                    <input type="text" class="cust-search-input" id="custSearchInput" placeholder="Cari customer...">
-                    <button class="cust-search-clear" id="custSearchClear" style="display:none">
-                      <i class="fa-solid fa-xmark"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="cust-detail-list" id="custDetailList">
-                  <div class="dh-ringkasan-empty">Pilih hari lalu Reload</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- PANEL KANAN: DETAIL CUSTOMER -->
-            <div class="cust-right-panel" id="custRightPanel">
-              <div class="cust-right-empty" id="custRightEmpty">
-                <i class="fa-solid fa-user" style="font-size:36px;color:var(--text-muted);margin-bottom:12px"></i>
-                <div style="font-size:13px;color:var(--text-muted)">Pilih customer</div>
-              </div>
-              <div class="cust-right-content" id="custRightContent" style="display:none">
-                <div class="cust-right-header" id="custRightHeader">
-                  <button class="cust-back-btn" id="custRightBack">
-                    <i class="fa-solid fa-arrow-left"></i>
-                  </button>
-                  <div class="cust-right-title" id="custRightTitle">Detail Customer</div>
-                </div>
-                <div class="cust-right-body" id="custRightBody">
-                </div>
-              </div>
-            </div>
-
-          </div>
-          <!-- POPUP TAMBAH CUSTOMER -->
-          <div class="cust-add-overlay" id="custAddOverlay" style="display:none">
-            <div class="cust-add-box" id="custAddBox">
-              <div class="cust-add-header">
-                <div class="cust-add-title">Tambah Customer</div>
-                <button class="cust-add-close" id="custAddClose">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-              <div class="cust-add-body" id="custAddBody">
-
-                <!-- FOTO -->
-                <div class="cust-add-photo-wrap">
-                  <div class="cust-add-photo" id="custAddPhoto">
-                    <span class="cust-add-photo-placeholder">
-                      <i class="fa-solid fa-camera"></i>
-                      <span>Tambah Foto</span>
-                    </span>
-                    <div class="cust-edit-photo-overlay"><i class="fa-solid fa-camera"></i></div>
-                  </div>
-                </div>
-          
-                <!-- FORM -->
-                <div class="cust-edit-form">
-          
-                  <div class="cust-edit-group">
-                    <label class="cust-edit-label">Nama Customer</label>
-                    <input type="text" class="cust-edit-input" id="custAddNama" placeholder="Nama customer...">
-                  </div>
-          
-                  <div class="cust-edit-group">
-                    <label class="cust-edit-label">Alamat</label>
-                    <input type="text" class="cust-edit-input" id="custAddAlamat" placeholder="Alamat customer...">
-                  </div>
-          
-                  <div class="cust-edit-group">
-                    <label class="cust-edit-label">Pemilik</label>
-                    <div class="cust-dropdown" id="custAddDropPemilik">
-                      <div class="cust-dropdown-trigger" id="custAddDropPemilikTrigger">
-                        <span id="custAddDropPemilikLabel">Pilih Pemilik</span>
-                        <i class="fa-solid fa-chevron-down cust-dropdown-arrow"></i>
-                      </div>
-                      <div class="cust-dropdown-list" id="custAddDropPemilikList"></div>
-                    </div>
-                  </div>
-          
-                  <div class="cust-edit-group">
-                    <label class="cust-edit-label">Hari</label>
-                    <div class="cust-dropdown" id="custAddDropHari">
-                      <div class="cust-dropdown-trigger" id="custAddDropHariTrigger">
-                        <span id="custAddDropHariLabel">Pilih Hari</span>
-                        <i class="fa-solid fa-chevron-down cust-dropdown-arrow"></i>
-                      </div>
-                      <div class="cust-dropdown-list" id="custAddDropHariList">
-                        ${["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"].map(h =>
-                          `<div class="cust-dropdown-item" data-val="${h}">${h}</div>`
-                        ).join("")}
-                      </div>
-                    </div>
-                  </div>
-          
-                  <div class="cust-edit-group">
-                    <label class="cust-edit-label">Data Kemarin</label>
-                    <div class="cust-dk-grid" id="custAddDkGrid">
-                      <div style="font-size:12px;color:var(--text-muted)">Memuat varian...</div>
-                    </div>
-                  </div>
-          
-                </div>
-          
-                <!-- SIMPAN -->
-                <div class="cust-edit-footer">
-                  <button class="cust-edit-save-btn" id="custAddSaveBtn" disabled>
-                    <i class="fa-solid fa-floppy-disk"></i> Simpan
-                  </button>
-                </div>
-          
-              </div>
-            </div>
-          </div>          
-        </div>
-
-        <!-- DSM -->
-        <div class="view" id="view-dsm">
-          <div class="dsm-layout">
-
-            <!-- TOOLBAR -->
-            <div class="dsm-toolbar">
-              <div class="dsm-search-wrap">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="dsmSearchInput" placeholder="Cari customer...">
-              </div>
-              <div class="peta-filter-wrap" id="dsmKurirWrap">
-                <button class="peta-filter-btn" id="dsmKurirBtn">
-                  <i class="fa-solid fa-user"></i>
-                  <span id="dsmKurirLabel">Pilih Kurir</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peta-filter-dropdown" id="dsmKurirDropdown" style="display:none"></div>
-              </div>
-              <div class="peta-filter-wrap" id="dsmHariWrap">
-                <button class="peta-filter-btn" id="dsmHariBtn">
-                  <i class="fa-solid fa-calendar-day"></i>
-                  <span id="dsmHariLabel">Senin</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peta-filter-dropdown" id="dsmHariDropdown" style="display:none">
-                  <div class="peta-filter-option selected" data-hari="Senin">Senin</div>
-                  <div class="peta-filter-option" data-hari="Selasa">Selasa</div>
-                  <div class="peta-filter-option" data-hari="Rabu">Rabu</div>
-                  <div class="peta-filter-option" data-hari="Kamis">Kamis</div>
-                  <div class="peta-filter-option" data-hari="Jumat">Jumat</div>
-                  <div class="peta-filter-option" data-hari="Sabtu">Sabtu</div>
-                  <div class="peta-filter-option" data-hari="Minggu">Minggu</div>
-                </div>
-              </div>
-              <div class="peta-filter-wrap" id="dsmBulanWrap">
-                <button class="peta-filter-btn" id="dsmBulanBtn">
-                  <i class="fa-solid fa-calendar"></i>
-                  <span id="dsmBulanLabel">Juni</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peta-filter-dropdown" id="dsmBulanDropdown" style="display:none">
-                  <div class="peta-filter-option" data-bulan="0">Januari</div>
-                  <div class="peta-filter-option" data-bulan="1">Februari</div>
-                  <div class="peta-filter-option" data-bulan="2">Maret</div>
-                  <div class="peta-filter-option" data-bulan="3">April</div>
-                  <div class="peta-filter-option" data-bulan="4">Mei</div>
-                  <div class="peta-filter-option selected" data-bulan="5">Juni</div>
-                  <div class="peta-filter-option" data-bulan="6">Juli</div>
-                  <div class="peta-filter-option" data-bulan="7">Agustus</div>
-                  <div class="peta-filter-option" data-bulan="8">September</div>
-                  <div class="peta-filter-option" data-bulan="9">Oktober</div>
-                  <div class="peta-filter-option" data-bulan="10">November</div>
-                  <div class="peta-filter-option" data-bulan="11">Desember</div>
-                </div>
-              </div>
-              <div class="peta-filter-wrap" id="dsmTahunWrap">
-                <button class="peta-filter-btn" id="dsmTahunBtn">
-                  <i class="fa-solid fa-calendar-days"></i>
-                  <span id="dsmTahunLabel">2026</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peta-filter-dropdown" id="dsmTahunDropdown" style="display:none"></div>
-              </div>
-              <button class="cust-reload-btn" id="dsmAnalisaBtn">
-                <i class="fa-solid fa-chart-pie"></i>
-              </button>
-              <button class="cust-reload-btn" id="dsmReloadBtn">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
-            </div>
-
-            <!-- PAGINATION MINGGU -->
-            <div class="dsm-pagination">
-              <button class="dsm-page-btn" id="dsmPrevBtn" disabled>
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-              <span class="dsm-page-info" id="dsmPageInfo">Minggu 1</span>
-              <button class="dsm-page-btn" id="dsmNextBtn" disabled>
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
-            </div>
-
-            <!-- TABEL -->
-            <div class="dsm-table-wrap" id="dsmTableWrap">
-              <div class="dh-ringkasan-empty">Pilih kurir dan filter untuk memuat data</div>
-            </div>
-
-          </div>
-          <!-- POPUP ANALISA TRIKOTOMI -->
-          <div class="dsm-analisa-overlay" id="dsmAnalisaOverlay">
-            <div class="dsm-analisa-box" id="dsmAnalisaBox">
-              <div class="dsm-analisa-header">
-                <div>
-                  <div class="dsm-analisa-title">Analisa Trikotomi</div>
-                  <div class="dsm-analisa-subtitle" id="dsmAnalisaSubtitle">-</div>
-                </div>
-                <button class="dsm-analisa-close" id="dsmAnalisaCloseBtn">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-  
-              <div class="dsm-analisa-toolbar">
-                <div class="dsm-analisa-filter-chips" id="dsmAnalisaFilterChips">
-                  <button class="dsm-analisa-chip active" data-filter="default">Default</button>
-                  <button class="dsm-analisa-chip" data-filter="return">Return</button>
-                  <button class="dsm-analisa-chip" data-filter="expired">Expired</button>
-                  <button class="dsm-analisa-chip" data-filter="tutup">Tutup</button>
-                  <button class="dsm-analisa-chip" data-filter="pending">Pending</button>
-                </div>
-                <div class="peta-filter-wrap" id="dsmAnalisaPeriodeWrap">
-                  <button class="peta-filter-btn" id="dsmAnalisaPeriodeBtn">
-                    <i class="fa-solid fa-calendar-week"></i>
-                    <span id="dsmAnalisaPeriodeLabel">T-1</span>
-                    <i class="fa-solid fa-chevron-down"></i>
-                  </button>
-                  <div class="peta-filter-dropdown" id="dsmAnalisaPeriodeDropdown" style="display:none">
-                    <div class="peta-filter-option selected" data-periode="1">T-1 · Periode Sebelumnya</div>
-                    <div class="peta-filter-option" data-periode="2">T-2 · Dua Periode Sebelumnya</div>
-                  </div>
-                </div>
-                <button class="cust-reload-btn" id="dsmAnalisaNotifBtn">
-                  <i class="fa-solid fa-bell"></i>
-                </button>
-              </div>
-  
-              <div class="dsm-analisa-summary">
-                <div class="dsm-analisa-sum-card green">
-                  <div class="dsm-analisa-sum-val" id="dsmAnalisaGreen">0</div>
-                  <div class="dsm-analisa-sum-label">Produktif</div>
-                </div>
-                <div class="dsm-analisa-sum-card yellow">
-                  <div class="dsm-analisa-sum-val" id="dsmAnalisaYellow">0</div>
-                  <div class="dsm-analisa-sum-label">Stabil</div>
-                </div>
-                <div class="dsm-analisa-sum-card red">
-                  <div class="dsm-analisa-sum-val" id="dsmAnalisaRed">0</div>
-                  <div class="dsm-analisa-sum-label">Non Produktif</div>
-                </div>
-                <div class="dsm-analisa-sum-card grey">
-                  <div class="dsm-analisa-sum-val" id="dsmAnalisaGrey">0</div>
-                  <div class="dsm-analisa-sum-label">Belum Ada Data</div>
-                </div>
-              </div>
-  
-              <div class="dsm-analisa-groups" id="dsmAnalisaGroups">
-                <div class="dh-ringkasan-empty">Pilih kurir dan tanggal dulu</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- STOCK OPNAME -->
-        <div class="view" id="view-stockopname">
-          <div class="so-layout">
-
-            <!-- TOOLBAR -->
-            <div class="so-toolbar">
-              <div class="so-search-wrap">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="soSearchInput" placeholder="Cari tanggal...">
-              </div>
-              <div class="peta-filter-wrap" id="soBulanWrap">
-                <button class="peta-filter-btn" id="soBulanBtn">
-                  <i class="fa-solid fa-calendar"></i>
-                  <span id="soBulanLabel">Juni</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peta-filter-dropdown" id="soBulanDropdown" style="display:none">
-                  <div class="peta-filter-option" data-bulan="0">Januari</div>
-                  <div class="peta-filter-option" data-bulan="1">Februari</div>
-                  <div class="peta-filter-option" data-bulan="2">Maret</div>
-                  <div class="peta-filter-option" data-bulan="3">April</div>
-                  <div class="peta-filter-option" data-bulan="4">Mei</div>
-                  <div class="peta-filter-option selected" data-bulan="5">Juni</div>
-                  <div class="peta-filter-option" data-bulan="6">Juli</div>
-                  <div class="peta-filter-option" data-bulan="7">Agustus</div>
-                  <div class="peta-filter-option" data-bulan="8">September</div>
-                  <div class="peta-filter-option" data-bulan="9">Oktober</div>
-                  <div class="peta-filter-option" data-bulan="10">November</div>
-                  <div class="peta-filter-option" data-bulan="11">Desember</div>
-                </div>
-              </div>
-              <div class="peta-filter-wrap" id="soTahunWrap">
-                <button class="peta-filter-btn" id="soTahunBtn">
-                  <i class="fa-solid fa-calendar-days"></i>
-                  <span id="soTahunLabel">2026</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peta-filter-dropdown" id="soTahunDropdown" style="display:none"></div>
-              </div>
-
-              <div class="so-saldo-kemarin-wrap" id="soSaldoKemarinWrap">
-                <span class="so-saldo-kemarin-label">Saldo kemarin</span>
-                <div class="so-saldo-kemarin-list" id="soSaldoKemarinList"></div>
-                <button class="cust-reload-btn" id="soInputSaldoKemarinBtn" title="Input Saldo Kemarin">
-                  <i class="fa-solid fa-layer-group"></i>
-                </button>
-              </div>
-
-              <button class="cust-reload-btn" id="soInputBtn" title="Input Stock">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button class="cust-reload-btn" id="soInputBtn2" title="Input Lainnya">
-                <i class="fa-solid fa-clipboard-list"></i>
-              </button>
-              <button class="cust-reload-btn" id="soReloadBtn" title="Reload">
-                <i class="fa-solid fa-rotate-right"></i>
-              </button>
-            </div>
-
-            <!-- CANVAS TABLE -->
-            <div class="so-table-wrap" id="soTableWrap">
-              <canvas id="soCanvas"></canvas>
-              <div class="so-empty" id="soEmpty">Memuat data...</div>
-            </div>
-
-          </div>
-          <!-- POPUP INPUT STOCK (MAIN) -->
-          <div class="so-popup-overlay" id="soPopupMainOverlay">
-            <div class="so-popup-box" id="soPopupMainBox">
-              <div class="so-popup-header">
-                <div>
-                  <div class="so-popup-title">Input Produksi</div>
-                  <div class="so-popup-subtitle" id="soPopupMainDate">-</div>
-                </div>
-                <button class="so-popup-close" id="soPopupMainClose">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-              <div class="so-popup-body" id="soPopupMainBody">
-                <div class="dh-ringkasan-empty">Memuat...</div>
-              </div>
-            </div>
-          </div>
-  
-          <!-- POPUP INPUT STOCK (PLUS) -->
-          <div class="so-popup-overlay" id="soPopupPlusOverlay">
-            <div class="so-popup-box" id="soPopupPlusBox">
-              <div class="so-popup-header">
-                <div>
-                  <div class="so-popup-title">Input Lainnya</div>
-                  <div class="so-popup-subtitle" id="soPopupPlusDate">-</div>
-                </div>
-                <button class="so-popup-close" id="soPopupPlusClose">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-              <div class="so-popup-body" id="soPopupPlusBody">
-                <div class="dh-ringkasan-empty">Memuat...</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- POPUP INPUT SALDO BULAN KEMARIN -->
-          <div class="so-popup-overlay" id="soPopupSaldoKemarinOverlay">
-            <div class="so-popup-box" id="soPopupSaldoKemarinBox">
-              <div class="so-popup-header">
-                <div>
-                  <div class="so-popup-title">Saldo Bulan Kemarin</div>
-                  <div class="so-popup-subtitle" id="soPopupSaldoKemarinDate">-</div>
-                </div>
-                <button class="so-popup-close" id="soPopupSaldoKemarinClose">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-              <div class="so-popup-body" id="soPopupSaldoKemarinBody">
-                <div class="dh-ringkasan-empty">Memuat...</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- PENGELUARAN -->
-        <div class="view" id="view-pengeluaran">
-          <div class="peng-layout">
-        
-            <!-- SUMMARY CARDS -->
-            <div class="peng-summary-row">
-              <div class="peng-summary-card" data-kategori="produksi">
-                <div class="peng-summary-label">Produksi</div>
-                <div class="peng-summary-total" id="pengTotalProduksi">Rp0</div>
-                <div class="peng-composition-bar" id="pengBarProduksi"></div>
-                <div class="peng-composition-legend" id="pengLegendProduksi"></div>
-              </div>
-              <div class="peng-summary-card" data-kategori="distribusi">
-                <div class="peng-summary-label">Distribusi</div>
-                <div class="peng-summary-total" id="pengTotalDistribusi">Rp0</div>
-                <div class="peng-composition-bar" id="pengBarDistribusi"></div>
-                <div class="peng-composition-legend" id="pengLegendDistribusi"></div>
-              </div>
-            </div>
-        
-            <!-- TOOLBAR -->
-            <div class="peng-toolbar">
-              <div class="peng-search-wrap">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="pengSearchInput" placeholder="Cari nama item...">
-              </div>
-        
-              <div class="peng-filter-wrap" id="pengKategoriWrap">
-                <button class="peng-filter-btn" id="pengKategoriBtn">
-                  <span id="pengKategoriLabel">Semua Kategori</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peng-filter-dropdown" id="pengKategoriDropdown">
-                  <div class="peng-filter-option selected" data-val="semua">Semua Kategori</div>
-                  <div class="peng-filter-option" data-val="distribusi">Distribusi</div>
-                  <div class="peng-filter-option" data-val="produksi">Produksi</div>
-                </div>
-              </div>
-        
-              <div class="peng-filter-wrap" id="pengJenisWrap">
-                <button class="peng-filter-btn" id="pengJenisBtn">
-                  <span id="pengJenisLabel">Semua Jenis</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peng-filter-dropdown" id="pengJenisDropdown">
-                  <div class="peng-filter-option selected" data-val="semua">Semua Jenis</div>
-                  <div class="peng-filter-option" data-val="variable">Variable</div>
-                  <div class="peng-filter-option" data-val="fixed">Fixed</div>
-                  <div class="peng-filter-option" data-val="marginal">Marginal</div>
-                </div>
-              </div>
-        
-              <div class="peng-filter-wrap" id="pengPeriodeWrap">
-                <button class="peng-filter-btn" id="pengPeriodeBtn">
-                  <i class="fa-solid fa-calendar-days"></i>
-                  <span id="pengPeriodeLabel">Bulan Ini</span>
-                  <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="peng-filter-dropdown peng-periode-dropdown" id="pengPeriodeDropdown">
-                  <div class="peng-periode-tabs">
-                    <button type="button" class="peng-periode-tab active" data-mode="bulan">Bulan</button>
-                    <button type="button" class="peng-periode-tab" data-mode="custom">Custom</button>
-                  </div>
-
-                  <div class="peng-periode-bulan" id="pengPeriodeBulanBox">
-                    <div class="peng-mini-select-wrap">
-                      <button type="button" class="peng-mini-select-btn" id="pengBulanMiniBtn">
-                        <span id="pengBulanMiniLabel">Januari</span>
-                        <i class="fa-solid fa-chevron-down"></i>
-                      </button>
-                      <div class="peng-mini-select-dropdown" id="pengBulanMiniDropdown"></div>
-                    </div>
-                    <div class="peng-mini-select-wrap">
-                      <button type="button" class="peng-mini-select-btn" id="pengTahunMiniBtn">
-                        <span id="pengTahunMiniLabel">2026</span>
-                        <i class="fa-solid fa-chevron-down"></i>
-                      </button>
-                      <div class="peng-mini-select-dropdown" id="pengTahunMiniDropdown"></div>
-                    </div>
-                  </div>
-
-                  <div class="peng-periode-custom" id="pengPeriodeCustomBox" style="display:none">
-                    <label class="peng-periode-mini-label">Dari</label>
-                    <input type="date" class="peng-periode-date" id="pengCustomFrom">
-                    <label class="peng-periode-mini-label">Sampai</label>
-                    <input type="date" class="peng-periode-date" id="pengCustomTo">
-                  </div>
-
-                  <button type="button" class="peng-periode-apply" id="pengPeriodeApply">Terapkan</button>
-                </div>
-              </div>
-
-              <button class="peng-add-btn" id="pengAddBtn">
-                <i class="fa-solid fa-plus"></i>
-                <span>Catat</span>
-              </button>
-            </div>
-        
-            <!-- LIST HISTORY -->
-            <div class="peng-list" id="pengList"></div>
-            <div class="peng-empty" id="pengEmpty" style="display:none">Belum ada pengeluaran</div>
-        
-          </div>
-        
-          <!-- POPUP INPUT -->
-          <div class="peng-popup-overlay" id="pengPopupOverlay">
-            <div class="peng-popup-box" id="pengPopupBox">
-              <div class="peng-popup-drag" id="pengPopupDrag"></div>
-              <div class="peng-popup-header">
-                <div class="peng-popup-title">Catat Pengeluaran</div>
-                <button class="peng-popup-close" id="pengPopupClose">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-        
-              <div class="peng-popup-body">
-                <div class="peng-form-group">
-                  <label class="peng-form-label">Tanggal</label>
-                  <input type="date" class="peng-form-input" id="pengInputTanggal">
-                </div>
-        
-                <div class="peng-form-group">
-                  <label class="peng-form-label">Kategori</label>
-                  <div class="peng-toggle-group" id="pengToggleKategori">
-                    <button type="button" class="peng-toggle-btn active" data-val="produksi">Produksi</button>
-                    <button type="button" class="peng-toggle-btn" data-val="distribusi">Distribusi</button>
-                  </div>
-                </div>
-        
-                <div class="peng-form-group">
-                  <label class="peng-form-label">Jenis Biaya</label>
-                  <div class="peng-toggle-group peng-toggle-group-3" id="pengToggleJenis">
-                    <button type="button" class="peng-toggle-btn active" data-val="variable">Variable</button>
-                    <button type="button" class="peng-toggle-btn" data-val="fixed">Fixed</button>
-                    <button type="button" class="peng-toggle-btn" data-val="marginal">Marginal</button>
-                  </div>
-                </div>
-        
-                <div class="peng-form-group">
-                  <label class="peng-form-label">Item</label>
-                  <div class="peng-item-list-header">
-                    <span>Nama</span><span>Qty</span><span>Harga</span><span>Total</span>
-                  </div>
-                  <div class="peng-item-list" id="pengItemList"></div>
-                  <button type="button" class="peng-add-item-btn" id="pengAddItemBtn">
-                    <i class="fa-solid fa-plus"></i> Tambah Item
-                  </button>
-                </div>
-        
-                <div class="peng-form-group">
-                  <label class="peng-form-label">Catatan (opsional)</label>
-                  <textarea class="peng-form-input" id="pengInputCatatan" rows="2" placeholder="Tulis catatan..."></textarea>
-                </div>
-        
-                <button class="peng-submit-btn" id="pengSubmitBtn">Simpan</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- AKUN -->
-        <div class="view" id="view-akun">
-          <div class="akun-layout">
-
-            <!-- PANEL KIRI -->
-            <div class="akun-panel-left" id="akunPanelLeft">
-              <div class="akun-toolbar">
-                <div class="akun-search-wrap">
-                  <i class="fa-solid fa-magnifying-glass"></i>
-                  <input type="text" id="akunSearchInput" placeholder="Cari nama...">
-                </div>
-                <button class="cust-reload-btn" id="akunTambahBtn">
-                  <i class="fa-solid fa-plus"></i>
-                </button>
-              </div>
-              <div class="akun-tabs" id="akunTabs">
-                <button class="akun-tab active" data-role="semua">Semua</button>
-                <button class="akun-tab" data-role="kurir">Kurir</button>
-                <button class="akun-tab" data-role="hunter">Hunter</button>
-                <button class="akun-tab" data-role="sales">Sales</button>
-                <button class="akun-tab" data-role="produksi">Produksi</button>
-              </div>
-              <div class="akun-list" id="akunList">
-                <div class="dh-ringkasan-empty">Memuat...</div>
-              </div>
-            </div>
-
-            <!-- PANEL KANAN -->
-            <div class="akun-panel-right" id="akunPanelRight">
-              <div class="akun-empty-state" id="akunEmptyState">
-                <i class="fa-solid fa-user-gear"></i>
-                <div>Pilih akun untuk melihat detail</div>
-              </div>
-              <div class="akun-detail" id="akunDetail" style="display:none">
-
-                <!-- HEADER DETAIL -->
-                <div class="akun-detail-header">
-                  <button class="akun-back-btn" id="akunBackBtn">
-                    <i class="fa-solid fa-arrow-left"></i>
-                  </button>
-                  <div class="akun-detail-foto-wrap">
-                    <img class="akun-detail-foto" id="akunDetailFoto" src="" alt="">
-                    <button class="akun-foto-change" id="akunFotoChangeBtn">
-                      <i class="fa-solid fa-camera"></i>
-                    </button>
-                    <input type="file" id="akunFotoInput" accept="image/*" style="display:none">
-                  </div>
-                  <div class="akun-detail-nama" id="akunDetailNama">-</div>
-                  <div class="akun-detail-role" id="akunDetailRole">-</div>
-                  <div class="akun-detail-status" id="akunDetailStatus"></div>
-                </div>
-
-                <!-- BODY DETAIL -->
-                <div class="akun-detail-body">
-                  <div class="akun-form-group">
-                    <div class="akun-form-label">Nama</div>
-                    <input type="text" class="akun-form-input" id="akunInputNama" placeholder="Nama lengkap">
-                  </div>
-                  <div class="akun-form-group">
-                    <div class="akun-form-label">Email</div>
-                    <input type="email" class="akun-form-input" id="akunInputEmail" placeholder="Email" readonly>
-                  </div>
-                  <div class="akun-form-group">
-                    <div class="akun-form-label">No Telpon</div>
-                    <input type="tel" class="akun-form-input" id="akunInputTelpon" placeholder="No telpon">
-                  </div>
-                  <div class="akun-form-group">
-                    <div class="akun-form-label">NIK</div>
-                    <input type="text" class="akun-form-input" id="akunInputNik" placeholder="NIK">
-                  </div>
-                  <div class="akun-form-group">
-                    <div class="akun-form-label">Alamat</div>
-                    <input type="text" class="akun-form-input" id="akunInputAlamat" placeholder="Alamat">
-                  </div>
-                  <div class="akun-form-group">
-                    <div class="akun-form-label">Motivasi</div>
-                    <input type="text" class="akun-form-input" id="akunInputMotivasi" placeholder="Motivasi">
-                  </div>
-                </div>
-
-                <!-- FOOTER DETAIL -->
-                <div class="akun-detail-footer">
-                  <button class="akun-btn-toggle" id="akunToggleStatusBtn">Nonaktifkan</button>
-                  <button class="akun-btn-reset" id="akunResetPasswordBtn">Reset Password</button>
-                  <button class="akun-btn-save" id="akunSaveBtn">Simpan</button>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-          <!-- POPUP TAMBAH AKUN -->
-          <div class="akun-tambah-overlay" id="akunTambahOverlay">
-            <div class="akun-tambah-box">
-              <div class="akun-tambah-header">
-                <div class="akun-tambah-title">Tambah Akun</div>
-                <button class="akun-tambah-close" id="akunTambahClose">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-              <div class="akun-tambah-body">
-                <div class="akun-form-group">
-                  <div class="akun-form-label">Nama</div>
-                  <input type="text" class="akun-form-input" id="akunTambahNama" placeholder="Nama lengkap">
-                </div>
-                <div class="akun-form-group">
-                  <div class="akun-form-label">Email</div>
-                  <input type="email" class="akun-form-input" id="akunTambahEmail" placeholder="Email">
-                </div>
-                <div class="akun-form-group">
-                  <div class="akun-form-label">Password</div>
-                  <input type="password" class="akun-form-input" id="akunTambahPassword" placeholder="Password">
-                </div>
-                <div class="akun-form-group">
-                  <div class="akun-form-label">Role</div>
-                  <div class="akun-select-wrap">
-                    <button class="akun-select-btn" id="akunTambahRoleBtn">
-                      <span id="akunTambahRoleLabel">Pilih role</span>
-                      <i class="fa-solid fa-chevron-down"></i>
-                    </button>
-                    <div class="akun-select-dropdown" id="akunTambahRoleDropdown" style="display:none">
-                      <div class="akun-select-option" data-role="kurir">Kurir</div>
-                      <div class="akun-select-option" data-role="hunter">Hunter</div>
-                      <div class="akun-select-option" data-role="sales">Sales</div>
-                      <div class="akun-select-option" data-role="produksi">Produksi</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="akun-form-group">
-                  <div class="akun-form-label">No Telpon</div>
-                  <input type="tel" class="akun-form-input" id="akunTambahTelpon" placeholder="No telpon">
-                </div>
-                <div class="akun-form-group">
-                  <div class="akun-form-label">NIK</div>
-                  <input type="text" class="akun-form-input" id="akunTambahNik" placeholder="NIK">
-                </div>
-                <div class="akun-form-group">
-                  <div class="akun-form-label">Alamat</div>
-                  <input type="text" class="akun-form-input" id="akunTambahAlamat" placeholder="Alamat">
-                </div>
-              </div>
-              <div class="akun-tambah-footer">
-                <button class="akun-tambah-save" id="akunTambahSave">Buat Akun</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </main>
+  <div id="pullRefreshIndicator">
+    <div id="ptrCard">
+      <img src="LogoTTN.png" alt="">
+      <svg viewBox="0 0 80 80">
+        <circle id="ptrCircle" cx="40" cy="40" r="36"/>
+      </svg>
     </div>
   </div>
-
-</div>
-
-<!-- PETA GLOBAL -->
-<div id="petaGlobalOverlay" class="peta-global-overlay" style="display:none">
-  <div id="petaGlobalWrap" class="peta-global-wrap">
-    <div class="cabang-map-header">
-      <div class="cabang-map-title">
-        <div class="peta-search-bar">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="petaSearchInput" class="peta-search-input" placeholder="Cari customer...">
+  <!-- ===== HOME VIEW ===== -->
+  <div class="view active" id="view-home">
+    <div class="page-content">
+      <div class="headerHome"></div>
+      <div id="marketingList">
+        <div class="marketing-card">
+          <button id="homeKantorBtn" class="home-kantor-btn" style="display:none;" onclick="window.openKantorPopup()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </button>
+          <button id="homeMapBtn" class="home-map-btn" onclick="window.openMapView()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+          </button>
+          <button id="homeNotifBtn" class="home-notif-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 01-3.46 0"></path>
+            </svg>
+          
+            <!-- Badge jumlah notif -->
+            <span class="notif-badge" id="homeNotifBadge"></span>
+          </button>
+          <button id="homeReloadCustomerBtn" class="home-reload-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2v6h-6"></path>
+              <path d="M3 12a9 9 0 0 1 15.5-6.5L21 8"></path>
+              <path d="M3 22v-6h6"></path>
+              <path d="M21 12a9 9 0 0 1-15.5 6.5L3 16"></path>
+            </svg>
+          </button>       
+          <!-- AVATAR -->
+          <div class="avatar" id="homeAvatar">
+            <div class="avatar-inisial">
+              A
+            </div>
+          </div>
+          <!-- INFO -->
+          <div class="marketing-info">
+            <div class="nama" id="homeNama">
+              Loading...
+            </div>
+            <div class="motivasi" id="homeMotivasi">
+              Memuat motivasi Anda
+            </div>
+            <div class="kantor" id="homeKantor">
+              <svg class="kantor-icon" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13 c0-3.87-3.13-7-7-7zm0 9.5 c-1.38 0-2.5-1.12-2.5-2.5 S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/>
+              </svg>
+              Kantor Cabang
+            </div>
+          </div>
+          <!-- TANGGAL -->
+          <div class="tanggal-waktu">
+            <div class="tanggal" id="homeTanggal">
+              Senin, 1 Januari 2026
+            </div>
+            <div class="waktu" id="homeWaktu">
+              18:00
+            </div>
+          </div>
         </div>
       </div>
-      <div class="cabang-map-header-right">
-        <div class="map-tile-select-wrap" id="petaTileWrap">
-          <button class="map-tile-btn" id="petaTileBtn">
-            <i class="fa-solid fa-layer-group"></i>
-            <span id="petaTileBtnLabel">Alidade Smooth</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="map-tile-dropdown" id="petaTileDropdown"></div>
+      
+     <!-- SKELETON 3 CARD -->
+      <div id="skeletonHomeCards">
+        <div class="sk-card-wrap">
+          <div class="sk-line sk-title"></div>
+          <div class="sk-grid-2">
+            <div class="sk-box-sm"></div>
+            <div class="sk-box-sm"></div>
+          </div>
+          <div class="sk-box-lg"></div>
         </div>
-        <button class="peta-locate-btn" id="petaLocateBtn">
-          <i class="fa-solid fa-location-crosshairs"></i>
+        <div class="sk-card-wrap">
+          <div class="sk-line sk-title"></div>
+          <div class="sk-line sk-subtitle"></div>
+          <div class="sk-grid-2">
+            <div class="sk-box-md"></div>
+            <div class="sk-box-md"></div>
+            <div class="sk-box-md"></div>
+            <div class="sk-box-md"></div>
+          </div>
+        </div>
+        <div class="sk-card-wrap">
+          <div class="sk-line sk-title"></div>
+          <div class="sk-line sk-subtitle"></div>
+          <div class="sk-box-md"></div>
+          <div class="sk-box-md"></div>
+          <div class="sk-box-md"></div>
+        </div>
+      </div>
+
+      <!-- DYNAMIC CONTENT PER ROLE -->
+      <div id="homeRoleContent"></div>
+
+      <div class="home-footer" id="homeFooter">
+        <img src="LogoTTN.png" class="home-footer-logo">
+        <div class="home-footer-text" id="homeFooterText"></div>
+      </div>
+
+    </div>
+
+    <!-- POPUP DYNAMIC -->
+    <div id="homePopupContainer"></div>
+  </div>
+  
+  <!-- ===== INPUT VIEW ===== -->
+  <div class="view" id="view-input">
+    <div class="input-page">
+      <!-- HEADER -->
+      <div class="input-header">
+        <!-- BACK BUTTON -->
+        <button class="input-back-btn" onclick="window.showView('home','back')">
+          <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <button class="cabang-map-close" id="petaGlobalClose">
-          <i class="fa-solid fa-xmark"></i>
+        <!-- TABEL BUTTON -->
+        <button class="input-tabel-btn" onclick="window.showView('inputTabel','direct')">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M3 15h18"/>
+            <path d="M9 3v18"/>
+          </svg>
+        </button>
+        <!-- HARI -->
+        <div class="input-hari" id="inputHari">
+          Senin
+        </div>
+        <!-- BAWA BARANG -->
+        <div class="input-bawa-container" id="inputBawaBarang">
+          <!-- AUTO RENDER -->
+        </div>
+        <!-- DETAIL BUTTON -->
+        <div class="input-header-action">
+        
+          <!-- ANALYSIS BUTTON -->
+          <button class="input-analysis-btn" id="inputAnalysisBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+              fill="currentColor" width="18" height="18">
+              <path d="M18.75 12.75h1.5a.75.75 0 0 0 0-1.5h-1.5a.75.75 0 0 0 0 1.5Z"/>
+              <path d="M12 6a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 12 6Z"/>
+              <path d="M12 18a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 12 18Z"/>
+              <path d="M3.75 6.75h1.5a.75.75 0 1 0 0-1.5h-1.5a.75.75 0 0 0 0 1.5Z"/>
+              <path d="M3 12a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Z"/>
+              <path d="M9 3.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z"/>
+              <path d="M12.75 12a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0Z"/>
+              <path d="M9 15.75a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z"/>
+            </svg>
+          </button>
+        
+          <!-- DETAIL BUTTON -->
+          <button class="input-detail-btn" id="inputDetailBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+              fill="currentColor" width="18" height="18">
+              <circle cx="12" cy="12" r="10" opacity=".2"></circle>
+              <path d="M12 16v-4"></path>
+              <path d="M12 8h.01"></path>
+              <path d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Z"></path>
+            </svg>
+          </button>
+        
+        </div>
+      </div>
+      <!-- DROPDOWN FILTER -->
+      <div class="analysis-dropdown" id="analysisDropdown">
+        <div class="analysis-item" data-action="keterangan">
+          <span>Keterangan</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-item" data-action="fee_disable">
+          <span>Fee dan Disable</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-item" data-action="penyesuaian">
+          <span>Penyesuaian Data</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-item" data-action="catatan">
+          <span>Punya Catatan</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-item" data-action="return">
+          <span>Punya Return</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-item" data-action="expired">
+          <span>Punya Expired</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-item" data-action="analisis">
+          <span>Punya Analisis</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-divider"></div>
+        <div class="analysis-item produktif" data-action="produktif">
+          <span>Produktif</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-item stabil" data-action="stabil">
+          <span>Stabil</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-item non_produktif" data-action="non_produktif">
+          <span>Non Produktif</span><span class="analysis-check">✓</span>
+        </div>
+        <div class="analysis-divider"></div>
+        <div class="analysis-item tampilan-item" data-action="tampilan">
+          <span id="tampilan-label">Tampilan Bersih</span><span class="analysis-check">✓</span>
+        </div>
+      </div>
+      <!-- CUSTOMER WRAPPER -->
+      <div class="input-customer-wrapper">
+        
+        <!-- BOTTOM PROGRESS BAR -->
+        <div class="input-progress-bar" id="inputProgressBar">
+        
+          <!-- HANDLE -->
+          <button
+            class="input-progress-toggle"
+            id="inputProgressToggle">
+        
+            <div class="input-progress-line"></div>
+        
+          </button>
+        
+          <!-- CONTENT -->
+          <div
+            class="input-progress-content"
+            id="inputProgressContent">
+        
+            <!-- SEARCH -->
+            <input
+              type="text"
+              id="inputSearchCustomer"
+              class="input-search-customer"
+              placeholder="Cari customer..."
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+            >
+        
+            <!-- TEXT -->
+            <div
+              class="input-progress-text"
+              id="inputProgressText">
+        
+              0 / 0 Toko
+        
+            </div>
+        
+            <!-- PIPE -->
+            <div class="input-progress-track">
+        
+              <div
+                class="input-progress-fill"
+                id="inputProgressFill">
+              </div>
+        
+            </div>
+        
+          </div>
+        
+        </div>    
+        <!-- LIST -->
+        <div class="input-list-customer" id="listCustomer">
+          <!-- AUTO RENDER -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- POPUP INPUT DATA -->
+    <div class="popup-input-overlay" id="popupInputOverlay">
+      <div class="popup-input-sheet" id="popupInputSheet">
+        <!-- DRAG -->
+        <div class="popup-drag"></div>
+        <!-- HEADER -->
+        <div class="popup-input-header">
+          <div class="popup-summary-card">
+            <!-- NAMA -->
+            <div class="popup-input-nama" id="popupInputNama">
+              Nama Customer
+            </div>
+            <!-- DATA KEMARIN -->
+            <div class="popup-data-kemarin-tanggal" id="popupDataKemarinTanggal">
+              -
+            </div>
+            <div class="popup-data-kemarin" id="popupDataKemarin">
+              
+              <!-- AUTO RENDER -->
+            </div>
+            <!-- TOTAL -->
+            <div class="popup-total-card">
+        
+              <div class="popup-total-value" id="previewPay">
+                Rp0
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- BODY -->
+        <div class="popup-input-body" id="popupInputBarang">
+          <!-- AUTO RENDER -->
+        </div>
+        <!-- BUTTON -->
+        <button class="popup-submit-btn" id="popupSubmitBtn" disabled>
+          Kirim
         </button>
       </div>
     </div>
-    <div class="peta-filter-bar">
-      <div class="peta-filter-wrap" id="petaFilterPemilikWrap">
-        <button class="peta-filter-btn" id="petaFilterPemilikBtn">
-          <i class="fa-solid fa-user"></i>
-          <span id="petaFilterPemilikLabel">Pemilik</span>
-          <i class="fa-solid fa-chevron-down"></i>
+    <!-- POPUP INPUT FD -->
+    <div class="popup-input-overlay" id="popupInputFdOverlay">
+      <div class="popup-input-sheet" id="popupInputFdSheet">
+        <!-- DRAG -->
+        <div class="popup-drag"></div>
+        <!-- HEADER -->
+        <div class="popup-input-header">
+          <div class="popup-summary-card">
+            <div class="popup-input-nama" id="popupInputFdNama">
+              Nama Customer
+            </div>
+          </div>
+        </div>
+        <!-- BODY -->
+        <div class="popup-input-body" id="popupInputFdBody">
+          <!-- AUTO RENDER -->
+        </div>
+        <!-- BUTTON -->
+        <button class="popup-submit-btn" id="popupInputFdSubmit">
+          Simpan
         </button>
-        <button class="peta-filter-clear" id="petaFilterPemilikClear" style="display:none">
+      </div>
+  </div> 
+    <!-- PREVIEW FOTO CUSTOMER -->
+    <div class="preview-foto-overlay" id="previewFotoOverlay">
+      <img id="previewFotoImg" class="preview-foto-img">
+    </div>  
+    <!-- POPUP WARNING -->
+    <div class="popup-warning-overlay" id="popupWarningOverlay">
+      <div class="popup-warning-card">
+        <div class="popup-warning-icon">
+          ⚠
+        </div>
+        <div class="popup-warning-title">
+          Data Berbeda
+        </div>
+        <div class="popup-warning-text" id="popupWarningText">
+          Data berbeda, coba cek lagi
+          atau lanjutkan simpan
+        </div>
+        <div class="popup-warning-actions">
+          <button class="popup-warning-btn cancel" id="popupWarningCancel">
+            Cek Lagi
+          </button>
+          <button class="popup-warning-btn submit" id="popupWarningSubmit">
+            Lanjut Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- POPUP DETAIL HEADER -->
+    <div class="popup-detail-overlay" id="popupHeaderDetailOverlay">
+      <div class="popup-detail-sheet" id="popupHeaderDetailSheet">
+        <!-- DRAG -->
+        <div class="popup-drag"></div>
+        <!-- HEADER -->
+        <div class="popup-detail-header">
+          <div class="popup-detail-title">
+            Detail Hari Ini
+          </div>
+          <div class="popup-detail-subtitle">
+            Ringkasan data harian
+          </div>
+        </div>
+        <!-- BODY -->
+        <div class="popup-detail-list" id="popupHeaderDetailBody">
+          <!-- AUTO RENDER -->
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ===== INPUT TABEL VIEW ===== -->
+  <div class="view" id="view-inputTabel">
+    <div class="it-toolbar">
+      <button class="it-back" onclick="window.showView('input','back')">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <div class="it-search-wrap">
+        <i class="fa-solid fa-magnifying-glass it-search-icon"></i>
+        <input type="text" class="it-search-input" id="itSearchInput" placeholder="Cari customer...">
+        <button class="it-search-clear" id="itSearchClear">
           <i class="fa-solid fa-xmark"></i>
         </button>
-        <div class="peta-filter-dropdown" id="petaFilterPemilikDropdown" style="display:none"></div>
       </div>
-      <div class="peta-filter-wrap" id="petaFilterHariWrap">
-        <button class="peta-filter-btn" id="petaFilterHariBtn">
-          <i class="fa-solid fa-calendar"></i>
-          <span id="petaFilterHariLabel">Hari</span>
-          <i class="fa-solid fa-chevron-down"></i>
-        </button>
-        <button class="peta-filter-clear" id="petaFilterHariClear" style="display:none">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="peta-filter-dropdown" id="petaFilterHariDropdown" style="display:none"></div>
+      <div class="it-zoom-wrap">
+        <button class="it-zoom-btn" id="itZoomOut">−</button>
+        <span class="it-zoom-label" id="itZoomLabel">100%</span>
+        <button class="it-zoom-btn" id="itZoomIn">+</button>
       </div>
-      <div class="peta-filter-wrap" id="petaFilterNamaWrap">
-        <button class="peta-filter-btn" id="petaFilterNamaBtn">
+    </div>
+    <div class="it-canvas-wrap" id="inputTabelInner"></div>
+  </div>
+  
+  <!-- ===== CUSTOMER VIEW ===== -->
+  <div class="view" id="view-customer">
+    <div class="customer-page">
+      <!-- BACK BUTTON -->
+      <button class="customer-back-btn" onclick="window.showView('home','back')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+        </svg>
+      </button>
+      <!-- CARD -->
+      <div class="customer-card">
+        <!-- HARI -->
+        <div class="customer-item">
+          <div class="customer-label">
+            Hari
+          </div>
+          <div class="hari-dropdown">
+            <!-- SELECTED -->
+            <div class="customer-value hari-selected" id="customerHari">
+              Senin
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <!-- DROPDOWN -->
+            <div class="hari-menu" id="hariMenu">
+              <!-- AUTO RENDER -->
+            </div>
+          </div>
+          <!-- TOMBOL AKSI -->
+          <div class="customer-item-actions">
+            <div class="customer-filter-wrap" id="customerFilterWrap">
+              <button class="btn-filter-hari" id="btnFilterCustomer" title="Filter">
+                <i class="fa-solid fa-filter"></i>
+              </button>
+              <div class="customer-filter-dropdown" id="customerFilterDropdown">
+                <div class="customer-filter-item" data-filter="catatan">
+                  <i class="fa-solid fa-bookmark"></i>
+                  <span>Punya Catatan</span>
+                  <div class="customer-filter-check" id="filterCheckCatatan"></div>
+                </div>
+              </div>
+            </div>
+            <button class="btn-map-hari" id="btnMapHari" title="Lihat di Peta">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </button>
+            <button class="btn-reload-hari" id="btnReloadCustomer" title="Reload Customer">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+        </div>
+        <!-- TOTAL -->
+        <div class="customer-item">
+          <div class="customer-label">
+            Jumlah Customer
+          </div>
+          <div class="customer-total">
+            <span id="customerTotal">
+              0
+            </span>
+            Customer
+          </div>
+        </div>
+        <!-- STATS -->
+        <div class="customer-stats">
+          <!-- BARU -->
+          <div class="customer-stat-card">
+            <div class="customer-stat-title">
+              Cust Baru
+            </div>
+            <div class="customer-stat-value new" id="customerBaru">
+              0
+            </div>
+          </div>
+          <!-- LAMA -->
+          <div class="customer-stat-card">
+            <div class="customer-stat-title">
+              Cust Lama
+            </div>
+            <div class="customer-stat-value old" id="customerLama">
+              0
+            </div>
+          </div>
+        </div>
+    
+        <div class="customer-bottom-bar">
+        
+          <!-- SEARCH (atas) -->
+          <div class="customer-search">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="searchCustomer" placeholder="Cari customer..." autocomplete="off">
+        
+            <div class="customer-suggest" id="customerSuggest"></div>
+          </div>
+        
+          <!-- INPUT BUTTON (bawah) -->
+          <div class="customer-action-row">
+            <button class="btn-input-customer" onclick="inputCustomer()">
+              <i class="fa-solid fa-plus"></i>
+              Input Customer
+            </button>
+          </div>
+        
+        </div>
+        
+        <!-- LIST CUSTOMER -->
+        <div class="customer-list" id="customerList">
+        </div>
+      </div>
+    </div>
+    
+    <!-- POPUP INPUT CUSTOMER -->
+    <div class="popup-overlay" id="popupCustomer">
+      <div class="popup-content" id="popupContent">
+        <!-- HANDLE -->
+        <div class="popup-handle">
+        </div>
+        <!-- TITLE -->
+        <div class="popup-title">
+          Input Customer
+        </div>
+        <!-- NAMA -->
+        <div class="popup-group">
+          <label>
+            Nama Customer
+          </label>
+          <input type="text" id="inputNamaCustomer" placeholder="Masukkan nama customer">
+        </div>
+        <!-- AUTO RENDER FORM -->
+        <div id="stokContainer">
+        </div>      </div>
+    </div>
+  </div>
+  
+  <!-- ===== ANALISIS VIEW ===== -->
+  <div class="view" id="view-analisis">
+    <div class="analisis-page">
+      <div class="analisis-header">
+        <div class="analisis-header-title">
+          Analisa Trikotomi
+        </div>
+        <div class="analisis-header-subtitle">
+          Klasifikasi customer berdasarkan aktivitas transaksi
+        </div>
+      </div>
+      <div class="analisis-wrapper">
+        <div class="analisis-total-card">
+          <div class="analisis-total-label">
+            Total Customer
+          </div>
+          <div class="analisis-total-value" id="totalCustomer">
+            0
+          </div>
+        </div>
+        <div class="analisis-summary">
+          <div class="summary-card green">
+            <div class="summary-value" id="greenCount">
+              0
+            </div>
+            <div class="summary-label">
+              Produktif
+            </div>
+          </div>
+          <div class="summary-card yellow">
+            <div class="summary-value" id="yellowCount">
+              0
+            </div>
+            <div class="summary-label">
+              Stabil
+            </div>
+          </div>
+          <div class="summary-card red">
+            <div class="summary-value" id="redCount">
+              0
+            </div>
+            <div class="summary-label">
+              Non Produktif
+            </div>
+          </div>
+        </div>
+        <div id="accordionContainer"></div>
+      </div>
+    </div>
+    <div class="analisis-search-floating">
+      <input type="text" id="customerSearch" placeholder="Cari customer...">
+      <button class="analisis-aktifkan-btn" id="btnAktifkanBadge" onclick="aktifkanBadgeTrikotomi()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </button>
+    </div>
+  </div>
+  
+  <!-- ===== PROFIL VIEW ===== -->
+  <div class="view" id="view-profil">
+    <div class="profil-page">
+  
+      <!-- HERO -->
+      <div class="profil-hero" id="profilHero">  
+        <div class="profil-hero-gradient" id="profilHeroBg"></div>  
+        <div class="profil-hero-pattern"></div>  
+        <div class="profil-hero-shape"></div>  
+    
+        <!-- Tombol Edit Foto Sampul -->
+        <div class="cover-edit-wrap" id="coverEditWrap">
+            <button class="cover-edit-btn" id="btnEditCover">
+                <i class="fa-solid fa-camera"></i>
+                Edit foto sampul
+            </button>
+            <!-- Dropdown -->
+            <div class="cover-dropdown" id="coverDropdown">
+                <button class="cover-dropdown-item" id="btnGantiCover">
+                    <i class="fa-solid fa-image"></i>
+                    Ganti foto
+                </button>
+                <div class="cover-dropdown-sep"></div>
+                <button class="cover-dropdown-item cover-dropdown-danger" id="btnHapusCover">
+                    <i class="fa-solid fa-trash"></i>
+                    Hapus foto
+                </button>
+            </div>
+        </div>
+    
+          <!-- Hidden file input -->
+        <input type="file" id="inputFotoCover" accept="image/png, image/jpeg" style="display:none;" />
+      </div>
+      
+      <!-- ======= CROP MODAL ======= -->
+      <div class="crop-overlay" id="cropOverlay">
+        <div class="crop-modal">
+      
+          <div class="crop-modal-head">
+            <div>
+              <span class="crop-modal-title">Crop Foto Sampul</span>
+              <span class="crop-modal-hint">Seret kotak • Tarik sudut untuk resize</span>
+            </div>
+            <button class="crop-modal-close" id="cropClose">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+      
+          <div class="crop-workspace" id="cropWorkspace">
+            <img id="cropImg" alt="" draggable="false" />
+            <div class="crop-box" id="cropBox">
+              <div class="crop-grid">
+                <div class="cg-line cg-h1"></div>
+                <div class="cg-line cg-h2"></div>
+                <div class="cg-line cg-v1"></div>
+                <div class="cg-line cg-v2"></div>
+              </div>
+              <div class="crop-handle ch-tl" data-handle="tl"></div>
+              <div class="crop-handle ch-tr" data-handle="tr"></div>
+              <div class="crop-handle ch-bl" data-handle="bl"></div>
+              <div class="crop-handle ch-br" data-handle="br"></div>
+            </div>
+          </div>
+      
+          <div class="crop-modal-foot">
+            <span class="crop-size-info" id="cropSizeInfo">–</span>
+            <div class="crop-foot-btns">
+              <button class="crop-btn-cancel" id="cropCancel">Batalkan</button>
+              <button class="crop-btn-confirm" id="cropConfirm">
+                <i class="fa-solid fa-crop-simple"></i>
+                Crop & Simpan
+              </button>
+            </div>
+          </div>
+      
+        </div>
+      </div>
+  
+      <!-- BODY -->
+      <div class="profil-body">
+  
+        <!-- AVATAR FLOATING -->
+        <div class="profil-avatar-section">
+          <div class="profil-avatar-wrap">
+            <div class="profil-avatar" id="profilAvatar">A</div>
+            <div class="profil-avatar-status"></div>
+            <button class="profil-avatar-edit-btn" id="btnEditProfil">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+          <div class="profil-identity">
+            <div class="profil-hero-name" id="profilName">Administrator</div>
+            <div class="profil-hero-email" id="profilEmail">admin@company.com</div>
+          </div>
+        </div>
+  
+        <!-- INFORMASI AKUN -->
+        <div class="profil-section-label">Informasi Akun</div>
+        <div class="profil-card">
+          <div class="profil-card-item">
+            <div class="profil-card-icon brown">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="profil-card-info">
+              <div class="profil-card-label">Nama Lengkap</div>
+              <div class="profil-card-value" id="profilNamaDetail">-</div>
+            </div>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-card-item">
+            <div class="profil-card-icon brown">
+              <i class="fa-solid fa-envelope"></i>
+            </div>
+            <div class="profil-card-info">
+              <div class="profil-card-label">Email</div>
+              <div class="profil-card-value" id="profilEmailDetail">-</div>
+            </div>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-card-item">
+            <div class="profil-card-icon brown">
+              <i class="fa-solid fa-phone"></i>
+            </div>
+            <div class="profil-card-info">
+              <div class="profil-card-label">Nomor Telepon</div>
+              <div class="profil-card-value" id="profilTelpon">-</div>
+            </div>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-card-item">
+            <div class="profil-card-icon brown">
+              <i class="fa-solid fa-briefcase"></i>
+            </div>
+            <div class="profil-card-info">
+              <div class="profil-card-label">Jabatan</div>
+              <div class="profil-card-value" id="profilJabatan">-</div>
+            </div>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-card-item">
+            <div class="profil-card-icon brown">
+              <i class="fa-solid fa-building"></i>
+            </div>
+            <div class="profil-card-info">
+              <div class="profil-card-label">Cabang</div>
+              <div class="profil-card-value" id="profilCabang">-</div>
+            </div>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-card-item">
+            <div class="profil-card-icon brown">
+              <i class="fa-solid fa-quote-left"></i>
+            </div>
+            <div class="profil-card-info">
+              <div class="profil-card-label">Bio</div>
+              <div class="profil-card-value" id="profilBio">-</div>
+            </div>
+          </div>
+        </div>
+  
+        <!-- PENGATURAN -->
+        <div class="profil-section-label">Pengaturan</div>
+        <div class="profil-card">
+          <div class="profil-menu-item">
+            <div class="profil-menu-left">
+              <div class="profil-card-icon blue"><i class="fa-solid fa-file-contract"></i></div>
+              <span>Perjanjian Kerja</span>
+            </div>
+            <i class="fa-solid fa-chevron-right profil-menu-arrow"></i>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-menu-item">
+            <div class="profil-menu-left">
+              <div class="profil-card-icon blue"><i class="fa-solid fa-file-contract"></i></div>
+              <span>Peraturan Perusahaan</span>
+            </div>
+            <i class="fa-solid fa-chevron-right profil-menu-arrow"></i>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-menu-item">
+            <div class="profil-menu-left">
+              <div class="profil-card-icon blue"><i class="fa-solid fa-file-contract"></i></div>
+              <span>SOP</span>
+            </div>
+            <i class="fa-solid fa-chevron-right profil-menu-arrow"></i>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-menu-item">
+            <div class="profil-menu-left">
+              <div class="profil-card-icon purple"><i class="fa-solid fa-group-arrows-rotate"></i></div>
+              <span>Rolling Customer</span>
+            </div>
+            <i class="fa-solid fa-chevron-right profil-menu-arrow"></i>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-menu-item">
+            <div class="profil-menu-left">
+              <div class="profil-card-icon green"><i class="fa-solid fa-bell"></i></div>
+              <span>Aksesbilitas</span>
+            </div>
+            <i class="fa-solid fa-chevron-right profil-menu-arrow"></i>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-menu-item">
+            <div class="profil-menu-left">
+              <div class="profil-card-icon green"><i class="fa-solid fa-envelope"></i></div>
+              <span>Slip Gaji</span>
+            </div>
+            <i class="fa-solid fa-chevron-right profil-menu-arrow"></i>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-menu-item">
+            <div class="profil-menu-left">
+              <div class="profil-card-icon orange"><i class="fa-solid fa-shield-halved"></i></div>
+              <span>Keamanan Akun</span>
+            </div>
+            <i class="fa-solid fa-chevron-right profil-menu-arrow"></i>
+          </div>
+          <div class="profil-card-sep"></div>
+          <div class="profil-menu-item">
+            <div class="profil-menu-left">
+              <div class="profil-card-icon gray"><i class="fa-solid fa-circle-info"></i></div>
+              <span>Tentang Aplikasi</span>
+            </div>
+            <i class="fa-solid fa-chevron-right profil-menu-arrow"></i>
+          </div>
+        </div>
+  
+        <!-- STORAGE -->
+        <div class="profil-section-label">Penyimpanan Lokal</div>
+        <div class="profil-card">
+
+          <!-- PEMAKAIAN -->
+          <div class="profil-storage-item">
+            <div class="profil-storage-top">
+              <div class="profil-storage-label">
+                <i class="fa-solid fa-database"></i>
+                Pemakaian Memory
+              </div>
+              <div class="profil-storage-value" id="storagePemakaian">Memuat...</div>
+            </div>
+            <div class="profil-storage-bar-wrap">
+              <div class="profil-storage-bar-fill" id="storageBarFill"></div>
+            </div>
+          </div>
+
+          <div class="profil-card-sep"></div>
+
+         <!-- KUOTA -->
+          <div class="profil-card-item">
+            <div class="profil-card-icon green">
+              <i class="fa-solid fa-hard-drive"></i>
+            </div>
+            <div class="profil-card-info">
+              <div class="profil-card-label">Kuota Tersisa</div>
+              <div class="profil-card-value" id="storageKuota">-</div>
+            </div>
+          </div>
+
+          <div class="profil-card-sep"></div>
+
+          <!-- BERSIHKAN -->
+          <div class="profil-card-item">
+            <div class="profil-card-icon orange">
+              <i class="fa-solid fa-broom"></i>
+            </div>
+            <div class="profil-card-info">
+              <div class="profil-card-label">Bersihkan Data Lokal</div>
+              <div class="profil-card-value">Hapus cache IndexedDB</div>
+            </div>
+            <button class="profil-storage-clear-btn" id="btnBersihkanStorage">
+              Bersihkan
+            </button>
+          </div>
+
+        </div>
+  
+        <!-- LOGOUT -->
+        <button id="btnLogout" class="profil-logout-btn">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          Logout
+        </button>
+  
+        <div class="profil-version">v1.0.0 · Teh Tarik Nusantara</div>
+  
+      </div>
+    </div>
+  </div>
+  
+  <!--  TENTANG APLIKASI VIEW  -->
+  <div class="view" id="view-tentang">
+    <div class="tentang-page">
+  
+      <!-- HEADER -->
+      <div class="tentang-header">
+        <button class="tentang-back-btn" onclick="showView('profil')">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="tentang-header-title">Tentang Aplikasi</div>
+        <div style="width:36px"></div>
+      </div>
+  
+      <!-- HERO -->
+      <div class="tentang-hero">
+        <div class="tentang-hero-bg"></div>
+        <div class="tentang-hero-pattern"></div>
+        <div class="tentang-logo-wrap">
+          <img src="logoTTN.png" class="tentang-logo" onerror="this.style.display='none'; document.getElementById('tentangLogoFallback').style.display='flex'">
+          <div class="tentang-logo-fallback" id="tentangLogoFallback">TTN</div>
+        </div>
+        <div class="tentang-app-name">Teh Tarik Nusantara</div>
+        <div class="tentang-app-sub">Marketing</div>
+        <div class="tentang-app-version">
           <i class="fa-solid fa-tag"></i>
-          <span>Nama</span>
+          Versi 1.0.0
+        </div>
+      </div>
+  
+      <!-- BODY -->
+      <div class="tentang-body">
+  
+        <!-- DESKRIPSI -->
+        <div class="tentang-desc-card">
+          <div class="tentang-desc-text">
+            Aplikasi manajemen marketing berbasis mobile untuk monitoring, pendataan, laporan, dan analisis customer secara real-time dan efisien.
+          </div>
+        </div>
+  
+        <!-- INFO PERUSAHAAN -->
+        <div class="tentang-section-label">Informasi Perusahaan</div>
+        <div class="tentang-card">
+  
+          <div class="tentang-card-item">
+            <div class="tentang-card-icon brown">
+              <i class="fa-solid fa-building"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Perusahaan</div>
+              <div class="tentang-card-value">PT Rizquna Jaya Mandiri</div>
+            </div>
+          </div>
+          <div class="tentang-card-sep"></div>
+  
+          <div class="tentang-card-item">
+            <div class="tentang-card-icon brown">
+              <i class="fa-solid fa-mug-hot"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Produk</div>
+              <div class="tentang-card-value">Teh Tarik Nusantara & Es Kenyot</div>
+            </div>
+          </div>
+          <div class="tentang-card-sep"></div>
+  
+          <div class="tentang-card-item">
+            <div class="tentang-card-icon brown">
+              <i class="fa-solid fa-calendar"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Berdiri</div>
+              <div class="tentang-card-value">29 Februari 2022</div>
+            </div>
+          </div>
+          <div class="tentang-card-sep"></div>
+  
+          <div class="tentang-card-item">
+            <div class="tentang-card-icon brown">
+              <i class="fa-solid fa-globe"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Website</div>
+              <div class="tentang-card-value tentang-link" onclick="window.open('https://www.tehtariknusantara.com','_blank')">
+                www.tehtariknusantara.com
+                <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;margin-left:4px;"></i>
+              </div>
+            </div>
+          </div>
+  
+        </div>
+  
+        <!-- KONTAK -->
+        <div class="tentang-section-label">Hubungi Kami</div>
+        <div class="tentang-card">
+  
+          <div class="tentang-card-item" onclick="window.open('tel:0895694273200')">
+            <div class="tentang-card-icon green">
+              <i class="fa-solid fa-phone"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Telepon</div>
+              <div class="tentang-card-value tentang-link">0895694273200</div>
+            </div>
+            <i class="fa-solid fa-chevron-right tentang-arrow"></i>
+          </div>
+          <div class="tentang-card-sep"></div>
+  
+          <div class="tentang-card-item" onclick="window.open('mailto:pt.rizqunajayamandiri@gmail.com')">
+            <div class="tentang-card-icon blue">
+              <i class="fa-solid fa-envelope"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Email Perusahaan</div>
+              <div class="tentang-card-value tentang-link">pt.rizqunajayamandiri@gmail.com</div>
+            </div>
+            <i class="fa-solid fa-chevron-right tentang-arrow"></i>
+          </div>
+          <div class="tentang-card-sep"></div>
+  
+          <div class="tentang-card-item" onclick="window.open('mailto:tehtariknusantara@gmail.com')">
+            <div class="tentang-card-icon blue">
+              <i class="fa-solid fa-envelope"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Email Produk</div>
+              <div class="tentang-card-value tentang-link">tehtariknusantara@gmail.com</div>
+            </div>
+            <i class="fa-solid fa-chevron-right tentang-arrow"></i>
+          </div>
+  
+        </div>
+  
+        <!-- SOSIAL MEDIA -->
+        <div class="tentang-section-label">Sosial Media</div>
+        <div class="tentang-sosmed-grid">
+  
+          <div class="tentang-sosmed-card" onclick="window.open('https://instagram.com/tehtarik_nusantara','_blank')">
+            <div class="tentang-sosmed-icon ig">
+              <i class="fa-brands fa-instagram"></i>
+            </div>
+            <div class="tentang-sosmed-name">Instagram</div>
+            <div class="tentang-sosmed-handle">Teh Terik Nusantara</div>
+          </div>
+  
+          <div class="tentang-sosmed-card" onclick="window.open('https://www.facebook.com/profile.php?id=61583550478024')">
+            <div class="tentang-sosmed-icon fb">
+              <i class="fa-brands fa-facebook"></i>
+            </div>
+            <div class="tentang-sosmed-name">Facebook</div>
+            <div class="tentang-sosmed-handle">Teh Tarik Nusantara</div>
+          </div>
+  
+          <div class="tentang-sosmed-card" onclick="window.open('https://www.tiktok.com/@teh_tariknusantara.pkl?_r=1&_t=ZS-96u4Wyr461C')">
+            <div class="tentang-sosmed-icon tt">
+              <i class="fa-brands fa-tiktok"></i>
+            </div>
+            <div class="tentang-sosmed-name">TikTok</div>
+            <div class="tentang-sosmed-handle">Teh Tarik Nusantara</div>
+          </div>
+  
+        </div>
+  
+        <!-- APP INFO -->
+        <div class="tentang-section-label">Informasi Aplikasi</div>
+        <div class="tentang-card">
+          <div class="tentang-card-item">
+            <div class="tentang-card-icon gray">
+              <i class="fa-solid fa-code-branch"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Versi Aplikasi</div>
+              <div class="tentang-card-value">1.0.0 (Build 1)</div>
+            </div>
+          </div>
+          <div class="tentang-card-sep"></div>
+          <div class="tentang-card-item">
+            <div class="tentang-card-icon gray">
+              <i class="fa-solid fa-shield"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Keamanan Data</div>
+              <div class="tentang-card-value">Firebase Firestore + IndexedDB</div>
+            </div>
+          </div>
+          <div class="tentang-card-sep"></div>
+          <div class="tentang-card-item">
+            <div class="tentang-card-icon gray">
+              <i class="fa-solid fa-wifi"></i>
+            </div>
+            <div class="tentang-card-info">
+              <div class="tentang-card-label">Mode Offline</div>
+              <div class="tentang-card-value">Didukung dengan sync otomatis</div>
+            </div>
+          </div>
+        </div>
+  
+        <!-- FOOTER -->
+        <div class="tentang-footer">
+          <div class="tentang-footer-logo">TTN</div>
+          <div class="tentang-footer-text">© 2022 PT Rizquna Jaya Mandiri</div>
+          <div class="tentang-footer-sub">Teh Tarik Nusantara · All rights reserved</div>
+        </div>
+  
+      </div>
+    </div>
+  </div>
+
+  <!-- PERATURAN PT -->
+  <div class="view" id="view-peraturan">
+  
+    <!-- HEADER -->
+    <div class="pp-header">
+      <button class="pp-back-btn" onclick="showView('profil')">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <div class="pp-header-title">Peraturan Perusahaan</div>
+      <button class="pp-search-toggle-btn" onclick="toggleSearch()">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+    </div>
+  
+    <!-- SEARCH BAR -->
+    <div class="pp-search-bar" id="ppSearchBar">
+      <div class="pp-search-inner">
+        <i class="fa-solid fa-magnifying-glass pp-search-icon"></i>
+        <input
+          type="text"
+          class="pp-search-input"
+          id="ppSearchInput"
+          placeholder="Cari bab, pasal, atau isi ayat..."
+          oninput="filterPeraturan(this.value)"
+        />
+        <button class="pp-search-clear" id="ppSearchClear" onclick="clearSearch()">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
     </div>
-    <div style="position:relative;flex:1;min-height:0">
-      <div class="peta-customer-count" id="petaCustomerCount">0 Customer</div>
-      <div id="petaGlobalMapEl"></div>
+  
+    <!-- BODY -->
+    <div class="pp-body">
+  
+      <!-- HERO -->
+      <div class="pp-hero">
+        <div class="pp-hero-icon">
+          <i class="fa-solid fa-scale-balanced"></i>
+        </div>
+        <div class="pp-hero-text">
+          <div class="pp-hero-title">Peraturan Perusahaan</div>
+          <div class="pp-hero-sub">Pedoman kerja dan tata tertib perusahaan</div>
+        </div>
+        <div class="pp-hero-stats" id="ppHeroStats">
+          <div class="pp-hero-stat">
+            <div class="pp-hero-stat-num" id="statBab">—</div>
+            <div class="pp-hero-stat-label">Bab</div>
+          </div>
+          <div class="pp-hero-stat-divider"></div>
+          <div class="pp-hero-stat">
+            <div class="pp-hero-stat-num" id="statPasal">—</div>
+            <div class="pp-hero-stat-label">Pasal</div>
+          </div>
+          <div class="pp-hero-stat-divider"></div>
+          <div class="pp-hero-stat">
+            <div class="pp-hero-stat-num" id="statUpdate">—</div>
+            <div class="pp-hero-stat-label">Diperbarui</div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- LIST BAB -->
+      <div class="pp-section-label">Daftar Bab</div>
+      <div class="pp-list" id="ppList">
+        <div class="pp-loading">
+          <div class="pp-spinner"></div>
+          <div>Memuat peraturan...</div>
+        </div>
+      </div>
+  
+    </div>
+  
+    <!-- FLOATING BTN -->
+    <button class="pp-fab" onclick="openDaftarBab()" title="Daftar Bab">
+      <i class="fa-solid fa-list"></i>
+    </button>
+  
+    <!-- BOTTOM SHEET OVERLAY -->
+    <div class="pp-overlay" id="ppOverlay" onclick="closeDaftarBab()"></div>
+  
+    <!-- BOTTOM SHEET -->
+    <div class="pp-sheet" id="ppSheet">
+      <div class="pp-sheet-handle"></div>
+      <div class="pp-sheet-title">Daftar Bab</div>
+      <div class="pp-sheet-list" id="ppSheetList"></div>
+    </div>
+  
+  </div>
+  
+  <!-- SOP -->
+  <div class="view" id="view-sop">
+  
+    <!-- HEADER -->
+    <div class="pp-header">
+      <button class="pp-back-btn" onclick="showView('profil')">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <div class="pp-header-title">Peraturan Perusahaan</div>
+      <button class="pp-search-toggle-btn" onclick="toggleSearch()">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+    </div>
+  
+    <!-- SEARCH BAR -->
+    <div class="pp-search-bar" id="ppSearchBar">
+      <div class="pp-search-inner">
+        <i class="fa-solid fa-magnifying-glass pp-search-icon"></i>
+        <input
+          type="text"
+          class="pp-search-input"
+          id="ppSearchInput"
+          placeholder="Cari bab, pasal, atau isi ayat..."
+          oninput="filterPeraturan(this.value)"
+        />
+        <button class="pp-search-clear" id="ppSearchClear" onclick="clearSearch()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+  
+    <!-- BODY -->
+    <div class="pp-body">
+  
+      <!-- HERO -->
+      <div class="pp-hero">
+        <div class="pp-hero-icon">
+          <i class="fa-solid fa-scale-balanced"></i>
+        </div>
+        <div class="pp-hero-text">
+          <div class="pp-hero-title">Peraturan Perusahaan</div>
+          <div class="pp-hero-sub">Pedoman kerja dan tata tertib perusahaan</div>
+        </div>
+        <div class="pp-hero-stats" id="ppHeroStats">
+          <div class="pp-hero-stat">
+            <div class="pp-hero-stat-num" id="statBab">—</div>
+            <div class="pp-hero-stat-label">Bab</div>
+          </div>
+          <div class="pp-hero-stat-divider"></div>
+          <div class="pp-hero-stat">
+            <div class="pp-hero-stat-num" id="statPasal">—</div>
+            <div class="pp-hero-stat-label">Pasal</div>
+          </div>
+          <div class="pp-hero-stat-divider"></div>
+          <div class="pp-hero-stat">
+            <div class="pp-hero-stat-num" id="statUpdate">—</div>
+            <div class="pp-hero-stat-label">Diperbarui</div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- LIST BAB -->
+      <div class="pp-section-label">Daftar Bab</div>
+      <div class="pp-list" id="ppList">
+        <div class="pp-loading">
+          <div class="pp-spinner"></div>
+          <div>Memuat peraturan...</div>
+        </div>
+      </div>
+  
+    </div>
+  
+    <!-- FLOATING BTN -->
+    <button class="pp-fab" onclick="openDaftarBab()" title="Daftar Bab">
+      <i class="fa-solid fa-list"></i>
+    </button>
+  
+    <!-- BOTTOM SHEET OVERLAY -->
+    <div class="pp-overlay" id="ppOverlay" onclick="closeDaftarBab()"></div>
+  
+    <!-- BOTTOM SHEET -->
+    <div class="pp-sheet" id="ppSheet">
+      <div class="pp-sheet-handle"></div>
+      <div class="pp-sheet-title">Daftar Bab</div>
+      <div class="pp-sheet-list" id="ppSheetList"></div>
+    </div>
+  
+  </div>
+  
+  <!--  VIEW ROLLING CUSTOMER  -->
+  <div class="view" id="view-rollingcustomer">
+  
+    <div class="rollingcustomer-page">
+  
+      <!-- HEADER -->
+      <div class="rollingcustomer-header">
+        <button class="rollingcustomer-back-btn" onclick="showView('profil')">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+  
+        <div class="rollingcustomer-header-title">
+          Rolling Customer
+        </div>
+  
+        <button class="rollingcustomer-riwayat-btn" onclick="openRiwayatBar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- RIWAYAT BAR -->
+      <div id="riwayatOverlay" class="riwayat-overlay" onclick="closeRiwayatBar()"></div>
+      <div id="riwayatBar" class="riwayat-bar">
+        <div class="riwayat-bar-header">
+          <div class="riwayat-bar-title">Riwayat Pengajuan</div>
+          <button class="riwayat-close-btn" onclick="closeRiwayatBar()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div id="riwayatBarContent" class="riwayat-bar-content">
+          <div class="riwayat-loading">Memuat...</div>
+        </div>
+      </div>
+  
+      <!-- HERO -->
+      <div class="rollingcustomer-hero">
+  
+        <div class="rollingcustomer-hero-bg"></div>
+        <div class="rollingcustomer-hero-pattern"></div>
+  
+        <div class="rollingcustomer-icon-wrap">
+          <i class="fa-solid fa-right-left"></i>
+        </div>
+  
+        <div class="rollingcustomer-title">
+          Pengajuan Perpindahan Customer
+        </div>
+  
+        <div class="rollingcustomer-subtitle">
+          Pindah pemilik atau hari kunjungan
+        </div>
+  
+        <div class="rollingcustomer-badge">
+          <i class="fa-solid fa-clock"></i>
+          Menunggu Approval
+        </div>
+  
+      </div>
+  
+      <!-- BODY -->
+      <div class="rollingcustomer-body">
+  
+        <!-- DESC -->
+        <div class="rollingcustomer-desc-card">
+          <div class="rollingcustomer-desc-text">
+            Kelola pengajuan perpindahan customer antar pemilik atau perubahan jadwal kunjungan harian.
+          </div>
+        </div>
+  
+        <!-- SEARCH CUSTOMER -->
+        <div class="rollingcustomer-search-box">
+        
+          <i class="fa-solid fa-magnifying-glass"></i>
+        
+          <input 
+            type="text"
+            id="searchCustomerInput"
+            placeholder="Cari customer..."
+            oninput="searchCustomerRolling(this.value)"
+          >
+        
+        </div>
+        
+        <!-- SUGGEST LIST -->
+        <div id="customerSuggestList" class="rollingcustomer-suggest"></div>
+        
+        <!-- PREVIEW CARD -->
+        <div id="customerPreviewCard" class="rollingcustomer-preview">
+        
+          <div class="rollingcustomer-preview-empty">
+            Pilih customer untuk melihat detail
+          </div>
+        
+        </div>
+        <div id="photoPreviewModal" class="photo-preview-modal" onclick="closePhotoPreview()">
+          <img id="photoPreviewImg" />
+        </div>
+  
+      </div>
+  
+    </div>
+  
+  </div>
+
+  <!--  PERJANJIAN VIEW  -->
+  <div class="view" id="view-perjanjian">
+  
+    <div class="perjanjian-page">
+  
+      <!-- HEADER -->
+      <div class="perjanjian-header">
+        <button class="perjanjian-back-btn" onclick="showView('profil')">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+  
+        <div class="perjanjian-header-title">
+          Perjanjian
+        </div>
+  
+        <div style="width:36px"></div>
+      </div>
+  
+      <!-- HERO -->
+      <div class="perjanjian-hero">
+  
+        <div class="perjanjian-hero-bg"></div>
+        <div class="perjanjian-hero-pattern"></div>
+  
+        <div class="perjanjian-icon-wrap">
+          <i class="fa-solid fa-file-signature"></i>
+        </div>
+  
+        <div class="perjanjian-title">
+          Perjanjian Kerjasama
+        </div>
+  
+        <div class="perjanjian-subtitle">
+          Dokumen Kesepakatan dan Ketentuan Kerja Sama
+        </div>
+  
+        <div class="perjanjian-badge">
+          <i class="fa-solid fa-shield-check"></i>
+          Aktif
+        </div>
+  
+      </div>
+  
+      <!-- BODY -->
+      <div class="perjanjian-body">
+  
+        <!-- RINGKASAN -->
+        <div class="perjanjian-desc-card">
+          <div class="perjanjian-desc-text">
+            Dokumen ini berisi seluruh syarat, ketentuan,
+            hak dan kewajiban yang berlaku antara perusahaan
+            dan pihak terkait dalam pelaksanaan kerja sama.
+          </div>
+        </div>
+  
+        <!-- INFORMASI -->
+        <div class="perjanjian-section-label">
+          Informasi Perjanjian
+        </div>
+  
+        <div class="perjanjian-card">
+  
+          <div class="perjanjian-card-item">
+            <div class="perjanjian-card-icon brown">
+              <i class="fa-solid fa-hashtag"></i>
+            </div>
+  
+            <div class="perjanjian-card-info">
+              <div class="perjanjian-card-label">
+                Nomor Perjanjian
+              </div>
+              <div class="perjanjian-card-value">
+                AGR-001-2025
+              </div>
+            </div>
+          </div>
+  
+          <div class="perjanjian-card-sep"></div>
+  
+          <div class="perjanjian-card-item">
+            <div class="perjanjian-card-icon brown">
+              <i class="fa-solid fa-calendar"></i>
+            </div>
+  
+            <div class="perjanjian-card-info">
+              <div class="perjanjian-card-label">
+                Tanggal Berlaku
+              </div>
+              <div class="perjanjian-card-value">
+                01 Januari 2025
+              </div>
+            </div>
+          </div>
+  
+          <div class="perjanjian-card-sep"></div>
+  
+          <div class="perjanjian-card-item">
+            <div class="perjanjian-card-icon brown">
+              <i class="fa-solid fa-user-tie"></i>
+            </div>
+  
+            <div class="perjanjian-card-info">
+              <div class="perjanjian-card-label">
+                Pihak Pertama
+              </div>
+              <div class="perjanjian-card-value">
+                PT Rizquna Jaya Mandiri
+              </div>
+            </div>
+          </div>
+  
+        </div>
+  
+        <!-- KETENTUAN -->
+        <div class="perjanjian-section-label">
+          Ketentuan Perjanjian
+        </div>
+  
+        <div class="perjanjian-content-card">
+  
+          <div class="perjanjian-content-title">
+            Pasal 1 - Ruang Lingkup
+          </div>
+  
+          <div class="perjanjian-content-text">
+            Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit.
+            Sed do eiusmod tempor incididunt
+            ut labore et dolore magna aliqua.
+          </div>
+  
+          <div class="perjanjian-content-title">
+            Pasal 2 - Hak dan Kewajiban
+          </div>
+  
+          <div class="perjanjian-content-text">
+            Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit.
+            Sed do eiusmod tempor incididunt
+            ut labore et dolore magna aliqua.
+          </div>
+  
+          <div class="perjanjian-content-title">
+            Pasal 3 - Masa Berlaku
+          </div>
+  
+          <div class="perjanjian-content-text">
+            Lorem ipsum dolor sit amet,
+            consectetur adipiscing elit.
+            Sed do eiusmod tempor incididunt
+            ut labore et dolore magna aliqua.
+          </div>
+  
+        </div>
+  
+        <!-- ACTION -->
+        <button class="perjanjian-btn-primary">
+          <i class="fa-solid fa-file-arrow-down"></i>
+          Unduh Dokumen
+        </button>
+  
+        <!-- FOOTER -->
+        <div class="perjanjian-footer">
+          Dokumen ini dibuat dan disetujui secara resmi.
+        </div>
+  
+      </div>
+  
+    </div>
+  
+  </div>
+  
+  <!--  SLIP VIEW  -->
+  <div class="view" id="view-slip">
+    <div class="slip-page">
+      <!-- HEADER -->
+      <div class="slip-header">
+        <button class="slip-back-btn" onclick="showView('profil')">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="slip-header-title">
+          Slip Gaji
+        </div>
+        <div style="width:36px"></div>
+      </div>
+      <!-- HERO -->
+      <div class="slip-hero">
+        <div class="slip-hero-bg"></div>
+        <div class="slip-icon-wrap">
+          <i class="fa-solid fa-wallet"></i>
+        </div>
+        <div class="slip-title">Slip Gaji</div>
+        <div class="slip-subtitle">Riwayat gaji per bulan</div>
+      </div>
+      <!-- BODY -->
+      <div class="slip-body">
+        <!-- FILTER -->
+        <div class="slip-section-label">Filter</div>
+          <div class="slip-filter-card">
+            <select id="filterBulan" class="slip-select"></select>
+            <div class="slip-custom-select" id="filterBulanTrigger" style="display:none">
+              <span class="slip-custom-select-label placeholder">Pilih Bulan</span>
+              <i class="fa-solid fa-chevron-down slip-custom-select-arrow"></i>
+            </div>
+          
+            <select id="filterTahun" class="slip-select"></select>
+            <div class="slip-custom-select" id="filterTahunTrigger" style="display:none">
+              <span class="slip-custom-select-label placeholder">Pilih Tahun</span>
+              <i class="fa-solid fa-chevron-down slip-custom-select-arrow"></i>
+            </div>
+          </div>
+          <!-- LIST -->
+        <div class="slip-section-label">Daftar Slip</div>
+        <div class="slip-list" id="slipList"></div>
+      </div>
     </div>
   </div>
+
+  <!--  KEAMANAN AKUN VIEW  -->
+  <div class="view" id="view-keamanan">
+    <div class="keamanan-page">
+  
+      <!-- HEADER -->
+      <div class="keamanan-header">
+        <button class="keamanan-back-btn" onclick="showView('profil')">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="keamanan-header-title">Keamanan Akun</div>
+        <div style="width:36px"></div>
+      </div>
+  
+      <!-- BODY -->
+      <div class="keamanan-body">
+  
+        <!-- STATUS KEAMANAN -->
+        <div class="keamanan-status-card">
+          <div class="keamanan-status-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div class="keamanan-status-info">
+            <div class="keamanan-status-title">Akun Terlindungi</div>
+            <div class="keamanan-status-sub">Keamanan akun Anda dalam kondisi baik</div>
+          </div>
+          <div class="keamanan-status-badge">Aman</div>
+        </div>
+  
+        <!-- IDENTITAS AKUN -->
+        <div class="keamanan-section-label">Identitas Akun</div>
+        <div class="keamanan-card">
+  
+          <div class="keamanan-card-item">
+            <div class="keamanan-card-icon brown">
+              <i class="fa-solid fa-fingerprint"></i>
+            </div>
+            <div class="keamanan-card-info">
+              <div class="keamanan-card-label">User ID</div>
+              <div class="keamanan-card-value uid-text" id="keamananUID">-</div>
+            </div>
+            <button class="keamanan-copy-btn" id="btnCopyUID">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+          <div class="keamanan-card-sep"></div>
+  
+          <div class="keamanan-card-item">
+            <div class="keamanan-card-icon blue">
+              <i class="fa-solid fa-envelope"></i>
+            </div>
+            <div class="keamanan-card-info">
+              <div class="keamanan-card-label">Email Akun</div>
+              <div class="keamanan-card-value" id="keamananEmail">-</div>
+            </div>
+          </div>
+          <div class="keamanan-card-sep"></div>
+  
+          <div class="keamanan-card-item">
+            <div class="keamanan-card-icon green">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="keamanan-card-info">
+              <div class="keamanan-card-label">Status Verifikasi</div>
+              <div class="keamanan-card-value" id="keamananVerifikasi">-</div>
+            </div>
+          </div>
+          <div class="keamanan-card-sep"></div>
+  
+          <div class="keamanan-card-item">
+            <div class="keamanan-card-icon orange">
+              <i class="fa-solid fa-clock"></i>
+            </div>
+            <div class="keamanan-card-info">
+              <div class="keamanan-card-label">Login Terakhir</div>
+              <div class="keamanan-card-value" id="keamananLastLogin">-</div>
+            </div>
+          </div>
+  
+        </div>
+  
+        <!-- SESI AKTIF -->
+        <div class="keamanan-section-label">Sesi Aktif</div>
+        <div class="keamanan-card">
+          <div class="keamanan-sesi-item">
+            <div class="keamanan-sesi-icon">
+              <i class="fa-solid fa-mobile-screen"></i>
+            </div>
+            <div class="keamanan-sesi-info">
+              <div class="keamanan-sesi-title">Perangkat Ini</div>
+              <div class="keamanan-sesi-sub" id="keamananDevice">-</div>
+            </div>
+            <div class="keamanan-sesi-badge">Aktif</div>
+          </div>
+        </div>
+  
+        <!-- PRIVASI DATA -->
+        <div class="keamanan-section-label">Privasi & Data</div>
+        <div class="keamanan-card">
+  
+          <div class="keamanan-menu-item">
+            <div class="keamanan-menu-left">
+              <div class="keamanan-card-icon purple">
+                <i class="fa-solid fa-database"></i>
+              </div>
+              <div>
+                <div class="keamanan-menu-title">Data Tersimpan Lokal</div>
+                <div class="keamanan-menu-sub">IndexedDB di perangkat ini</div>
+              </div>
+            </div>
+            <div class="keamanan-menu-badge" id="keamananDataLokal">-</div>
+          </div>
+          <div class="keamanan-card-sep"></div>
+  
+          <div class="keamanan-menu-item">
+            <div class="keamanan-menu-left">
+              <div class="keamanan-card-icon blue">
+                <i class="fa-solid fa-cloud"></i>
+              </div>
+              <div>
+                <div class="keamanan-menu-title">Sinkronisasi Cloud</div>
+                <div class="keamanan-menu-sub">Firebase Firestore</div>
+              </div>
+            </div>
+            <div class="keamanan-sesi-badge" id="keamananSyncStatus">-</div>
+          </div>
+          <div class="keamanan-card-sep"></div>
+  
+          <div class="keamanan-menu-item">
+            <div class="keamanan-menu-left">
+              <div class="keamanan-card-icon gray">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <div>
+                <div class="keamanan-menu-title">Enkripsi Data</div>
+                <div class="keamanan-menu-sub">Firebase Auth + Firestore Rules</div>
+              </div>
+            </div>
+            <div class="keamanan-sesi-badge">Aktif</div>
+          </div>
+  
+        </div>
+  
+        <!-- TINDAKAN -->
+        <div class="keamanan-section-label">Tindakan Keamanan</div>
+        <div class="keamanan-card">
+  
+          <div class="keamanan-menu-item" id="btnKeamananRefreshToken">
+            <div class="keamanan-menu-left">
+              <div class="keamanan-card-icon green">
+                <i class="fa-solid fa-rotate"></i>
+              </div>
+              <div>
+                <div class="keamanan-menu-title">Perbarui Sesi</div>
+                <div class="keamanan-menu-sub">Refresh token autentikasi</div>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right tentang-arrow"></i>
+          </div>
+          <div class="keamanan-card-sep"></div>
+  
+          <div class="keamanan-menu-item" id="btnKeamananLogoutAll">
+            <div class="keamanan-menu-left">
+              <div class="keamanan-card-icon red">
+                <i class="fa-solid fa-right-from-bracket"></i>
+              </div>
+              <div>
+                <div class="keamanan-menu-title" id="logoutModalTitle">Logout Paksa</div>
+                <div class="keamanan-menu-sub" id="logoutModalDesc">Keluar dari semua sesi aktif</div>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right tentang-arrow"></i>
+          </div>
+  
+        </div>
+  
+        <!-- INFO -->
+        <div class="keamanan-info-box">
+          <i class="fa-solid fa-circle-info"></i>
+          <div>Data Anda dienkripsi dan dilindungi oleh Firebase Authentication. Kami tidak menyimpan password dalam bentuk apapun.</div>
+        </div>
+  
+      </div>
+    </div>
+  </div>
+  
+  <!-- ===== ROLLING VIEW ===== -->
+  <div class="view" id="view-rolling">
+    <div class="rolling-page">
+  
+      <!-- HEADER -->
+      <div class="rolling-header">
+        <button class="rolling-back-btn" onclick="window.showView('home','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
+        <span>Customer Baru</span>
+        <div class="rolling-header-actions">
+
+          <!-- RELOAD -->
+          <button class="rolling-icon-btn" id="btnReloadRolling" title="Sync dari server">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 4v6h-6"/>
+              <path d="M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0114.36-3.36L23 10M1 14l5.13 4.36A9 9 0 0020.49 15"/>
+            </svg>
+          </button>
+
+          <!-- FILTER HARI -->
+          <div class="rolling-hari-wrapper" id="rollingHariWrapper">
+            <button class="rolling-icon-btn" id="btnFilterHari" title="Filter hari">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </button>
+            <div class="rolling-hari-dropdown" id="rollingHariDropdown">
+              <div class="rolling-hari-item" data-hari="CustomerBaru"><strong>Customer Baru</strong></div>
+              <div class="rolling-hari-item" data-hari="Semua">Semua</div>
+              <div class="rolling-hari-item" data-hari="Senin">Senin</div>
+              <div class="rolling-hari-item" data-hari="Selasa">Selasa</div>
+              <div class="rolling-hari-item" data-hari="Rabu">Rabu</div>
+              <div class="rolling-hari-item" data-hari="Kamis">Kamis</div>
+              <div class="rolling-hari-item" data-hari="Jumat">Jumat</div>
+              <div class="rolling-hari-item" data-hari="Sabtu">Sabtu</div>
+              <div class="rolling-hari-item" data-hari="Minggu">Minggu</div>
+              <div class="rolling-filter-bulan-tahun">
+                <select id="rollingFilterBulan" class="rolling-filter-select">
+                  <option value="1">Januari</option>
+                  <option value="2">Februari</option>
+                  <option value="3">Maret</option>
+                  <option value="4">April</option>
+                  <option value="5">Mei</option>
+                  <option value="6">Juni</option>
+                  <option value="7">Juli</option>
+                  <option value="8">Agustus</option>
+                  <option value="9">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+                </select>
+                <select id="rollingFilterTahun" class="rolling-filter-select">
+                  <!-- AUTO RENDER JS -->
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+  
+      <!-- BOTTOM BAR -->
+      <div class="rolling-bottom-bar closed" id="rollingBottomBar">
+
+        <!-- HANDLE -->
+        <button class="rolling-bottom-toggle" id="btnToggleSearchBar">
+          <div class="rolling-bottom-line"></div>
+        </button>
+
+        <!-- CONTENT -->
+        <div class="rolling-bottom-content">
+
+          <!-- STATS ROW -->
+          <div class="rolling-stats-row">
+            <div class="rolling-stat-box">
+              <div class="rolling-stat-label">Total Customer</div>
+              <div class="rolling-stat-value" id="rollingJumlahCustomer">0</div>
+            </div>
+            <div class="rolling-stat-box">
+              <div class="rolling-stat-label">Penghasilan Bulan Ini</div>
+              <div class="rolling-stat-value" id="rollingPenghasilan">Rp 0</div>
+            </div>
+          </div>
+
+          <!-- SEARCH -->
+          <input
+            type="text"
+            id="rollingSearchInput"
+            class="rolling-search-input"
+            placeholder="Cari nama customer..."
+            autocomplete="off"
+            spellcheck="false">
+
+        </div>
+      </div>
+
+      <!-- TAB -->
+      <div class="rolling-tab-bar">
+        <button class="rolling-tab active" id="rollingTabAktif" onclick="window.setRollingTab('aktif')">New</button>
+        <button class="rolling-tab" id="rollingTabHistory" onclick="window.setRollingTab('history')">Submitted</button>
+      </div>
+
+      <!-- CUSTOMER LIST -->
+      <div class="rolling-wrapper">
+        <div class="rolling-panel">
+          <div class="rolling-list" id="rollingCustomerList">
+            <!-- AUTO RENDER JS -->
+          </div>
+        </div>
+      </div>
+  
+    </div>
+    
+  <div class="rolling-popup-overlay" id="popupRollingCustomer">
+    <div class="rolling-popup-sheet" id="popupRollingCustomerContent">
+      <div class="rolling-popup-handle"></div>
+      <div class="rolling-popup-title">Edit Customer</div>
+
+      <div class="rolling-popup-group">
+        <label>Nama Customer</label>
+        <input type="text" id="inputNamaCustomerRolling" placeholder="Masukkan nama customer">
+      </div>
+
+      <div class="rolling-popup-group">
+        <label>Alamat</label>
+        <input type="text" id="alamatCustomerRolling" placeholder="Blok dan desa">
+      </div>
+
+      <div class="rolling-popup-group">
+        <label>Data Awal</label>
+        <div id="dataAwalContainerRolling"></div>
+      </div>
+
+      <div class="rolling-foto-wrapper">
+        <label class="rolling-foto-card" id="fotoCardRolling">
+          <input type="file" accept="image/*" capture="environment" id="fotoInputRolling" hidden>
+          <div class="rolling-foto-placeholder">
+            <i class="fa-solid fa-camera"></i>
+            <span>Ganti Foto</span>
+          </div>
+        </label>
+      </div>
+
+      <button class="rolling-btn-update" id="btnUpdateRolling">Update</button>
+    </div>
+  </div>
+  </div>
+  
+  <!-- ===== CUSTOMER SALES VIEW ===== -->
+  <div class="view" id="view-customersales">
+    <div class="customer-sales-page">
+
+      <!-- HEADER -->
+      <div class="customer-sales-header" id="customerSalesHeader">
+        <button class="customer-sales-back" onclick="window.showView('home','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
+        <span>Customer Sales</span>
+        <div class="customer-sales-header-actions">
+          <button class="customer-sales-icon-btn" id="btnReloadCustomerSales" title="Sync dari server">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 4v6h-6"/>
+              <path d="M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0114.36-3.36L23 10M1 14l5.13 4.36A9 9 0 0020.49 15"/>
+            </svg>
+          </button>
+          <div class="customer-sales-hari-wrapper" id="customerSalesHariWrapper">
+            <button class="customer-sales-icon-btn" id="btnFilterHariSales">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </button>
+            <div class="customer-sales-hari-dropdown" id="customerSalesHariDropdown">
+              <div class="customer-sales-hari-item" data-hari="Hari Ini"><strong>Hari Ini</strong></div>
+              <div class="customer-sales-hari-item" data-hari="Semua">Semua</div>
+              <div class="customer-sales-hari-item" data-hari="Senin">Senin</div>
+              <div class="customer-sales-hari-item" data-hari="Selasa">Selasa</div>
+              <div class="customer-sales-hari-item" data-hari="Rabu">Rabu</div>
+              <div class="customer-sales-hari-item" data-hari="Kamis">Kamis</div>
+              <div class="customer-sales-hari-item" data-hari="Jumat">Jumat</div>
+              <div class="customer-sales-hari-item" data-hari="Sabtu">Sabtu</div>
+              <div class="customer-sales-hari-item" data-hari="Minggu">Minggu</div>
+              <div class="customer-sales-filter-bulan-tahun">
+                <select id="customerSalesFilterBulan" class="customer-sales-filter-select">
+                  <option value="1">Januari</option>
+                  <option value="2">Februari</option>
+                  <option value="3">Maret</option>
+                  <option value="4">April</option>
+                  <option value="5">Mei</option>
+                  <option value="6">Juni</option>
+                  <option value="7">Juli</option>
+                  <option value="8">Agustus</option>
+                  <option value="9">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+                </select>
+                <select id="customerSalesFilterTahun" class="customer-sales-filter-select">
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM BAR -->
+      <div class="customer-sales-bottom-bar closed" id="customerSalesBottomBar">
+        <button class="customer-sales-bottom-toggle" id="btnToggleSearchBarSales">
+          <div class="customer-sales-bottom-line"></div>
+        </button>
+        <div class="customer-sales-bottom-content">
+
+          <!-- STATS -->
+          <div class="customer-sales-stats-row">
+            <div class="customer-sales-stat-box">
+              <div class="customer-sales-stat-label">Modal Pendam</div>
+              <div class="customer-sales-stat-value" id="salesModalPendam">Rp 0</div>
+            </div>
+            <div class="customer-sales-stat-box">
+              <div class="customer-sales-stat-label">Aset Customer</div>
+              <div class="customer-sales-stat-value" id="salesAsetCustomer">Rp 0</div>
+            </div>
+          </div>
+          <div class="customer-sales-stats-row">
+            <div class="customer-sales-stat-box full">
+              <div class="customer-sales-stat-label">Total Aset</div>
+              <div class="customer-sales-stat-value" id="salesTotalAset">Rp 0</div>
+            </div>
+            <div class="customer-sales-stat-box full">
+              <div class="customer-sales-stat-label">Customer</div>
+              <div class="customer-sales-stat-value" id="customerSalesJumlah">0</div>
+            </div>
+          </div>
+          
+          <!-- MODAL PER VARIAN -->
+          <div class="cs-varian-title">Detail Modal Pendam</div>
+          <div class="cs-varian-grid" id="salesModalVarianGrid"></div>
+
+          <!-- SEARCH -->
+          <input type="text" id="customerSalesSearchInput" class="customer-sales-search-input"
+            placeholder="Cari nama customer..." autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+
+      <!-- LIST -->
+      <div class="customer-sales-wrapper">
+        <div class="customer-sales-panel">
+          <div class="customer-sales-list" id="customerSalesList">
+            <!-- AUTO RENDER JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+      <!-- POPUP EDIT CUSTOMER SALES -->
+    <div class="rolling-popup-overlay" id="popupCustomerSales">
+      <div class="rolling-popup-sheet" id="popupCustomerSalesContent">
+        <div class="rolling-popup-handle"></div>
+        <div class="rolling-popup-title">Edit Customer</div>
+  
+        <div class="rolling-popup-group">
+          <label>Nama Customer</label>
+          <input type="text" id="inputNamaCustomerSales" placeholder="Masukkan nama customer">
+        </div>
+  
+        <div class="rolling-popup-group">
+          <label>Alamat</label>
+          <input type="text" id="alamatCustomerSales" placeholder="Blok dan desa">
+        </div>
+        
+        <div class="rolling-popup-group">
+        <label>Hari</label>
+        <div class="sales-hari-dropdown-wrap" id="salesHariDropdownWrap">
+          <button type="button" class="sales-hari-dropdown-btn" id="salesHariDropdownBtn">
+            <span id="salesHariDropdownLabel">Senin</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="sales-hari-dropdown-list" id="salesHariDropdownList">
+            <div class="sales-hari-dropdown-item" data-hari="Senin">Senin</div>
+            <div class="sales-hari-dropdown-item" data-hari="Selasa">Selasa</div>
+            <div class="sales-hari-dropdown-item" data-hari="Rabu">Rabu</div>
+            <div class="sales-hari-dropdown-item" data-hari="Kamis">Kamis</div>
+            <div class="sales-hari-dropdown-item" data-hari="Jumat">Jumat</div>
+            <div class="sales-hari-dropdown-item" data-hari="Sabtu">Sabtu</div>
+            <div class="sales-hari-dropdown-item" data-hari="Minggu">Minggu</div>
+          </div>
+        </div>
+      </div>
+  
+        <div class="rolling-popup-group">
+          <label>Data Awal</label>
+          <div id="dataAwalContainerSales"></div>
+        </div>
+  
+        <div class="rolling-foto-wrapper">
+          <label class="rolling-foto-card" id="fotoCardSales">
+            <input type="file" accept="image/*" capture="environment" id="fotoInputSales" hidden>
+            <div class="rolling-foto-placeholder">
+              <i class="fa-solid fa-camera"></i>
+              <span>Ganti Foto</span>
+            </div>
+          </label>
+        </div>
+  
+        <button class="rolling-btn-update" id="btnUpdateSales">Update</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ===== LAPORAN HARIAN VIEW ===== -->
+  <div class="view" id="view-laporanharian">
+    <div class="laporan-harian-page">
+
+      <!-- HEADER -->
+      <div class="laporan-harian-header">
+        <button class="laporan-harian-back" onclick="window.showView('home','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
+        <span>Laporan Harian</span>
+        <div class="laporan-harian-filter">
+          <div class="laporan-dropdown-wrap" id="laporanDropdownBulanWrap">
+            <button class="laporan-dropdown-btn" id="laporanDropdownBulanBtn">
+              <span id="laporanDropdownBulanLabel">Juni</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="laporan-dropdown-list" id="laporanDropdownBulanList"></div>
+          </div>
+          <div class="laporan-dropdown-wrap" id="laporanDropdownTahunWrap">
+            <button class="laporan-dropdown-btn" id="laporanDropdownTahunBtn">
+              <span id="laporanDropdownTahunLabel">2026</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="laporan-dropdown-list" id="laporanDropdownTahunList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIST -->
+      <div class="laporan-harian-list" id="laporanHarianList">
+        <!-- AUTO RENDER JS -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== OPERASIONAL VIEW ===== -->
+  <div class="view" id="view-operasional">
+  
+    <div class="operasional-page">
+    
+      <!-- HEADER -->
+      <div class="operasional-header">
+    
+        <div class="operasional-title">
+          Operasional
+        </div>
+    
+        <button
+          class="operasional-filter-btn"
+          id="btnFilterOperasional">
+    
+          <span id="operasionalFilterText">
+            Januari 2026
+          </span>
+    
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+    
+      </div>
+    
+      <!-- SECTION LIST FULL -->
+      <div class="operasional-section">
+        <div class="operasional-list" id="operasionalList">
+        </div>
+      </div>
+    
+    </div>
+    
+    <div class="popup-overlay"
+      id="popupFilterOperasional">
+    
+      <div class="popup-content popup-filter-operasional">
+    
+        <div class="popup-handle"></div>
+    
+        <div class="popup-title">
+          Filter Operasional
+        </div>
+    
+        <!-- BULAN -->
+        <div class="popup-group">
+          <label>Bulan</label>
+    
+          <div
+            class="filter-picker"
+            id="btnPilihBulanOperasional">
+    
+            <span id="textBulanOperasional">
+              Januari
+            </span>
+    
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+        </div>
+    
+        <!-- TAHUN -->
+        <div class="popup-group">
+          <label>Tahun</label>
+    
+          <div
+            class="filter-picker"
+            id="btnPilihTahunOperasional">
+    
+            <span id="textTahunOperasional">
+              2026
+            </span>
+    
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+        </div>
+    
+        <button
+          class="btn-simpan-customer"
+          id="btnApplyFilterOperasional">
+    
+          Terapkan
+        </button>
+    
+      </div>
+    </div>
+    <div class="popup-overlay"
+      id="popupPilihBulanOperasional">
+    
+      <div class="popup-content popup-list-picker">
+    
+        <div class="popup-handle"></div>
+    
+        <div class="popup-title">
+          Pilih Bulan
+        </div>
+    
+        <div
+          class="popup-picker-list"
+          id="listBulanOperasional">
+        </div>
+    
+      </div>
+    </div>
+    <div class="popup-overlay"
+      id="popupPilihTahunOperasional">
+    
+      <div class="popup-content popup-list-picker">
+    
+        <div class="popup-handle"></div>
+    
+        <div class="popup-title">
+          Pilih Tahun
+        </div>
+    
+        <div
+          class="popup-picker-list"
+          id="listTahunOperasional">
+        </div>
+    
+      </div>
+    </div>
+    
+  </div>
+
+  <!-- ===== CHAT AI VIEW ===== -->
+  <div class="view" id="view-chatAi">
+    <div class="chat-ai-page">
+  
+      <!-- HEADER -->
+      <div class="chat-ai-header">
+        <button class="chat-ai-back-btn" onclick="showView('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <div class="chat-ai-header-info">
+          <div class="chat-ai-title">Asisten AI</div>
+          <div class="chat-ai-subtitle">Powered by TTN</div>
+        </div>
+        <div class="chat-ai-header-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            <circle cx="12" cy="16" r="1"/>
+          </svg>
+        </div>
+      </div>
+  
+      <!-- CHAT MESSAGES -->
+      <div class="chat-ai-messages" id="chatAiMessages">
+  
+        <!-- EMPTY STATE -->
+        <div class="chat-ai-empty" id="chatAiEmpty">
+          <div class="chat-ai-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+          </div>
+          <div class="chat-ai-empty-title">Halo, saya Asisten AI.</div>
+          <div class="chat-ai-empty-desc">
+            Saya dapat membantu menganalisis data operasional dan laporan.
+          </div>
+          <!-- Suggestion chips -->
+          <div class="chat-ai-suggestions">
+            <button class="chat-suggestion-chip" onclick="useSuggestion(this)">
+              Ringkasan penjualan hari ini
+            </button>
+            <button class="chat-suggestion-chip" onclick="useSuggestion(this)">
+              Closing tertinggi
+            </button>
+            <button class="chat-suggestion-chip" onclick="useSuggestion(this)">
+              Laporan omset minggu ini
+            </button>
+          </div>
+        </div>
+  
+      </div>
+  
+      <!-- INPUT AREA -->
+      <div class="chat-ai-input-wrap">
+        <div class="chat-ai-input-box">
+          <textarea
+            id="chatAiInput"
+            placeholder="Tanyakan sesuatu..."
+            rows="1"
+          ></textarea>
+          <button id="chatAiSendBtn" class="chat-send-btn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+  
+    </div>
+  </div>
+
 </div>
-<!-- ── RUMUS PANEL (overlay + sheet/drawer) ── -->
-<div class="rumus-overlay" id="rumusOverlay"></div>
-<div class="rumus-panel" id="rumusPanel">
-  <div class="rumus-panel-handle"></div>
-  <div class="rumus-panel-header">
-    <div class="rumus-panel-title">Rumus Omset</div>
-    <button class="rumus-panel-close" id="rumusPanelClose">
-      <i class="fa-solid fa-xmark"></i>
+ 
+<!-- ===== MAP POPUP GLOBAL ===== -->
+<div id="mapPopup" style="display:none;">
+  <div id="mapPopupInner">
+    <div id="mapPopupFull"></div>
+    <button id="mapPopupClose">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+    </svg>
+  </button>
+  </div>
+</div>
+ <!-- POPUP CATATAN GLOBAL  -->
+<div class="popup-overlay" id="popupCatatanCustomer">
+  <div class="popup-content popup-catatan-content">
+    <!-- HANDLE -->
+    <div class="popup-handle"></div>
+    <!-- NAMA -->
+    <div class="popup-catatan-title" id="popupCatatanNama">
+      Nama Customer
+    </div>
+    <!-- UPDATE -->
+    <div class="popup-catatan-update" id="popupCatatanUpdate">
+      Update: -
+    </div>
+    <!-- FORM -->
+    <div class="popup-group">
+      <label>
+        Catatan
+      </label>
+      <textarea id="popupCatatanText" placeholder="Masukkan catatan customer" rows="6"></textarea>
+    </div>
+    <!-- BUTTON -->
+    <button class="btn-simpan-customer" id="btnSimpanCatatan">
+      <span id="btnSimpanCatatanText">
+        Simpan
+      </span>
     </button>
   </div>
-  <div class="rumus-panel-body" id="rumusPanelBody">
+</div>
+<!-- LOGOUT MODAL -->
+<div class="logout-modal-overlay" id="logoutModal">
 
-    <div class="rumus-item">
-      <div class="rumus-item-label">Tanggal</div>
-      <div class="rumus-tanggal-wrap">
-        <input type="date" class="rumus-item-date" id="rumusTanggal" />
-        <span class="rumus-tanggal-check" id="rumusTanggalCheck" style="display:none">
-          <i class="fa-solid fa-circle-check"></i> Sudah dikirim
-        </span>
-      </div>
+  <div class="logout-modal">
+
+    <div class="logout-modal-icon">
+      <i class="fa-solid fa-right-from-bracket"></i>
     </div>
 
-    <!-- ── AMPLOP PRODUKSI ── -->
-    <div class="rumus-amplop">
-      <div class="rumus-amplop-label">
-        <i class="fa-solid fa-envelope"></i> Amplop Produksi
-      </div>
-      <div class="rumus-amplop-nominal" id="rumusAmplopProduksi">Rp 0</div>
+    <div class="logout-modal-title">
+      Logout Aplikasi?
     </div>
-    <div class="rumus-card rumus-card-produksi"></div>
 
-    <!-- ── AMPLOP DISTRIBUSI ── -->
-    <div class="rumus-amplop">
-      <div class="rumus-amplop-label">
-        <i class="fa-solid fa-envelope"></i> Amplop Distribusi
-      </div>
-      <div class="rumus-amplop-nominal" id="rumusAmplopDistribusi">Rp 0</div>
+    <div class="logout-modal-text">
+      Anda akan keluar dari akun saat ini.
     </div>
-    <div class="rumus-card rumus-card-distribusi"></div>
 
-    <div class="rumus-item">
-      <div class="rumus-item-label">Catatan (opsional)</div>
-      <textarea class="rumus-item-textarea" id="rumusCatatan" placeholder="Tulis catatan di sini..." rows="3"></textarea>
+    <div class="logout-modal-actions">
+
+      <button class="logout-btn-cancel" id="btnLogoutCancel">
+        Batal
+      </button>
+
+      <button class="logout-btn-confirm" id="btnLogoutConfirm">
+        Logout
+      </button>
+
     </div>
 
   </div>
-  <div class="rumus-panel-footer">
-    <button class="rumus-save-btn" id="rumusSaveBtn">Simpan</button>
-  </div>
+
 </div>
 
-<script src="indexdb.js"></script>
-<script src="export.js"></script>
-<script src="map.js"></script>
-<script src="maprolling.js"></script>
-<script src="trikotomi.js"></script>
+<!-- ===== NAVBAR ===== -->
+<div class="navbar-bottom" id="navbarBottom">
 
-<script src="home.js"></script>
-<script src="dataharian.js"></script>
-<script src="laporan.js"></script>
-<script src="customer.js"></script>
-<script src="dsm.js"></script>
-<script src="stockopname.js"></script>
-<script src="pengeluaran.js"></script>
-<script src="amplop.js"></script>
-<script src="akun.js"></script>
+  <svg class="nav-bg" viewBox="0 0 400 80" preserveAspectRatio="none">
+    <path id="navSvgPath" d="M16 16 H400 Q400 16 400 32 V64 Q400 80 384 80 H16 Q0 80 0 64 V32 Q0 16 16 16 Z"/>
+  </svg>
+
+  <div class="nav-fab" id="navFab">
+    <i class="fa-solid fa-house" id="navFabIcon"></i>
+  </div>
+
+  <div class="nav-items">
+    <div class="nav-item active" data-view="home" data-icon="fa-solid fa-house">
+      <span class="nav-placeholder"></span>
+      <span>Home</span>
+    </div>
+    <div class="nav-item" data-view="operasional" data-icon="fa-solid fa-chart-column">
+      <i class="fa-solid fa-chart-column"></i>
+      <span>Laporan</span>
+    </div>
+    <div class="nav-item" data-view="profil" data-icon="fa-solid fa-user">
+      <i class="fa-solid fa-user"></i>
+      <span>Profil</span>
+    </div>
+  </div>
+
+</div>
+
 <script type="module" src="index.js"></script>
+<script type="module" src="home.js"></script>
+<script type="module" src="input.js"></script>
+<script type="module" src="tabel.js"></script>
+<script src="customer.js"></script>
+<script src="analisis.js"></script>
+<script src="rolling.js"></script>
+<script type="module" src="laporanharian.js"></script>
+<script type="module" src="customersales.js"></script>
+<script src="operasional.js"></script>
+<script src="slip.js"></script>
+<script src="chat.js"></script>
+<script src="keamanan.js"></script>
+<script src="perjanjian.js"></script>
+<script src="rollingcustomer.js"></script>
+<script src="map.js"></script>
+<script type="module" src="profil.js"></script>
+<script type="module" src="peraturan.js"></script>
+<script src="ai-float-btn.js"></script>
+<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAqRO5D9ttXiGhxyYv1h8QQHxpoXLNO-AQ&libraries=places,marker,routes,geometry"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+    });
+  }
+</script>
+</head>
 
-<div id="devConsoleMount"></div>
-<script src="devconsole.js"></script>
 </body>
 </html>

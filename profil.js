@@ -87,6 +87,17 @@ window.initProfilView = async function() {
   setText("profilTelpon",      user.noTelpon || "-");
   setText("profilJabatan",     user.role || "-");
   setText("profilCabang",      user.kantorCabang || "-");
+  setText("profilBio",         user.motivasi || "-");
+
+  // Avatar foto
+  const avatarEl = document.getElementById("profilAvatar");
+  if (avatarEl) {
+    if (user.fotoURL) {
+      avatarEl.innerHTML = `<img src="${user.fotoURL}" class="profil-avatar-img" alt="${user.nama}">`;
+    } else {
+      avatarEl.innerText = initial;
+    }
+  }
   // Status dot online/offline
   const statusDot = document.querySelector(".profil-avatar-status");
   if (statusDot) {
@@ -199,8 +210,187 @@ window.initProfilView = async function() {
       }
     });
   }
+  // Bottom sheet edit profil
+  const btnEditProfil = document.getElementById("btnEditProfil");
+  if (btnEditProfil && !btnEditProfil.dataset.listener) {
+    btnEditProfil.dataset.listener = "true";
+    btnEditProfil.addEventListener("click", () => openEditProfilSheet());
+  }
 };
+async function openEditProfilSheet() {
+  const existing = document.getElementById("editProfilOverlay");
+  if (existing) existing.remove();
 
+  const user = window.currentUser || {};
+  const overlay = document.createElement("div");
+  overlay.id = "editProfilOverlay";
+  overlay.className = "edit-profil-overlay";
+
+  overlay.innerHTML = `
+    <div class="edit-profil-sheet" id="editProfilSheet">
+      <div class="edit-profil-handle"></div>
+      <div class="edit-profil-title">Edit Profil</div>
+
+      <!-- Foto Profil -->
+      <div class="edit-profil-foto-section">
+        <div class="edit-profil-foto-wrap">
+          <div class="edit-profil-foto" id="editProfilFotoPreview">
+            ${user.fotoURL
+              ? `<img src="${user.fotoURL}" class="edit-profil-foto-img" alt="">`
+              : `<span class="edit-profil-foto-initial">${(user.nama || "A").charAt(0).toUpperCase()}</span>`
+            }
+          </div>
+        </div>
+        <div class="edit-profil-foto-actions">
+          <button class="edit-profil-foto-btn" id="btnGantiFotoProfil">
+            <i class="fa-solid fa-camera"></i> Ganti Foto
+          </button>
+          ${user.fotoURL ? `
+            <button class="edit-profil-foto-btn danger" id="btnHapusFotoProfil">
+              <i class="fa-solid fa-trash"></i> Hapus Foto
+            </button>
+          ` : ""}
+        </div>
+        <input type="file" id="inputFotoProfil" accept="image/*" hidden>
+      </div>
+
+      <!-- Bio -->
+      <div class="edit-profil-field">
+        <label class="edit-profil-label">Bio</label>
+        <textarea class="edit-profil-textarea" id="editProfilBio" rows="3" placeholder="Tulis bio kamu...">${user.motivasi || ""}</textarea>
+      </div>
+
+      <button class="edit-profil-simpan" id="btnSimpanEditProfil">
+        <span id="editProfilSimpanText">Simpan</span>
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add("active"));
+
+  // Swipe close
+  const sheet = document.getElementById("editProfilSheet");
+  let startY = 0, swipeActive = false;
+  sheet.addEventListener("touchstart", e => {
+    if (e.target.closest("textarea, input")) { swipeActive = false; return; }
+    if (sheet.scrollTop > 0) { swipeActive = false; return; }
+    startY = e.touches[0].clientY;
+    swipeActive = true;
+    sheet.style.transition = "none";
+  }, { passive: true });
+  sheet.addEventListener("touchmove", e => {
+    if (!swipeActive) return;
+    const d = e.touches[0].clientY - startY;
+    if (d > 0) sheet.style.transform = `translateY(${d}px)`;
+  }, { passive: true });
+  sheet.addEventListener("touchend", e => {
+    if (!swipeActive) return;
+    swipeActive = false;
+    const d = e.changedTouches[0].clientY - startY;
+    sheet.style.transition = "transform .3s ease";
+    if (d > 120) { closeEditProfilSheet(); } else { sheet.style.transform = ""; }
+  });
+
+  overlay.addEventListener("click", e => { if (e.target === overlay) closeEditProfilSheet(); });
+
+  function closeEditProfilSheet() {
+    overlay.classList.remove("active");
+    setTimeout(() => overlay.remove(), 300);
+  }
+
+  // Ganti foto
+  const inputFoto = document.getElementById("inputFotoProfil");
+  document.getElementById("btnGantiFotoProfil").onclick = () => inputFoto.click();
+
+  inputFoto.addEventListener("change", async () => {
+    const file = inputFoto.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    document.getElementById("editProfilFotoPreview").innerHTML = `<img src="${url}" class="edit-profil-foto-img" alt="">`;
+    window._editProfilFotoFile = file;
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  });
+
+  // Hapus foto
+  document.getElementById("btnHapusFotoProfil")?.addEventListener("click", async () => {
+    try {
+      await window.updateDoc(window.doc(window.db, "users", window.auth.currentUser.uid), { fotoURL: window.deleteField() });
+      window.currentUser.fotoURL = null;
+      localStorage.setItem("userCache", JSON.stringify(window.currentUser));
+      document.getElementById("profilAvatar").innerText = (window.currentUser.nama || "A").charAt(0).toUpperCase();
+      document.getElementById("editProfilFotoPreview").innerHTML = `<span class="edit-profil-foto-initial">${(window.currentUser.nama || "A").charAt(0).toUpperCase()}</span>`;
+    } catch { }
+  });
+
+  // Simpan
+  document.getElementById("btnSimpanEditProfil").onclick = async () => {
+    const btn     = document.getElementById("btnSimpanEditProfil");
+    const btnText = document.getElementById("editProfilSimpanText");
+    btn.disabled  = true;
+    btnText.textContent = "Menyimpan...";
+
+    try {
+      const uid    = window.auth.currentUser?.uid;
+      const bio    = document.getElementById("editProfilBio").value.trim();
+      const update = { motivasi: bio };
+
+      // Upload foto kalau ada
+      if (window._editProfilFotoFile) {
+        try {
+          const compressed = await compressProfilFoto(window._editProfilFotoFile);
+          const sRef = window.storageRef(window.storage, `fotoUsers/${uid}`);
+          await window.uploadBytes(sRef, compressed, { contentType: "image/jpeg" });
+          const fotoURL = await window.getDownloadURL(sRef);
+          update.fotoURL = fotoURL;
+          window.currentUser.fotoURL = fotoURL;
+          // Update avatar di profil
+          document.getElementById("profilAvatar").innerHTML = `<img src="${fotoURL}" class="profil-avatar-img" alt="">`;
+        } catch { }
+        window._editProfilFotoFile = null;
+      }
+
+      await window.updateDoc(window.doc(window.db, "users", uid), update);
+      window.currentUser.motivasi = bio;
+      localStorage.setItem("userCache", JSON.stringify(window.currentUser));
+
+      // Update UI
+      document.getElementById("profilBio").innerText = bio || "-";
+
+      btnText.textContent = "Tersimpan ✓";
+      btn.style.background = "#2eaf62";
+      setTimeout(() => closeEditProfilSheet(), 800);
+    } catch {
+      btnText.textContent = "Gagal";
+      btn.style.background = "#e53935";
+      setTimeout(() => {
+        btn.disabled = false;
+        btnText.textContent = "Simpan";
+        btn.style.background = "";
+      }, 2000);
+    }
+  };
+}
+async function compressProfilFoto(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width, h = img.height;
+        const max = 400;
+        if (w > h) { if (w > max) { h = h * max / w; w = max; } }
+        else { if (h > max) { w = w * max / h; h = max; } }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.7);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 async function loadStorageInfo() {
   const pemakaianEl = document.getElementById("storagePemakaian");
   const kuotaEl     = document.getElementById("storageKuota");

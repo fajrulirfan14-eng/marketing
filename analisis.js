@@ -52,7 +52,7 @@ window.initAnalisisView = async function(){
     // =========================
     // 2. LOAD dataHarianDB
     // =========================
-    const allDataHarian = await new Promise((resolve, reject) => {
+    let allDataHarian = await new Promise((resolve, reject) => {
       const tx = db.transaction("dataHarianDB", "readonly");
       const store = tx.objectStore("dataHarianDB");
       const req = store.getAll();
@@ -61,11 +61,59 @@ window.initAnalisisView = async function(){
     });
 
     // Filter: hanya sebelum hari ini & idCustomer ada di list
-    const filtered = allDataHarian.filter(x =>
+    let filtered = allDataHarian.filter(x =>
       x.tanggal &&
       x.tanggal < today &&
       customerIds.includes(x.idCustomer)
     );
+
+    // Kalau IDB kosong → fetch Firestore tanggal minggu lalu (hari yang sama)
+    console.log("[analisis] filtered dari IDB:", filtered.length);
+    if (filtered.length === 0 && navigator.onLine && uid) {
+      try {
+        const mingguLalu = new Date();
+        mingguLalu.setDate(mingguLalu.getDate() - 7);
+        const tanggalMingguLalu = mingguLalu.toISOString().split("T")[0];
+        console.log("[analisis] fetch Firestore tanggal:", tanggalMingguLalu);
+
+        const snap = await window.getDocs(window.query(
+          window.collectionGroup(window.db, "dataHarian"),
+          window.where("pemilik", "==", uid),
+          window.where("tanggal", "==", tanggalMingguLalu)
+        ));
+        console.log("[analisis] docs dari Firestore:", snap.docs.length);
+
+        if (!snap.empty) {
+          const records = snap.docs.map(d => d.data());
+
+          // Simpan ke IDB dalam 1 transaction
+          await new Promise((resolve, reject) => {
+            const tx    = db.transaction("dataHarianDB", "readwrite");
+            const store = tx.objectStore("dataHarianDB");
+            records.forEach(record => {
+              if (!record.idCustomer || !record.tanggal) return;
+              const idKey = `${record.idCustomer}_${record.tanggal}`;
+              store.put({
+                ...record,
+                id: idKey,
+                tanggal: record.tanggal,
+                idCustomer: record.idCustomer,
+                payload: record,
+                isSync: true,
+                updatedAt: Date.now()
+              });
+            });
+            tx.oncomplete = () => resolve();
+            tx.onerror    = () => reject(tx.error);
+          });
+
+          // Update filtered dari hasil fetch
+          filtered = records.filter(x =>
+            x.tanggal && customerIds.includes(x.idCustomer)
+          );
+        }
+      } catch { }
+    }
 
     // Ambil record terbaru per customer
     const latestMap = {};
