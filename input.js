@@ -2773,11 +2773,6 @@ window.initInputView = async function(){
     renderGroup("Disable",      summary.disable,  "disable");
     renderGroup("Closing",      summary.closing,  "closing");
 
-    // Hitung saldo barang ikut penjualan langsung
-    activeKeys.forEach(key => {
-      saldoBarang[key] = (saldoBarang[key] || 0) - Number(penjualanLangsung[key] || 0);
-    });
-
     // Section penjualan langsung
     html += `
       <div class="popup-group penjualan">
