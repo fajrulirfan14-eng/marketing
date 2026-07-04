@@ -2673,6 +2673,22 @@ window.initInputView = async function(){
             Object.entries(penjualanLangsung).forEach(([key, qty]) => {
               summary.closing[key] = (summary.closing[key] || 0) + Number(qty);
             });
+
+            // Update penjualanLangsungDB IDB
+            try {
+              const idbPL = await window.openAppDB();
+              await new Promise((resolve, reject) => {
+                const tx    = idbPL.transaction("penjualanLangsungDB", "readwrite");
+                tx.objectStore("penjualanLangsungDB").put({
+                  ...d,
+                  id: `${uid}_${today}`,
+                  isSync: true,
+                  updatedAt: Date.now()
+                });
+                tx.oncomplete = () => resolve();
+                tx.onerror    = () => reject(tx.error);
+              });
+            } catch { }
           }
         } else {
         // Offline → IDB

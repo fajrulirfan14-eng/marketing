@@ -1,4 +1,4 @@
-window.initInputTabelView = function() {
+window.initInputTabelView = async function() {
   const inner = document.getElementById("inputTabelInner");
   if (!inner) return;
   inner.innerHTML = "";
@@ -157,6 +157,49 @@ window.initInputTabelView = function() {
     tbody += `<td class="it-td it-td-pay">${payText}</td>`;
     tbody += `</tr>`;
   });
+  // Baris penjualan langsung
+  const uid = window.auth?.currentUser?.uid;
+  let plData = {};
+  let plBayar = 0;
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const idb   = await window.openAppDB();
+    const rawPL = await new Promise(resolve => {
+      const tx  = idb.transaction("penjualanLangsungDB", "readonly");
+      const req = tx.objectStore("penjualanLangsungDB").get(`${uid}_${today}`);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror   = () => resolve(null);
+    });
+    plData  = rawPL?.penjualanLangsung || {};
+    plBayar = Number(rawPL?.pembayaran?.bayarKonsumen || 0);
+  } catch { }
+
+  sumPay += plBayar;
+  const hasPL = Object.values(plData).some(v => Number(v) > 0);
+  if (hasPL) {
+    const plBg = "rgba(201,166,123,.08)";
+    tbody += `<tr class="it-row">`;
+    tbody += `<td class="it-td it-td-no" style="background:${plBg};">-</td>`;
+    tbody += `<td class="it-td it-td-nama" style="background:${plBg};font-weight:700;color:var(--accent-dark);">Penjualan Langsung</td>`;
+    groups.forEach(g => {
+      activeVarians.forEach(v => {
+        let val = "", cellBg = g.bg;
+        if (g.key === "cash") {
+          const qty = Number(plData[v] || 0);
+          val = displayVal(qty);
+          if (qty > 0) {
+            cellBg = "#c4ebff";
+            sumGroups["cash"][v] += qty;
+          }
+        }
+        tbody += `<td class="it-td it-td-v" style="background:${cellBg};">${val}</td>`;
+      });
+    });
+    tbody += `<td class="it-td it-td-ket"></td>`;
+    tbody += `<td class="it-td it-td-pay">${plBayar > 0 ? "Rp" + Number(plBayar).toLocaleString("id-ID") : ""}</td>`;
+    tbody += `</tr>`;
+  }
+
   tbody += `</tbody>`;
 
   const ketParts = [];
