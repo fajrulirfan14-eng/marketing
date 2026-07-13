@@ -1881,19 +1881,18 @@ window.initInputView = async function(){
         }
         }
     
-        // dataKemarin logic
-        // Hanya simpan dataKemarin jika belum ada di record existing
         const sudahAdaDataKemarin =
           existingData?.dataKemarin &&
           Object.keys(existingData.dataKemarin).length > 0;
     
         if (!sudahAdaDataKemarin) {
           payload.dataKemarin = dataKemarin;
-          // tanggal kemarin yang sebenarnya, bukan today
           payload.dataKemarinTanggal = tanggalKemarin;
+        } else {
+          payload.dataKemarin = existingData.dataKemarin;
+          payload.dataKemarinTanggal = existingData.dataKemarinTanggal || tanggalKemarin;
         }
     
-        // Hitung newDataKemarin untuk disimpan ke IDB
         const newDataKemarin = {};
         (window.globalBawaBarang || [])
           .filter(item => { const k = Object.keys(item)[0]; return item[k]?.isAktif; })
