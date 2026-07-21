@@ -284,7 +284,8 @@ async function buildJumlahUpah(d) {
 
     const bonus = Number(d?.distribusi?.keuangan?.bonus?.jumlahBonus || 0);
     const potongan = Number(d?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0);
-    const total = upahHarian + bonus - potongan;
+    const kasbon = Number(d?.distribusi?.keuangan?.Kasbon || 0);
+    const total = upahHarian + bonus - potongan - kasbon;
 
     return total.toLocaleString("id-ID");
   } catch { return "-"; }
@@ -361,8 +362,10 @@ function buildKananHTML(d) {
   const info = d?.distribusi?.infoTarget || {};
   const pot = info?.potongan || {};
   const bonus = d?.distribusi?.keuangan?.bonus || {};
+  const kasbon = Number(d?.distribusi?.keuangan?.Kasbon || 0);
 
   const rows = [
+    ["Kasbon", kasbon.toLocaleString("id-ID")],
     ["Kunjungan", info.kunjungan ?? "-"],
     ["Target Customer", info.targetCustomer ?? "-"],
     ["Target Data", info.targetData ?? "-"],
