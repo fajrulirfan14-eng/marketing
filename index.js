@@ -207,6 +207,7 @@ window.logout = async function(){
     )].some(el =>
       el.classList.contains("active") ||
       el.classList.contains("open") ||
+      el.classList.contains("show") ||
       el.style.display === "flex"
     );
   }

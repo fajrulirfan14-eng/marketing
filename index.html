@@ -594,6 +594,9 @@
   <div class="view" id="view-analisis">
     <div class="analisis-page">
       <div class="analisis-header">
+        <button class="analisis-info-btn" id="analisisInfoBtn">
+          <i class="fa-solid fa-circle-info"></i>
+        </button>
         <div class="analisis-header-title">
           Analisa Trikotomi
         </div>
@@ -608,6 +611,24 @@
           </div>
           <div class="analisis-total-value" id="totalCustomer">
             0
+          </div>
+        </div>
+        <div class="analisis-periode-row">
+          <div class="analisis-filter-chips" id="analisisFilterChips">
+            <button class="analisis-chip" data-filter="return">Ret</button>
+            <button class="analisis-chip" data-filter="expired">Exp</button>
+            <button class="analisis-chip" data-filter="tutup">Ttp</button>
+            <button class="analisis-chip" data-filter="pending">Pen</button>
+            <button class="analisis-chip" data-filter="putus">Pts</button>
+            <button class="analisis-chip" data-filter="catatan">Cat</button>
+          </div>
+          <div class="analisis-periode-wrap" id="analisisPeriodeWrap">
+            <button class="analisis-periode-btn" id="analisisPeriodeBtn">
+              <i class="fa-solid fa-calendar-week"></i>
+              <span id="analisisPeriodeLabel">T-1</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <div class="analisis-periode-dropdown" id="analisisPeriodeDropdown" style="display:none"></div>
           </div>
         </div>
         <div class="analisis-summary">
