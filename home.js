@@ -209,6 +209,106 @@ window.initNotifikasi = async function() {
   // Klik tombol buka popup
   btn.onclick = openPopupNotif;
 };
+async function loadHomeDataCacheAside(uid, role) {
+  const idb = await window.openAppDB();
+
+  // 1. users/{uid} — cek IDB dulu, kalau kosong fetch & simpan
+  let userData = await new Promise(resolve => {
+    const tx  = idb.transaction("usersDB", "readonly");
+    const req = tx.objectStore("usersDB").get(uid);
+    req.onsuccess = () => resolve(req.result?.data || null);
+    req.onerror   = () => resolve(null);
+  });
+  if (!userData) {
+    try {
+      const snap = await window.getDoc(window.doc(window.db, "users", uid));
+      userData = snap.exists() ? snap.data() : {};
+      await new Promise((resolve, reject) => {
+        const tx = idb.transaction("usersDB", "readwrite");
+        tx.objectStore("usersDB").put({ id: uid, data: userData, updatedAt: Date.now() });
+        tx.oncomplete = () => resolve();
+        tx.onerror    = () => reject(tx.error);
+      });
+    } catch (err) {
+      console.error("❌ loadHomeDataCacheAside (users):", err);
+      userData = userData || {};
+    }
+  }
+  window.globalUser       = userData;
+  window.globalBawaBarang = userData.bawaBarang || [];
+  window.globalVarian     = userData.varian || [];
+
+  // 2. kantorCabang/{idCabang} — cek IDB dulu, kalau kosong fetch & simpan
+  const idCabang = userData.idCabang || "";
+  if (idCabang) {
+    let kantorData = await new Promise(resolve => {
+      const tx  = idb.transaction("kantorDB", "readonly");
+      const req = tx.objectStore("kantorDB").get(idCabang);
+      req.onsuccess = () => resolve(req.result?.data || null);
+      req.onerror   = () => resolve(null);
+    });
+    if (!kantorData) {
+      try {
+        const snap = await window.getDoc(window.doc(window.db, "kantorCabang", idCabang));
+        if (snap.exists()) {
+          kantorData = snap.data();
+          await new Promise((resolve, reject) => {
+            const tx = idb.transaction("kantorDB", "readwrite");
+            tx.objectStore("kantorDB").put({ id: idCabang, data: kantorData, updatedAt: Date.now() });
+            tx.oncomplete = () => resolve();
+            tx.onerror    = () => reject(tx.error);
+          });
+        }
+      } catch (err) {
+        console.error("❌ loadHomeDataCacheAside (kantorCabang):", err);
+      }
+    }
+    window.globalKantor = kantorData || null;
+  }
+
+  // 3. customer milik sendiri hari ini — cuma buat kurir (bukan hunter/sales)
+  if (role !== "hunter" && role !== "sales") {
+    const hariNama  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    const hariAktif = hariNama[new Date().getDay()];
+    const customerCacheKey = `${uid}_${hariAktif}`;
+
+    const existingEntry = await new Promise(resolve => {
+      const tx  = idb.transaction("customerHarianDB", "readonly");
+      const req = tx.objectStore("customerHarianDB").get(customerCacheKey);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror   = () => resolve(null);
+    });
+
+    if (existingEntry) {
+      window.customerCache = existingEntry.data || [];
+    } else {
+      try {
+        const snap = await window.getDocs(window.query(
+          window.collection(window.db, "customer"),
+          window.where("pemilik", "==", uid),
+          window.where("status", "==", true),
+          window.where("hari", "==", hariAktif)
+        ));
+        const customerData = snap.docs.map(doc => {
+          const data = doc.data();
+          return { id: doc.id, ...data, lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer) };
+        });
+        window.customerCache = customerData;
+
+        await new Promise((resolve, reject) => {
+          const tx = idb.transaction("customerHarianDB", "readwrite");
+          tx.objectStore("customerHarianDB").put({ id: customerCacheKey, data: customerData, updatedAt: Date.now() });
+          tx.oncomplete = () => resolve();
+          tx.onerror    = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.error("❌ loadHomeDataCacheAside (customer):", err);
+        window.customerCache = [];
+      }
+    }
+  }
+}
+
 window.initHomeView = async function(){
   const user = window.currentUser;
   if(!user) return;
@@ -221,9 +321,11 @@ window.initHomeView = async function(){
   const motivasi = document.getElementById("homeMotivasi");
   const kantor = document.getElementById("homeKantor");
   const tanggal = document.getElementById("homeTanggal");
-  const waktu = document.getElementById("homeWaktu");
   const reloadBtn = document.getElementById("homeReloadCustomerBtn");
   const role = (user.role || "").toLowerCase();
+
+  // cache-aside: cek IDB dulu, kalau kosong baru fetch Firestore & simpan
+  await loadHomeDataCacheAside(user.uid, role);
 
   // Sync foto sampul ke header home
   const headerHome = document.querySelector(".headerHome");
@@ -278,6 +380,10 @@ window.initHomeView = async function(){
         <div class="home-customer-payment">
           <div class="payment-label">Jumlah Bayaran</div>
           <div class="payment-value" id="homeTotalBayaran">Rp 0</div>
+        </div>
+        <div class="home-saldo-barang">
+          <div class="home-saldo-barang-title">Saldo Barang</div>
+          <div class="home-saldo-barang-table" id="homeSaldoBarangTable"></div>
         </div>
       </div>
 
@@ -514,15 +620,6 @@ window.initHomeView = async function(){
       tanggal.innerText =
         `${hariNama[now.getDay()]}, ${now.getDate()} ${bulanNama[now.getMonth()]} ${now.getFullYear()}`;
     }
-    if(waktu){
-      waktu.innerText = now.toLocaleTimeString(
-        "id-ID",
-        {
-          hour:"2-digit",
-          minute:"2-digit"
-        }
-      );
-    }
   }
   if (reloadBtn) {
     reloadBtn.onclick = async function () {
@@ -724,13 +821,14 @@ window.loadSalesCard = async function() {
   try {
     const uid      = window.auth.currentUser?.uid;
     if (!uid) return;
-    const idb      = await window.openAppDB();
-    const userData = await new Promise(resolve => {
-      const tx  = idb.transaction("usersDB", "readonly");
-      const req = tx.objectStore("usersDB").get(uid);
-      req.onsuccess = () => resolve(req.result?.data || null);
-      req.onerror   = () => resolve(null);
-    });
+
+    let userData = null;
+    try {
+      const snap = await window.getDoc(window.doc(window.db, "users", uid));
+      userData = snap.exists() ? snap.data() : null;
+    } catch (err) {
+      console.error("❌ loadSalesCard (users):", err);
+    }
 
     const varian = (userData?.varian || []).filter(v => {
       const key = Object.keys(v)[0];
@@ -984,55 +1082,79 @@ window.updateHomeStats = async function() {
     const uid = window.auth.currentUser?.uid;
     if (!uid) return;
 
-    const db = await window.openAppDB();
-    const tx = db.transaction("customerBaruDB", "readonly");
-    const store = tx.objectStore("customerBaruDB");
-
-    const allData = await new Promise((resolve, reject) => {
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-
-    // FILTER HARI INI
-    const todayData = allData.filter(x => x.tanggal === today);
+    let todayData = [];
+    try {
+      const snap = await window.getDocs(window.query(
+        window.collection(window.db, "users", uid, "customerBaruHunter"),
+        window.where("tanggal", "==", today)
+      ));
+      todayData = snap.docs.map(d => d.data());
+    } catch (err) {
+      console.error("❌ updateHomeStats (customerBaruHunter):", err);
+    }
 
     // JUMLAH CUSTOMER
     const jumlahCustomer = todayData.length;
 
-    // KONSINYASI & CASH
+    // KONSINYASI & CASH (total, dan per varian buat saldo barang)
     let totalKonsinyasi = 0;
     let totalCash = 0;
+    const closingPerVarian = {};
 
     todayData.forEach(item => {
       // JUMLAH SEMUA VALUE DI konsinyasi
-      Object.values(item.konsinyasi || {}).forEach(val => {
+      Object.entries(item.konsinyasi || {}).forEach(([key, val]) => {
         totalKonsinyasi += Number(val || 0);
+        closingPerVarian[key] = (closingPerVarian[key] || 0) + Number(val || 0);
       });
       // JUMLAH SEMUA VALUE DI cash
-      Object.values(item.cash || {}).forEach(val => {
+      Object.entries(item.cash || {}).forEach(([key, val]) => {
         totalCash += Number(val || 0);
+        closingPerVarian[key] = (closingPerVarian[key] || 0) + Number(val || 0);
       });
     });
 
     // CLOSING
     const totalClosing = totalKonsinyasi + totalCash;
 
-    // UPAH HUNTER DARI KANTORDB
+    // SALDO BARANG PER VARIAN = bawa (order laporanMarketing) - (konsinyasi+cash)
+    let orderMap = {};
+    try {
+      const snapLap = await window.getDocs(window.query(
+        window.collection(window.db, "users", uid, "laporanMarketing"),
+        window.where("tanggal", "==", today),
+        window.where("idMarketing", "==", uid)
+      ));
+      if (!snapLap.empty) orderMap = snapLap.docs[0].data()?.order || {};
+    } catch (err) {
+      console.error("❌ updateHomeStats (laporanMarketing utk saldo barang):", err);
+    }
+
+    const varianKeys = (window.globalVarian || []).map(v => Object.keys(v)[0]).filter(Boolean);
+    const saldoTableEl = document.getElementById("homeSaldoBarangTable");
+    if (saldoTableEl && varianKeys.length) {
+      saldoTableEl.innerHTML = varianKeys.map(k => {
+        const saldo = Number(orderMap[k] || 0) - Number(closingPerVarian[k] || 0);
+        return `
+          <div class="home-saldo-barang-item">
+            <div class="label">${k}</div>
+            <div class="value ${saldo < 0 ? "sales-cell-kurang" : ""}">${saldo}</div>
+          </div>
+        `;
+      }).join("");
+    } else if (saldoTableEl) {
+      saldoTableEl.innerHTML = `<div class="customer-empty">Tidak ada data varian</div>`;
+    }
+
+    // UPAH HUNTER DARI kantorCabang (Firestore)
     let upahHunter = 0;
     try {
       const user = window.currentUser || {};
-      const dbK = await window.openAppDB();
-      const txK = dbK.transaction("kantorDB", "readonly");
-      const storeK = txK.objectStore("kantorDB");
-      const kantorRaw = await new Promise(resolve => {
-        const r = storeK.get(user.idCabang || "");
-        r.onsuccess = () => resolve(r.result || null);
-        r.onerror = () => resolve(null);
-      });
-      const kantorData = kantorRaw?.data || kantorRaw;
-      upahHunter = Number(kantorData?.upahHunter || 0);
-    } catch { }
+      const snap = await window.getDoc(window.doc(window.db, "kantorCabang", user.idCabang || ""));
+      if (snap.exists()) upahHunter = Number(snap.data()?.upahHunter || 0);
+    } catch (err) {
+      console.error("❌ updateHomeStats (kantorCabang):", err);
+    }
     // TOTAL BAYARAN
     const totalBayaran = jumlahCustomer * upahHunter;
 

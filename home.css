@@ -517,13 +517,13 @@
   transition: fill 0.3s ease;
 }
 
-/* ── TANGGAL & WAKTU ── */
+/* ── TANGGAL ── */
 .tanggal-waktu {
   width: 100%;
   padding-top: 14px;
   border-top: 1px solid var(--home-divider);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   transition: border-color 0.3s ease;
 }
@@ -531,12 +531,6 @@
   font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
-  transition: color 0.3s ease;
-}
-.tanggal-waktu .waktu {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--home-time-color);
   transition: color 0.3s ease;
 }
 
@@ -774,6 +768,47 @@
   font-weight: 700;
   color: #fff;
   letter-spacing: 0.3px;
+}
+
+/* ── SALDO BARANG ── */
+.home-saldo-barang {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.home-saldo-barang-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 10px;
+}
+.home-saldo-barang-table {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+.home-saldo-barang-item {
+  border-radius: 12px;
+  padding: 8px 6px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+}
+.home-saldo-barang-item .label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.home-saldo-barang-item .value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
 }
 
 /* ── POPUP MENU ── */
