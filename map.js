@@ -51,10 +51,152 @@ window.openMapView = function() {
   let pinInfoEl       = null;
   let activePinEl     = null;
 
+  // ── CACHE "MILIK SENDIRI" — selalu di-fetch begitu peta dibuka ──
+  let _mapOwnDataPromise = null;
+  function getMapOwnData() {
+    if (window._mapOwnDataCache) return Promise.resolve(window._mapOwnDataCache);
+    if (!_mapOwnDataPromise) {
+      _mapOwnDataPromise = fetchMapOwnData().then(data => {
+        window._mapOwnDataCache = data;
+        return data;
+      });
+    }
+    return _mapOwnDataPromise;
+  }
+  async function fetchMapOwnData() {
+    const uid  = window.auth?.currentUser?.uid;
+    const role = (window.currentUser?.role || "").toLowerCase();
+    const result = { harian: [], baru: [], sales: [] };
+    if (!uid) return result;
+
+    // customer milik sendiri
+    try {
+      const snap = await window.getDocs(window.query(
+        window.collection(window.db, "customer"),
+        window.where("pemilik", "==", uid),
+        window.where("status", "==", true)
+      ));
+      snap.forEach(d => {
+        const data = d.data();
+        result.harian.push({ id: d.id, ...data, lokasiCustomer: window.normalizeGeoPoint?.(data.lokasiCustomer) || data.lokasiCustomer });
+      });
+    } catch (err) { console.error("❌ fetchMapOwnData (customer):", err); }
+
+    // customerBaruHunter milik sendiri — cuma relevan buat role hunter
+    if (role === "hunter") {
+      try {
+        const snap = await window.getDocs(window.query(
+          window.collection(window.db, "users", uid, "customerBaruHunter"),
+          window.where("diserahkan", "==", false)
+        ));
+        snap.forEach(d => {
+          const data = d.data();
+          result.baru.push({ id: d.id, ...data, _isNew: true, pemilik: data.createdBy || uid });
+        });
+      } catch (err) { console.error("❌ fetchMapOwnData (customerBaruHunter):", err); }
+    }
+
+    // customerSales milik sendiri
+    try {
+      const snap = await window.getDocs(window.query(
+        window.collection(window.db, "customerSales"),
+        window.where("createdBy", "==", uid)
+      ));
+      snap.forEach(d => {
+        const data = d.data();
+        result.sales.push({ id: d.id, ...data, pemilik: data.createdBy || uid, lokasiCustomer: window.normalizeGeoPoint?.(data.lokasiCustomer) || data.lokasiCustomer, _isSales: true });
+      });
+    } catch (err) { console.error("❌ fetchMapOwnData (customerSales):", err); }
+
+    return result;
+  }
+
+  // ── CACHE "STAFF LAIN" — lazy, cuma di-fetch sekali pas pertama kali dibutuhkan ──
+  let _mapLainDataPromise = null;
+  function getMapLainData() {
+    if (window._mapLainDataCache) return Promise.resolve(window._mapLainDataCache);
+    if (!_mapLainDataPromise) {
+      _mapLainDataPromise = fetchMapLainData().then(data => {
+        window._mapLainDataCache = data;
+        // ikut masukin ke allCustomers biar search suggest juga bisa nemu customer staff lain
+        if (Array.isArray(allCustomers)) {
+          allCustomers.push(...data.lain, ...data.hunterLain, ...data.salesLain);
+        }
+        return data;
+      });
+    }
+    return _mapLainDataPromise;
+  }
+  async function fetchMapLainData() {
+    const uid      = window.auth?.currentUser?.uid;
+    const idCabang = window.currentUser?.idCabang || "";
+    const role     = (window.currentUser?.role || "").toLowerCase();
+    const result = { lain: [], hunterLain: [], salesLain: [] };
+    if (!uid || !idCabang) return result;
+
+    try {
+      const snap = await window.getDocs(window.query(
+        window.collection(window.db, "customer"),
+        window.where("idCabang", "==", idCabang),
+        window.where("status", "==", true)
+      ));
+      snap.forEach(d => {
+        const data = d.data();
+        if (data.pemilik === uid) return; // punya sendiri sudah ada di cache own
+        result.lain.push({ id: d.id, ...data, lokasiCustomer: window.normalizeGeoPoint?.(data.lokasiCustomer) || data.lokasiCustomer, _isLain: true });
+      });
+    } catch (err) { console.error("❌ fetchMapLainData (customer):", err); }
+
+    try {
+      const snap = await window.getDocs(window.query(
+        window.collectionGroup(window.db, "customerBaruHunter"),
+        window.where("idCabang", "==", idCabang),
+        window.where("diserahkan", "==", false)
+      ));
+      snap.forEach(d => {
+        const data = d.data();
+        const pemilik = data.createdBy || "";
+        if (role === "hunter" && pemilik === uid) return;
+        result.hunterLain.push({ id: d.id, ...data, pemilik, _isNewLain: true });
+      });
+    } catch (err) { console.error("❌ fetchMapLainData (customerBaruHunter):", err); }
+
+    try {
+      const snap = await window.getDocs(window.query(
+        window.collection(window.db, "customerSales"),
+        window.where("idCabang", "==", idCabang)
+      ));
+      snap.forEach(d => {
+        const data = d.data();
+        const pemilik = data.createdBy || data.pemilik || "";
+        if (pemilik === uid) return;
+        result.salesLain.push({ id: d.id, ...data, pemilik, lokasiCustomer: window.normalizeGeoPoint?.(data.lokasiCustomer) || data.lokasiCustomer, _isSalesLain: true });
+      });
+    } catch (err) { console.error("❌ fetchMapLainData (customerSales):", err); }
+
+    return result;
+  }
+
   const HARI_COLOR = {
     "Minggu": "#e53935", "Senin": "#1a73e8", "Selasa": "#43a047",
     "Rabu": "#fb8c00", "Kamis": "#8e24aa", "Jumat": "#00897b", "Sabtu": "#e91e63",
   };
+
+  // ── FILTER HARI: default ke hari aktif (hari ini) kalau belum pernah di-set manual ──
+  function getDefaultFilterHari() {
+    const namaHari = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    return [namaHari[new Date().getDay()]];
+  }
+  function getFilterHariSaved() {
+    const raw = localStorage.getItem("mapFilterHari");
+    if (raw === null) return getDefaultFilterHari();
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : getDefaultFilterHari();
+    } catch {
+      return getDefaultFilterHari();
+    }
+  }
 
   async function updateUserDot(lat, lng, accuracy) {
     try {
@@ -98,10 +240,29 @@ window.openMapView = function() {
     if (!btn) return;
     btn.className = "map-btn-lokasiku mode-" + locationMode;
     const icons = {
-      0: `<svg viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>`,
-      1: `<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="3" fill="#4285F4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#4285F4" stroke-width="2"/></svg>`,
-      2: `<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="4" fill="#4285F4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="#4285F4" stroke-width="2.5"/></svg>`,
-      3: `<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="10" stroke="#4285F4" stroke-width="1.5"/><path d="M12 2 L14.5 9.5 L12 8 L9.5 9.5 Z" fill="#e53935"/><path d="M12 22 L9.5 14.5 L12 16 L14.5 14.5 Z" fill="#888"/></svg>`,
+      // mode 0 — nonaktif: crosshair outline putih
+      0: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" width="22" height="22">
+            <circle cx="12" cy="12" r="7"/>
+            <circle cx="12" cy="12" r="1.6" fill="#fff" stroke="none"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>`,
+      // mode 1 — center sekali: crosshair krem terang
+      1: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff8ec" stroke-width="2" stroke-linecap="round" width="22" height="22">
+            <circle cx="12" cy="12" r="7"/>
+            <circle cx="12" cy="12" r="1.6" fill="#fff8ec" stroke="none"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>`,
+      // mode 2 — follow: pin lokasi solid putih
+      2: `<svg viewBox="0 0 24 24" width="22" height="22">
+            <circle cx="12" cy="12" r="8" fill="#fff" fill-opacity="0.2"/>
+            <circle cx="12" cy="12" r="5.5" fill="#fff"/>
+          </svg>`,
+      // mode 3 — follow + kompas: jarum navigasi putih
+      3: `<svg viewBox="0 0 24 24" width="22" height="22">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="1.5"/>
+            <path d="M12 4 L15 12 L12 10.3 L9 12 Z" fill="#fff"/>
+            <circle cx="12" cy="12" r="1.8" fill="#fff"/>
+          </svg>`,
     };
     btn.innerHTML = icons[locationMode] || icons[0];
   }
@@ -175,105 +336,49 @@ window.openMapView = function() {
   // ── PIN CUSTOMER ──
   async function loadPinCustomer() {
     try {
-      const idb = await window.openAppDB();
-
-      // Load customer harian
-      const all = await new Promise(resolve => {
-        const tx  = idb.transaction("customerHarianDB", "readonly");
-        const req = tx.objectStore("customerHarianDB").getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror   = () => resolve([]);
-      });
-
-      let customers = [];
-      all.forEach(item => {
-        if (Array.isArray(item.data)) customers.push(...item.data);
-      });
-
-      // Filter hari
-      const filterHari = JSON.parse(localStorage.getItem("mapFilterHari") || "[]");
-      if (filterHari.length > 0 && filterHari.length < 7) {
-        customers = customers.filter(c => filterHari.includes(c.hari));
-      }
-
-      // Dedupe + validasi
-      const seen = new Set();
-      const customerHarian = customers.filter(c => {
-        const cid = c.idCustomer || c.id;
-        if (!cid || seen.has(cid)) return false;
-        seen.add(cid);
+      const own = await getMapOwnData();
+      const hasLoc = c => {
         const loc = window.normalizeGeoPoint?.(c.lokasiCustomer) || c.lokasiCustomer;
         return !!(loc?.lat && loc?.lng);
-      });
+      };
 
-      // Load customer baru hunter (diserahkan: false)
-      const allBaru = await new Promise(resolve => {
-        const tx  = idb.transaction("customerBaruDB", "readonly");
-        const req = tx.objectStore("customerBaruDB").getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror   = () => resolve([]);
-      });
+      const filterHari = getFilterHariSaved();
 
-      const uid = window.auth?.currentUser?.uid;
-      const customerBaru = allBaru.filter(c => {
-        if (c.diserahkan === true) return false;
-        if (c.type) return false;
-        const loc = c.lokasiCustomer;
-        return !!(loc?.lat && loc?.lng);
-      })
-      .filter(c => filterHari.length === 0 || filterHari.includes(c.hari))
-      .map(c => ({ ...c, _isNew: true, pemilik: c.pemilik || c.createdBy || "" }));
-      // Load customerLainDB — filter by user yang dicentang + filter hari
+      let customerHarian = own.harian.filter(hasLoc);
+      if (filterHari.length > 0 && filterHari.length < 7) {
+        customerHarian = customerHarian.filter(c => filterHari.includes(c.hari));
+      }
+
+      const customerBaru = own.baru
+        .filter(hasLoc)
+        .filter(c => filterHari.length === 0 || filterHari.includes(c.hari));
+
+      const customerSales = own.sales
+        .filter(hasLoc)
+        .filter(c => filterHari.length === 0 || filterHari.includes(c.hari));
+
       const filterUsersRaw = JSON.parse(localStorage.getItem("mapFilterUsers") || "[]");
       const isHideAll      = filterUsersRaw.includes("__hide_all__");
       const filterUsers    = isHideAll ? [] : filterUsersRaw;
-      const filterHariLain = JSON.parse(localStorage.getItem("mapFilterHari") || "[]");
 
-      const allLain = await new Promise(resolve => {
-        const tx  = idb.transaction("customerLainDB", "readonly");
-        const req = tx.objectStore("customerLainDB").getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror   = () => resolve([]);
-      });
-      const customerLain = isHideAll ? [] : allLain
-        .filter(c => filterUsers.length === 0 || filterUsers.includes(c.pemilik))
-        .filter(c => filterHariLain.length === 0 || filterHariLain.includes(c.hari))
-        .map(c => ({ ...c, _isLain: true }));
+      let customerLain = [], customerHunterLain = [], customerSalesLain = [];
 
-      // Load customerHunterDB — filter by user yang dicentang + filter hari
-      const allHunter = await new Promise(resolve => {
-        const tx  = idb.transaction("customerHunterDB", "readonly");
-        const req = tx.objectStore("customerHunterDB").getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror   = () => resolve([]);
-      });
-      const customerHunterLain = isHideAll ? [] : allHunter
-        .filter(c => filterUsers.length === 0 || filterUsers.includes(c.pemilik))
-        .filter(c => filterHariLain.length === 0 || filterHariLain.includes(c.hari))
-        .map(c => ({ ...c, _isNewLain: true }));
-      // Load customerSalesDB — data sales milik sendiri
-      const allSales = await new Promise(resolve => {
-        const tx  = idb.transaction("customerSalesDB", "readonly");
-        const req = tx.objectStore("customerSalesDB").getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror   = () => resolve([]);
-      });
-      const customerSales = allSales
-        .filter(c => !!(c.lokasiCustomer?.lat && c.lokasiCustomer?.lng))
-        .filter(c => filterHari.length === 0 || filterHari.includes(c.hari))
-        .map(c => ({ ...c, _isSales: true, pemilik: c.pemilik || c.createdBy || "" }));
-
-      // Load customerSalesLainDB — data sales lain
-      const allSalesLain = await new Promise(resolve => {
-        const tx  = idb.transaction("customerSalesLainDB", "readonly");
-        const req = tx.objectStore("customerSalesLainDB").getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror   = () => resolve([]);
-      });
-      const customerSalesLain = isHideAll ? [] : allSalesLain
-        .filter(c => filterUsers.length === 0 || filterUsers.includes(c.pemilik))
-        .filter(c => filterHariLain.length === 0 || filterHariLain.includes(c.hari))
-        .map(c => ({ ...c, _isSalesLain: true }));
+      // data staff lain cuma di-fetch kalau memang ada staff yang dicentang
+      if (!isHideAll && filterUsers.length > 0) {
+        const lain = await getMapLainData();
+        customerLain = lain.lain
+          .filter(hasLoc)
+          .filter(c => filterUsers.includes(c.pemilik))
+          .filter(c => filterHari.length === 0 || filterHari.includes(c.hari));
+        customerHunterLain = lain.hunterLain
+          .filter(hasLoc)
+          .filter(c => filterUsers.includes(c.pemilik))
+          .filter(c => filterHari.length === 0 || filterHari.includes(c.hari));
+        customerSalesLain = lain.salesLain
+          .filter(hasLoc)
+          .filter(c => filterUsers.includes(c.pemilik))
+          .filter(c => filterHari.length === 0 || filterHari.includes(c.hari));
+      }
 
       return [...customerHarian, ...customerBaru, ...customerLain, ...customerHunterLain, ...customerSales, ...customerSalesLain];
     } catch { return []; }
@@ -524,7 +629,15 @@ window.openMapView = function() {
           <div class="map-pin-sheet-row">Pemilik: <span id="pinSheetPemilik">...</span></div>
         </div>
       </div>
-      <button class="map-pin-sheet-btn" id="mapBtnKunjungi">Kunjungi Customer</button>
+      <div class="map-pin-sheet-btn-row">
+        <button class="map-pin-sheet-btn" id="mapBtnKunjungi">Kunjungi Customer</button>
+        <button class="map-pin-sheet-btn-gmaps" id="mapBtnGmaps" title="Buka di Google Maps">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </button>
+      </div>
     `;
     mapEl.appendChild(sheet);
 
@@ -566,6 +679,9 @@ window.openMapView = function() {
     document.getElementById("mapPinSheetClose").onclick = closeSheet;
     // Tombol kunjungi
     document.getElementById("mapBtnKunjungi").onclick = () => startRouting(c, loc, color, sheet, closeSheet);
+    document.getElementById("mapBtnGmaps").onclick = () => {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`, "_blank");
+    };
     // Listener klik map — hanya tutup jika bukan navigasi
     const mapClickListener = map.addListener("click", () => {
       if (sheet.querySelector(".map-nav-sheet")) return; // lock saat navigasi
@@ -709,16 +825,15 @@ window.openMapView = function() {
   async function tampilkanPinKantor() {
     try {
       const user = window.currentUser || {};
-      const idb  = await window.openAppDB();
-      const kantorRaw = await new Promise(resolve => {
-        const tx  = idb.transaction("kantorDB", "readonly");
-        const req = tx.objectStore("kantorDB").get(user.idCabang || "");
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror   = () => resolve(null);
-      });
+      let kantor = null;
+      try {
+        const snap = await window.getDoc(window.doc(window.db, "kantorCabang", user.idCabang || ""));
+        if (snap.exists()) kantor = snap.data();
+      } catch (err) {
+        console.error("❌ tampilkanPinKantor:", err);
+      }
 
-      const kantor = kantorRaw?.data || kantorRaw;
-      const lok    = kantor?.lokasiCabang;
+      const lok = kantor?.lokasiCabang;
       if (!lok) return;
 
       const cabangLat = lok._lat ?? lok.latitude ?? lok.lat;
@@ -820,86 +935,11 @@ window.openMapView = function() {
   let tempPinMarker  = null;
   let allCustomers   = [];
 
-  // Load semua customer ke memory dari semua store
-  window.openAppDB().then(async idb => {
-    // customerHarianDB
-    await new Promise(resolve => {
-      const tx  = idb.transaction("customerHarianDB", "readonly");
-      const req = tx.objectStore("customerHarianDB").getAll();
-      req.onsuccess = () => {
-        (req.result || []).forEach(item => {
-          if (Array.isArray(item.data)) allCustomers.push(...item.data);
-        });
-        resolve();
-      };
-      req.onerror = () => resolve();
-    });
-
-    // customerBaruDB
-    await new Promise(resolve => {
-      const tx  = idb.transaction("customerBaruDB", "readonly");
-      const req = tx.objectStore("customerBaruDB").getAll();
-      req.onsuccess = () => {
-        (req.result || []).filter(c => !c.type && !c.diserahkan).forEach(c => {
-          allCustomers.push({ ...c, _isNew: true });
-        });
-        resolve();
-      };
-      req.onerror = () => resolve();
-    });
-
-    // customerLainDB
-    await new Promise(resolve => {
-      const tx  = idb.transaction("customerLainDB", "readonly");
-      const req = tx.objectStore("customerLainDB").getAll();
-      req.onsuccess = () => {
-        (req.result || []).forEach(c => {
-          allCustomers.push({ ...c, _isLain: true });
-        });
-        resolve();
-      };
-      req.onerror = () => resolve();
-    });
-
-    // customerHunterDB
-    await new Promise(resolve => {
-      const tx  = idb.transaction("customerHunterDB", "readonly");
-      const req = tx.objectStore("customerHunterDB").getAll();
-      req.onsuccess = () => {
-        (req.result || []).forEach(c => {
-          allCustomers.push({ ...c, _isNewLain: true });
-        });
-        resolve();
-      };
-      req.onerror = () => resolve();
-    });
-
-    // customerSalesDB
-    await new Promise(resolve => {
-      const tx  = idb.transaction("customerSalesDB", "readonly");
-      const req = tx.objectStore("customerSalesDB").getAll();
-      req.onsuccess = () => {
-        (req.result || []).forEach(c => {
-          allCustomers.push({ ...c, _isSales: true });
-        });
-        resolve();
-      };
-      req.onerror = () => resolve();
-    });
-
-    // customerSalesLainDB
-    await new Promise(resolve => {
-      const tx  = idb.transaction("customerSalesLainDB", "readonly");
-      const req = tx.objectStore("customerSalesLainDB").getAll();
-      req.onsuccess = () => {
-        (req.result || []).forEach(c => {
-          allCustomers.push({ ...c, _isSalesLain: true });
-        });
-        resolve();
-      };
-      req.onerror = () => resolve();
-    });
-
+  // Load customer milik sendiri ke memory buat search suggest.
+  // Customer staff lain otomatis ikut ditambahkan begitu getMapLainData()
+  // pertama kali di-trigger (lihat isi fungsi itu).
+  getMapOwnData().then(own => {
+    allCustomers.push(...own.harian, ...own.baru, ...own.sales);
   }).catch(() => {});
 
   const searchWrap = document.createElement("div");
@@ -1046,7 +1086,7 @@ window.openMapView = function() {
 
         <!-- Filter Hari -->
         <div class="map-setting-item map-setting-expandable" id="mapSettingFilterHari">
-          <span>Filter Hari</span>
+          <span>Tampilkan Sesuai Hari</span>
           <svg class="map-setting-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg>
         </div>
         <div class="map-setting-expand-body" id="mapFilterHariBody">
@@ -1060,7 +1100,7 @@ window.openMapView = function() {
 
         <!-- Customer Lain -->
         <div class="map-setting-item map-setting-expandable" id="mapSettingCustomerLain">
-          <span>Customer Lain</span>
+          <span>Tampilkan Customer Lain</span>
           <svg class="map-setting-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 9l6 6 6-6"/></svg>
         </div>
         <div class="map-setting-expand-body" id="mapCustomerLainBody">
@@ -1115,17 +1155,7 @@ window.openMapView = function() {
             <div class="map-setting-checkbox"></div>
           </div>
         </div>
-
-        <!-- Tampilkan Semua Pin -->
-        <button class="map-setting-sync-btn" id="mapBtnSyncAllPin">
-          <svg id="mapSyncAllIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-            <path d="M23 4v6h-6"/>
-            <path d="M1 20v-6h6"/>
-            <path d="M3.51 9a9 9 0 0114.36-3.36L23 10M1 14l5.13 4.36A9 9 0 0020.49 15"/>
-          </svg>
-          <span id="mapSyncAllText">Tampilkan Semua Pin</span>
-        </button>
-
+        
       </div>
     </div>
   `;
@@ -1179,7 +1209,7 @@ window.openMapView = function() {
 
     // Init state filter hari dari localStorage
     function initFilterHari() {
-      const savedHari = JSON.parse(localStorage.getItem("mapFilterHari") || "[]");
+      const savedHari = getFilterHariSaved();
       expandHariBody.querySelectorAll(".map-setting-check-item[data-hari]").forEach(item => {
         // Set state awal
         if (savedHari.includes(item.dataset.hari)) {
@@ -1378,170 +1408,10 @@ window.openMapView = function() {
         localStorage.setItem("mapNavMode", item.dataset.mode);
       });
     });
-    document.getElementById("mapBtnSyncAllPin")?.addEventListener("click", syncSemuaPin);
     btnSetting.onclick = () => {
       if (settingSheetEl) close();
       else openSettingSheet();
     };
-  }
-  window.syncSemuaPin = async function syncSemuaPin() {
-    const btn  = document.getElementById("mapBtnSyncAllPin");
-    const text = document.getElementById("mapSyncAllText");
-    const icon = document.getElementById("mapSyncAllIcon");
-    if (!btn) return;
-
-    btn.classList.add("loading");
-    if (text) text.textContent = "Memuat...";
-
-    try {
-      const uid      = window.auth?.currentUser?.uid;
-      const user     = window.currentUser || {};
-      const idCabang = user.idCabang || "";
-      const role     = (user.role || "").toLowerCase();
-
-      if (!uid || !idCabang) throw new Error("User tidak valid");
-
-      // ── QUERY customer collection ──
-      const customerSnap = await window.getDocs(window.query(
-        window.collection(window.db, "customer"),
-        window.where("idCabang", "==", idCabang),
-        window.where("status", "==", true)
-      ));
-
-      const customerDocs = customerSnap.docs.map(d => {
-        const data = d.data();
-        return {
-          id:            d.id,
-          foto:          data.foto || "",
-          namaCustomer:  data.namaCustomer || "",
-          pemilik:       data.pemilik || "",
-          hari:          data.hari || "",
-          lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer),
-        };
-      });
-
-      // Filter berdasarkan role
-      let customerLainData = [];
-      if (role === "kurir") {
-        customerLainData = customerDocs.filter(c => c.pemilik !== uid);
-      } else if (role === "hunter" || role === "sales") {
-        customerLainData = customerDocs;
-      }
-
-      // ── QUERY customerBaruHunter collectionGroup ──
-      const hunterSnap = await window.getDocs(window.query(
-        window.collectionGroup(window.db, "customerBaruHunter"),
-        window.where("idCabang", "==", idCabang),
-        window.where("diserahkan", "==", false)
-      ));
-
-      const hunterDocs = hunterSnap.docs.map(d => {
-        const data = d.data();
-        return {
-          id:            d.id,
-          foto:          data.foto || "",
-          namaCustomer:  data.namaCustomer || "",
-          pemilik:       data.createdBy || "",
-          hari:          data.hari || "",
-          lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer),
-        };
-      });
-
-      let customerHunterData = [];
-      if (role === "kurir" || role === "sales") {
-        customerHunterData = hunterDocs;
-      } else if (role === "hunter") {
-        customerHunterData = hunterDocs.filter(c => c.pemilik !== uid);
-      }
-
-      // ── QUERY customerSales collection ──
-      const salesSnap = await window.getDocs(window.query(
-        window.collection(window.db, "customerSales"),
-        window.where("idCabang", "==", idCabang)
-      ));
-
-      const salesDocs = salesSnap.docs.map(d => {
-        const data = d.data();
-        return {
-          id:            d.id,
-          foto:          data.foto || "",
-          namaCustomer:  data.namaCustomer || "",
-          pemilik:       data.createdBy || "",
-          hari:          data.hari || "",
-          lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer),
-        };
-      });
-
-      let customerSalesLainData = [];
-      if (role === "kurir" || role === "hunter") {
-        customerSalesLainData = salesDocs;
-      } else if (role === "sales") {
-        customerSalesLainData = salesDocs.filter(c => c.pemilik !== uid);
-      }
-
-      // ── SIMPAN KE INDEXEDDB ──
-      const idb = await window.openAppDB();
-
-      // Simpan customerLainDB
-      await new Promise((resolve, reject) => {
-        const tx    = idb.transaction("customerLainDB", "readwrite");
-        const store = tx.objectStore("customerLainDB");
-        store.clear();
-        customerLainData.forEach(c => {
-          if (c.lokasiCustomer?.lat && c.lokasiCustomer?.lng) store.put(c);
-        });
-        tx.oncomplete = () => resolve();
-        tx.onerror    = () => reject(tx.error);
-      });
-
-      // Simpan customerHunterDB
-      await new Promise((resolve, reject) => {
-        const tx    = idb.transaction("customerHunterDB", "readwrite");
-        const store = tx.objectStore("customerHunterDB");
-        store.clear();
-        customerHunterData.forEach(c => {
-          if (c.lokasiCustomer?.lat && c.lokasiCustomer?.lng) store.put(c);
-        });
-        tx.oncomplete = () => resolve();
-        tx.onerror    = () => reject(tx.error);
-      });
-
-      // Simpan customerSalesLainDB
-      await new Promise((resolve, reject) => {
-        const tx    = idb.transaction("customerSalesLainDB", "readwrite");
-        const store = tx.objectStore("customerSalesLainDB");
-        store.clear();
-        customerSalesLainData.forEach(c => {
-          if (c.lokasiCustomer?.lat && c.lokasiCustomer?.lng) store.put(c);
-        });
-        tx.oncomplete = () => resolve();
-        tx.onerror    = () => reject(tx.error);
-      });
-
-      if (text) text.textContent = `✓ ${customerLainData.length + customerHunterData.length + customerSalesLainData.length} Pin Dimuat`;
-      btn.style.background = "#2eaf62";
-
-      // Refresh pin di map
-      pinMarkers.forEach(m => { try { m.map = null; } catch { } });
-      pinMarkers = []; pinVisible = false;
-      tampilkanPinCustomer();
-
-      setTimeout(() => {
-        btn.style.background = "";
-        if (text) text.textContent = "Tampilkan Semua Pin";
-        btn.classList.remove("loading");
-      }, 2000);
-
-    } catch(e) {
-      console.log("syncSemuaPin error:", e);
-      if (text) text.textContent = "Gagal, Coba Lagi";
-      btn.style.background = "#e74c3c";
-      setTimeout(() => {
-        btn.style.background = "";
-        if (text) text.textContent = "Tampilkan Semua Pin";
-        btn.classList.remove("loading");
-      }, 2000);
-    }
   }
   btnSetting.onclick = openSettingSheet;
   // ── TUTUP ──
@@ -1628,13 +1498,14 @@ window.openMapFromInput = function(customerId) {
 
 // hunter
 window.openMapFromCustomerBaru = async function(idCustomer) {
-  const idb = await window.openAppDB();
-  const data = await new Promise(resolve => {
-    const tx  = idb.transaction("customerBaruDB", "readonly");
-    const req = tx.objectStore("customerBaruDB").get(idCustomer);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror   = () => resolve(null);
-  });
+  const uid = window.auth?.currentUser?.uid;
+  let data = null;
+  try {
+    const snap = await window.getDoc(window.doc(window.db, "users", uid, "customerBaruHunter", idCustomer));
+    if (snap.exists()) data = snap.data();
+  } catch (err) {
+    console.error("❌ openMapFromCustomerBaru:", err);
+  }
   if (!data) return;
 
   const loc = data.lokasiCustomer;

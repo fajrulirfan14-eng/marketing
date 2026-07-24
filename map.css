@@ -87,10 +87,11 @@
   position:absolute;right:12px;z-index:10;
   width:48px;height:48px;border:none;border-radius:12px;
   background:var(--bg-primary);
+  box-shadow:0 3px 10px rgba(0,0,0,.25);
   display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:
+  cursor:pointer;transition:transform .15s;
 }
-.map-btn-lokasiku{bottom:200px}
+.map-btn-lokasiku{bottom:200px;background:var(--accent)}
 .map-btn-pin{bottom:180px;color:#555}
 .map-btn-lokasiku:active,.map-btn-pin:active{transform:scale(0.93)}
 
@@ -191,11 +192,41 @@
 
 /* ── EXPAND BODY ── */
 .map-setting-expand-body{
-  display:flex;flex-direction:column;overflow:hidden;
-  max-height:0;opacity:0;
+  display:flex;flex-direction:column;
+  max-height:0;opacity:0;overflow:hidden;
   transition:max-height .3s cubic-bezier(.4,0,.2,1),opacity .25s ease;
 }
-.map-setting-expand-body.open{max-height:300px;opacity:1;margin:4px 0 8px}
+.map-setting-expand-body.open{
+  max-height:60vh;opacity:1;margin:4px 0 8px;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.map-pin-sheet-btn-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-top: 16px;
+}
+.map-pin-sheet-btn-row .map-pin-sheet-btn {
+  flex: 1;
+  margin-top: 0;
+}
+.map-pin-sheet-btn-gmaps {
+  flex-shrink: 0;
+  width: 48px;
+  border: none;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+}
+.map-pin-sheet-btn-gmaps:active {
+  background: var(--accent-dark);
+  transform: scale(0.97);
+}
 
 /* ── TIPE PETA ── */
 .map-type-item{
