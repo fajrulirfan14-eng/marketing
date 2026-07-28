@@ -1086,6 +1086,7 @@ window.updateHomeStats = async function() {
     try {
       const snap = await window.getDocs(window.query(
         window.collection(window.db, "users", uid, "customerBaruHunter"),
+        window.where("createdBy", "==", uid),
         window.where("tanggal", "==", today)
       ));
       todayData = snap.docs.map(d => d.data());
