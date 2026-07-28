@@ -1495,6 +1495,9 @@ window.openMapFromCustomerBaru = async function(idCustomer) {
   }
   if (!data) return;
 
+  const loc = window.normalizeGeoPoint?.(data.lokasiCustomer) || data.lokasiCustomer;
+  if (!loc?.lat || !loc?.lng) return;
+
   const loc = data.lokasiCustomer;
   if (!loc?.lat || !loc?.lng) return;
 
