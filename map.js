@@ -727,34 +727,18 @@ window.openMapView = function() {
         if (fromGlobalCache) {
           if (elPemilik) elPemilik.textContent = fromGlobalCache.nama || "-";
         } else {
-          // Cek usersDB IndexedDB
-          window.openAppDB().then(idb => {
-            const tx  = idb.transaction("usersDB", "readonly");
-            const req = tx.objectStore("usersDB").get(pemilikUid);
-            req.onsuccess = () => {
-              const nama = req.result?.data?.nama || null;
-              if (nama) {
-                if (elPemilik) elPemilik.textContent = nama;
-              } else {
-                // Fallback query Firestore
-                window.getDoc(window.doc(window.db, "users", pemilikUid))
-                  .then(snap => {
-                    const n = snap.exists() ? (snap.data().nama || "-") : "-";
-                    if (elPemilik) elPemilik.textContent = n;
-                    if (snap.exists()) {
-                      if (!window._mapUsersCabangCache) window._mapUsersCabangCache = [];
-                      const already = window._mapUsersCabangCache.find(u => u.id === pemilikUid);
-                      if (!already) window._mapUsersCabangCache.push({ id: pemilikUid, ...snap.data() });
-                    }
-                  })
-                  .catch(() => { if (elPemilik) elPemilik.textContent = "-"; });
+          // Gak ada di RAM cache — fetch Firestore langsung, simpan ke cache RAM biar gak fetch ulang
+          window.getDoc(window.doc(window.db, "users", pemilikUid))
+            .then(snap => {
+              const n = snap.exists() ? (snap.data().nama || "-") : "-";
+              if (elPemilik) elPemilik.textContent = n;
+              if (snap.exists()) {
+                if (!window._mapUsersCabangCache) window._mapUsersCabangCache = [];
+                const already = window._mapUsersCabangCache.find(u => u.id === pemilikUid);
+                if (!already) window._mapUsersCabangCache.push({ id: pemilikUid, ...snap.data() });
               }
-            };
-            req.onerror = () => { if (elPemilik) elPemilik.textContent = "-"; };
-          }).catch(() => {
-            const elPemilik = document.getElementById("pinSheetPemilik");
-            if (elPemilik) elPemilik.textContent = "-";
-          });
+            })
+            .catch(() => { if (elPemilik) elPemilik.textContent = "-"; });
         }
       }
     } else {
@@ -1445,7 +1429,7 @@ window.openMapFromInput = function(customerId) {
     setTimeout(() => {
       if (!window._mapInstance) { tryFind(attempt + 1); return; }
 
-      // Cari customer dari memory atau IndexedDB
+      // Cari customer dari cache RAM (window.listCustomerData)
       const find = () => {
         const list = window.listCustomerData || [];
         return list.find(c => (c.idCustomer || c.id) === customerId);
