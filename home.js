@@ -210,6 +210,33 @@ window.initNotifikasi = async function() {
   btn.onclick = openPopupNotif;
 };
 async function loadHomeDataCacheAside(uid, role) {
+  // ── HUNTER & SALES: full Firestore, gak nyentuh IDB sama sekali ──
+  if (role === "hunter" || role === "sales") {
+    let userData = {};
+    try {
+      const snap = await window.getDoc(window.doc(window.db, "users", uid));
+      userData = snap.exists() ? snap.data() : {};
+    } catch (err) {
+      console.error("❌ loadHomeDataCacheAside (users, hunter/sales):", err);
+    }
+    window.globalUser       = userData;
+    window.globalBawaBarang = userData.bawaBarang || [];
+    window.globalVarian     = userData.varian || [];
+
+    const idCabangHS = userData.idCabang || "";
+    if (idCabangHS) {
+      try {
+        const snapKantor = await window.getDoc(window.doc(window.db, "kantorCabang", idCabangHS));
+        window.globalKantor = snapKantor.exists() ? snapKantor.data() : null;
+      } catch (err) {
+        console.error("❌ loadHomeDataCacheAside (kantorCabang, hunter/sales):", err);
+        window.globalKantor = null;
+      }
+    }
+    return; // hunter/sales gak butuh customerHarianDB (itu khusus kurir)
+  }
+
+  // ── KURIR & role lain: tetap cache-aside IDB seperti semula ──
   const idb = await window.openAppDB();
 
   // 1. users/{uid} — cek IDB dulu, kalau kosong fetch & simpan
@@ -1191,181 +1218,6 @@ window.updateHomeStats = async function() {
 
   } catch { }
 };
-window.syncPendingSales = async function() {
-  try {
-    if (!navigator.onLine) return;
-    const uid = window.auth?.currentUser?.uid;
-    if (!uid) return;
-
-    const idb = await window.openAppDB();
-    const all = await new Promise(resolve => {
-      const tx  = idb.transaction("customerSalesDB", "readonly");
-      const req = tx.objectStore("customerSalesDB").getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror   = () => resolve([]);
-    });
-
-    const pending = all.filter(x => (x.isSync === false || x.isSync === undefined) && x.createdBy === uid);
-
-    for (const item of pending) {
-      try {
-        let foto = item.foto || "";
-        if (!foto && item.fotoLokal) {
-          try {
-            const arr   = item.fotoLokal.split(",");
-            const mime  = arr[0].match(/:(.*?);/)[1];
-            const bstr  = atob(arr[1]);
-            let n       = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) u8arr[n] = bstr.charCodeAt(n);
-            const blob  = new Blob([u8arr], { type: mime });
-            const sRef  = window.storageRef(window.storage, `fotoCustomerSales/${item.id}`);
-            await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
-            foto = await window.getDownloadURL(sRef);
-          } catch { }
-        }
-
-        const { fotoLokal: _removed, ...itemClean } = item;
-        await window.setDoc(
-          window.doc(window.db, "customerSales", item.id),
-          {
-            ...itemClean,
-            foto,
-            lokasiCustomer: new window.GeoPoint(
-              item.lokasiCustomer?.lat || 0,
-              item.lokasiCustomer?.lng || 0
-            ),
-            createdAt: window.serverTimestamp()
-          }
-        );
-
-        const idb2 = await window.openAppDB();
-        await new Promise((resolve, reject) => {
-          const tx2 = idb2.transaction("customerSalesDB", "readwrite");
-          tx2.objectStore("customerSalesDB").put({ ...item, foto, fotoLokal: null, isSync: true });
-          tx2.oncomplete = () => resolve();
-          tx2.onerror   = () => reject(tx2.error);
-        });
-      } catch { }
-    }
-  } catch { }
-};
-window.syncPendingHunter = async function() {
-  try {
-    if (!navigator.onLine) return;
-    const uid = window.auth?.currentUser?.uid;
-    if (!uid) return;
-
-    const idb = await window.openAppDB();
-    const all = await new Promise(resolve => {
-      const tx  = idb.transaction("customerBaruDB", "readonly");
-      const req = tx.objectStore("customerBaruDB").getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror   = () => resolve([]);
-    });
-
-    const pending    = all.filter(x => (x.isSync === false || x.isSync === undefined) && x.createdBy === uid && !x.type && !x.isEdit);
-    const pendingEdit = all.filter(x => x.isSync === false && x.createdBy === uid && x.isEdit === true);
-
-    // Sync data edit
-    for (const item of pendingEdit) {
-      try {
-        let foto = item.foto || "";
-
-        // Upload foto lokal jika ada
-        if (item.fotoLokal) {
-          try {
-            const arr   = item.fotoLokal.split(",");
-            const mime  = arr[0].match(/:(.*?);/)[1];
-            const bstr  = atob(arr[1]);
-            let n       = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) u8arr[n] = bstr.charCodeAt(n);
-            const blob  = new Blob([u8arr], { type: mime });
-            const sRef  = window.storageRef(window.storage, `fotoCustomer/${item.id}`);
-            await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
-            foto = await window.getDownloadURL(sRef);
-          } catch { }
-        }
-
-        const konsinyasi = item.konsinyasi || {};
-        const cash       = item.cash || {};
-
-        const updatePayload = {
-          namaCustomer:   item.namaCustomer,
-          alamatCustomer: item.alamatCustomer,
-          foto,
-          keterangan:     item.keterangan || {},
-          konsinyasi:     Object.keys(konsinyasi).length ? konsinyasi : window.deleteField(),
-          cash:           Object.keys(cash).length ? cash : window.deleteField(),
-          ...(item.lokasiCustomer?.lat ? {
-            lokasiCustomer: new window.GeoPoint(item.lokasiCustomer.lat, item.lokasiCustomer.lng)
-          } : {})
-        };
-
-        await window.updateDoc(
-          window.doc(window.db, "users", uid, "customerBaruHunter", item.id),
-          updatePayload
-        );
-
-        // Update IndexedDB — tandai sync
-        const idb2 = await window.openAppDB();
-        await new Promise((resolve, reject) => {
-          const tx2 = idb2.transaction("customerBaruDB", "readwrite");
-          tx2.objectStore("customerBaruDB").put({ ...item, foto, fotoLokal: null, isSync: true, isEdit: false });
-          tx2.oncomplete = () => resolve();
-          tx2.onerror   = () => reject(tx2.error);
-        });
-      } catch { }
-    }
-    for (const item of pending) {
-      try {
-        let foto = item.foto || "";
-
-        // Upload foto lokal jika ada
-        if (!foto && item.fotoLokal) {
-          try {
-            const arr   = item.fotoLokal.split(",");
-            const mime  = arr[0].match(/:(.*?);/)[1];
-            const bstr  = atob(arr[1]);
-            let n       = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) u8arr[n] = bstr.charCodeAt(n);
-            const blob  = new Blob([u8arr], { type: mime });
-            const sRef  = window.storageRef(window.storage, `fotoCustomer/${item.id}`);
-            await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
-            foto = await window.getDownloadURL(sRef);
-          } catch { }
-        }
-
-        const colRef = window.collection(window.db, "users", uid, "customerBaruHunter");
-        const { fotoLokal: _removed, ...itemClean } = item;
-        await window.setDoc(
-          window.doc(colRef, item.id),
-          {
-            ...itemClean,
-            foto,
-            lokasiCustomer: new window.GeoPoint(
-              item.lokasiCustomer?.lat || 0,
-              item.lokasiCustomer?.lng || 0
-            ),
-            createdAt: window.serverTimestamp()
-          }
-        );
-
-        // Update IndexedDB
-        const idb2 = await window.openAppDB();
-        await new Promise((resolve, reject) => {
-          const tx2    = idb2.transaction("customerBaruDB", "readwrite");
-          const store2 = tx2.objectStore("customerBaruDB");
-          store2.put({ ...item, foto, fotoLokal: null, isSync: true });
-          tx2.oncomplete = () => resolve();
-          tx2.onerror   = () => reject(tx2.error);
-        });
-      } catch { }
-    }
-  } catch { }
-};
 window.openKantorPopup = async function() {
   const existing = document.getElementById("kantorPopupOverlay");
   if (existing) existing.remove();
@@ -1541,7 +1393,28 @@ function openKonfirmasiRequest(idTujuan, namaTujuan, onClose) {
     }
   };
 }
+function showHomeToast(message, duration = 2000) {
+  document.getElementById("homeDuplicateToast")?.remove();
+  const anchor = document.getElementById("inputNamaCustomerHome");
+  if (!anchor) return;
 
+  const el = document.createElement("div");
+  el.id = "homeDuplicateToast";
+  el.textContent = message;
+  el.style.cssText = `
+    margin-top: 6px;
+    background: rgba(220,38,38,0.12); color: #dc2626;
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 12px; font-weight: 600;
+    opacity: 0; transition: opacity .2s ease;
+  `;
+  anchor.insertAdjacentElement("afterend", el);
+  requestAnimationFrame(() => { el.style.opacity = "1"; });
+  setTimeout(() => {
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 200);
+  }, duration);
+}
 window.openHomeCustomerPopup = async function() {
   const popup = document.getElementById("popupHomeCustomer");
   const stokContainer = document.getElementById("stokContainerHome");
@@ -1586,19 +1459,7 @@ window.openHomeCustomerPopup = async function() {
   window.selectedPaymentType = null;
 
   try {
-    const db = await window.openAppDB();
-    const tx = db.transaction("usersDB", "readonly");
-    const store = tx.objectStore("usersDB");
-    const uid = window.auth.currentUser.uid;
-    const userData = await new Promise(resolve => {
-      const req = store.get(uid);
-      req.onsuccess = () => resolve(
-          req.result?.data ||
-          null
-        );
-      req.onerror = () => resolve(null);
-    });
-    const varian = Array.isArray(userData?.varian) ? userData.varian : [];
+    const varian = Array.isArray(window.globalVarian) ? window.globalVarian : [];
     const konsinyasiContainer = document.getElementById("dataKonsinyasiHome");
     const cashContainer       = document.getElementById("dataCashHome");
 
@@ -1873,6 +1734,33 @@ window.openHomeCustomerPopup = async function() {
       const namaCustomer = document.getElementById("inputNamaCustomerHome")?.value.trim() || "";
       if (!namaCustomer) throw new Error("Nama customer kosong");
 
+      // CEK DUPLIKAT NAMA (khusus milik sendiri)
+      const roleCekDuplikat = (user.role || "").toLowerCase();
+      try {
+        let snapDuplikat;
+        if (roleCekDuplikat === "hunter") {
+          snapDuplikat = await window.getDocs(window.query(
+            window.collection(window.db, "users", uid, "customerBaruHunter"),
+            window.where("createdBy", "==", uid),
+            window.where("namaCustomer", "==", namaCustomer)
+          ));
+        } else if (roleCekDuplikat === "sales") {
+          snapDuplikat = await window.getDocs(window.query(
+            window.collection(window.db, "customerSales"),
+            window.where("createdBy", "==", uid),
+            window.where("namaCustomer", "==", namaCustomer)
+          ));
+        }
+        if (snapDuplikat && !snapDuplikat.empty) {
+          showHomeToast("Nama customer sudah ada");
+          btnSimpanHome.disabled = false;
+          btnSimpanTextHome.innerText = "Simpan";
+          return;
+        }
+      } catch (err) {
+        console.error("❌ cek duplikat nama customer:", err);
+      }
+
       // ALAMAT
       const alamatCustomer = document.getElementById("alamatCustomerHome")?.value.trim() || "";
 
@@ -1897,22 +1785,12 @@ window.openHomeCustomerPopup = async function() {
         throw new Error("Isi minimal konsinyasi atau cash");
       }
 
-      // LOAD VARIAN DARI INDEXDB
+      // LOAD VARIAN DARI window.globalVarian (udah di-fetch pas init Home)
       let varianMap = {};
-      try {
-        const idbV = await window.openAppDB();
-        const txV = idbV.transaction("usersDB", "readonly");
-        const storeV = txV.objectStore("usersDB");
-        const userDataV = await new Promise(resolve => {
-          const r = storeV.get(uid);
-          r.onsuccess = () => resolve(r.result?.data || null);
-          r.onerror = () => resolve(null);
-        });
-        (userDataV?.varian || []).forEach(item => {
-          const key = Object.keys(item)[0];
-          if (key) varianMap[key] = item[key];
-        });
-      } catch { }
+      (window.globalVarian || []).forEach(item => {
+        const key = Object.keys(item)[0];
+        if (key) varianMap[key] = item[key];
+      });
       // HITUNG KETERANGAN
       let hargaPendam = 0;
       let hargaJual   = 0;
@@ -1940,15 +1818,7 @@ window.openHomeCustomerPopup = async function() {
       // HITUNG JARAK pakai Google Distance Matrix
       let jarak = 0;
       try {
-        const idbK = await window.openAppDB();
-        const txK = idbK.transaction("kantorDB", "readonly");
-        const storeK = txK.objectStore("kantorDB");
-        const kantorRaw = await new Promise(resolve => {
-          const r = storeK.get(user.idCabang || "");
-          r.onsuccess = () => resolve(r.result || null);
-          r.onerror = () => resolve(null);
-        });
-        const kantorData = kantorRaw?.data || kantorRaw;
+        const kantorData = window.globalKantor || null;
 
         if (kantorData && customerLat && customerLng) {
           const locRaw = kantorData.lokasiCabang;
@@ -2005,93 +1875,47 @@ window.openHomeCustomerPopup = async function() {
         diserahkan: false
       };
 
-      // Compress foto
+      // Compress foto (langsung dari File input, online-first, gak ada skenario offline base64 lagi)
       let fotoBase64Compressed = null;
       if (window.fotoBase64Home) {
-        if (typeof window.fotoBase64Home === "string") {
-          // Sudah base64 (offline) — pakai langsung
-          fotoBase64Compressed = window.fotoBase64Home;
-        } else {
-          // File object (online) — compress
-          fotoBase64Compressed = await compressImageHome(
-            URL.createObjectURL(window.fotoBase64Home)
-          );
-        }
+        fotoBase64Compressed = await compressImageHome(
+          URL.createObjectURL(window.fotoBase64Home)
+        );
       }
 
-      const storeNama    = roleUser === "sales" ? "customerSalesDB" : "customerBaruDB";
       const fotoFolder   = roleUser === "sales" ? "fotoCustomerSales" : "fotoCustomer";
       const firestoreCol = roleUser === "sales"
         ? window.collection(window.db, "customerSales")
         : window.collection(window.db, "users", uid, "customerBaruHunter");
 
-      // SAVE INDEXDB DULU (offline-first)
-      const idb = await window.openAppDB();
-      await new Promise((resolve, reject) => {
-        const txIdb    = idb.transaction(storeNama, "readwrite");
-        const storeIdb = txIdb.objectStore(storeNama);
-        storeIdb.put({
-          ...dataCustomer,
-          id: idCustomer,
-          idCustomer,
-          foto: "",
-          fotoLokal: fotoBase64Compressed || null,
-          lokasiCustomer: { lat: customerLat || 0, lng: customerLng || 0 },
-          isSync: false,
-          createdAt: Date.now()
-        });
-        txIdb.oncomplete = () => resolve();
-        txIdb.onerror   = () => reject(txIdb.error);
-      });
-
-      // SYNC KE FIRESTORE JIKA ONLINE
-      if (navigator.onLine) {
+      if (fotoBase64Compressed) {
         try {
-          if (fotoBase64Compressed) {
-            try {
-              const arr   = fotoBase64Compressed.split(",");
-              const mime  = arr[0].match(/:(.*?);/)[1];
-              const bstr  = atob(arr[1]);
-              let n       = bstr.length;
-              const u8arr = new Uint8Array(n);
-              while (n--) u8arr[n] = bstr.charCodeAt(n);
-              const blob  = new Blob([u8arr], { type: mime });
-              const sRef  = window.storageRef(window.storage, `${fotoFolder}/${idCustomer}`);
-              await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
-              foto = await window.getDownloadURL(sRef);
-            } catch { }
-          }
-
-          await window.setDoc(
-            window.doc(firestoreCol, idCustomer),
-            {
-              ...dataCustomer,
-              idCustomer,
-              foto,
-              lokasiCustomer: new window.GeoPoint(customerLat || 0, customerLng || 0),
-              createdAt: window.serverTimestamp()
-            }
-          );
-
-          const idb2 = await window.openAppDB();
-          await new Promise((resolve, reject) => {
-            const tx2    = idb2.transaction(storeNama, "readwrite");
-            const store2 = tx2.objectStore(storeNama);
-            store2.put({
-              ...dataCustomer,
-              id: idCustomer,
-              idCustomer,
-              foto,
-              fotoLokal: null,
-              lokasiCustomer: { lat: customerLat || 0, lng: customerLng || 0 },
-              isSync: true,
-              createdAt: Date.now()
-            });
-            tx2.oncomplete = () => resolve();
-            tx2.onerror   = () => reject(tx2.error);
-          });
-        } catch { }
+          const arr   = fotoBase64Compressed.split(",");
+          const mime  = arr[0].match(/:(.*?);/)[1];
+          const bstr  = atob(arr[1]);
+          let n       = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) u8arr[n] = bstr.charCodeAt(n);
+          const blob  = new Blob([u8arr], { type: mime });
+          const sRef  = window.storageRef(window.storage, `${fotoFolder}/${idCustomer}`);
+          await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
+          foto = await window.getDownloadURL(sRef);
+        } catch (err) {
+          console.error("❌ upload foto customer baru:", err);
+        }
       }
+
+      await window.setDoc(
+        window.doc(firestoreCol, idCustomer),
+        {
+          ...dataCustomer,
+          idCustomer,
+          foto,
+          lokasiCustomer: new window.GeoPoint(customerLat || 0, customerLng || 0),
+          createdAt: window.serverTimestamp()
+        }
+      );
+
       window.updateHomeStats();
       btnSimpanTextHome.innerText = "Sukses ✓";
       btnSimpanHome.style.background = "#4caf50";
