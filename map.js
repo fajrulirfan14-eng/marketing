@@ -87,6 +87,7 @@ window.openMapView = function() {
       try {
         const snap = await window.getDocs(window.query(
           window.collection(window.db, "users", uid, "customerBaruHunter"),
+          window.where("createdBy", "==", uid),
           window.where("diserahkan", "==", false)
         ));
         snap.forEach(d => {
@@ -96,17 +97,19 @@ window.openMapView = function() {
       } catch (err) { console.error("❌ fetchMapOwnData (customerBaruHunter):", err); }
     }
 
-    // customerSales milik sendiri
-    try {
-      const snap = await window.getDocs(window.query(
-        window.collection(window.db, "customerSales"),
-        window.where("createdBy", "==", uid)
-      ));
-      snap.forEach(d => {
-        const data = d.data();
-        result.sales.push({ id: d.id, ...data, pemilik: data.createdBy || uid, lokasiCustomer: window.normalizeGeoPoint?.(data.lokasiCustomer) || data.lokasiCustomer, _isSales: true });
-      });
-    } catch (err) { console.error("❌ fetchMapOwnData (customerSales):", err); }
+    // customerSales milik sendiri — cuma relevan buat role sales
+    if (role === "sales") {
+      try {
+        const snap = await window.getDocs(window.query(
+          window.collection(window.db, "customerSales"),
+          window.where("createdBy", "==", uid)
+        ));
+        snap.forEach(d => {
+          const data = d.data();
+          result.sales.push({ id: d.id, ...data, pemilik: data.createdBy || uid, lokasiCustomer: window.normalizeGeoPoint?.(data.lokasiCustomer) || data.lokasiCustomer, _isSales: true });
+        });
+      } catch (err) { console.error("❌ fetchMapOwnData (customerSales):", err); }
+    }
 
     return result;
   }

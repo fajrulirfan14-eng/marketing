@@ -382,6 +382,9 @@ window.initHomeView = async function(){
           <div class="payment-value" id="homeTotalBayaran">Rp 0</div>
         </div>
         <div class="home-saldo-barang">
+          <div class="home-saldo-barang-title">Closing Barang</div>
+          <div class="home-saldo-barang-table" id="homeClosingVarianTable"></div>
+
           <div class="home-saldo-barang-title">Saldo Barang</div>
           <div class="home-saldo-barang-table" id="homeSaldoBarangTable"></div>
         </div>
@@ -389,7 +392,7 @@ window.initHomeView = async function(){
 
       <div class="home-sales-wrapper" id="homeSalesWrapper">
         <div class="home-sales-top">
-          <div class="home-sales-title">Laporan Hari Ini</div>
+          <div class="home-sales-title">Laporan Harian</div>
           <div style="display:flex;gap:8px;align-items:center;">
             <button class="home-sales-plus secondary" id="homeSalesLaporanBtn" onclick="window.showView('laporanharian')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -819,18 +822,10 @@ function countUpRupiah(el, target, duration = 600) {
 }
 window.loadSalesCard = async function() {
   try {
-    const uid      = window.auth.currentUser?.uid;
+    const uid = window.auth.currentUser?.uid;
     if (!uid) return;
 
-    let userData = null;
-    try {
-      const snap = await window.getDoc(window.doc(window.db, "users", uid));
-      userData = snap.exists() ? snap.data() : null;
-    } catch (err) {
-      console.error("❌ loadSalesCard (users):", err);
-    }
-
-    const varian = (userData?.varian || []).filter(v => {
+    const varian = (window.globalVarian || []).filter(v => {
       const key = Object.keys(v)[0];
       return v[key]?.isAktif === true;
     });
@@ -1084,10 +1079,15 @@ window.updateHomeStats = async function() {
 
     let todayData = [];
     try {
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const endOfDay   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
       const snap = await window.getDocs(window.query(
         window.collection(window.db, "users", uid, "customerBaruHunter"),
         window.where("createdBy", "==", uid),
-        window.where("tanggal", "==", today)
+        window.where("createdAt", ">=", startOfDay),
+        window.where("createdAt", "<=", endOfDay)
       ));
       todayData = snap.docs.map(d => d.data());
     } catch (err) {
@@ -1132,6 +1132,23 @@ window.updateHomeStats = async function() {
     }
 
     const varianKeys = (window.globalVarian || []).map(v => Object.keys(v)[0]).filter(Boolean);
+
+    // TABEL CLOSING (rincian per varian, gabungan konsinyasi + cash)
+    const closingTableEl = document.getElementById("homeClosingVarianTable");
+    if (closingTableEl && varianKeys.length) {
+      closingTableEl.innerHTML = varianKeys.map(k => {
+        const closing = Number(closingPerVarian[k] || 0);
+        return `
+          <div class="home-saldo-barang-item">
+            <div class="label">${k}</div>
+            <div class="value">${closing}</div>
+          </div>
+        `;
+      }).join("");
+    } else if (closingTableEl) {
+      closingTableEl.innerHTML = `<div class="customer-empty">Tidak ada data varian</div>`;
+    }
+
     const saldoTableEl = document.getElementById("homeSaldoBarangTable");
     if (saldoTableEl && varianKeys.length) {
       saldoTableEl.innerHTML = varianKeys.map(k => {
