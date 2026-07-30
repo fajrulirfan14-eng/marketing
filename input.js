@@ -187,7 +187,14 @@ window.initInputView = async function(){
       ? rawBawaBarang.map(item => {
           const key = Object.keys(item)[0];
           if (!key) return item;
-          return { [key]: { ...varianMap[key], ...item[key] } };
+          // isAktif WAJIB ikut varian (sumber kebenaran), field lain (bawa, dll) ikut item
+          return {
+            [key]: {
+              ...varianMap[key],
+              ...item[key],
+              isAktif: varianMap[key]?.isAktif ?? item[key]?.isAktif
+            }
+          };
         })
       : varian.map(v => {
           const key = Object.keys(v)[0];
