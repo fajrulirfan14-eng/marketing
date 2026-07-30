@@ -1,8 +1,10 @@
 
 .analisis-page{
   background: var(--analisis-page-bg);
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
-
 .analisis-header{
   background: var(--analisis-header-gradient);
   padding:30px 20px 100px;
@@ -183,17 +185,17 @@
 }
 
 .analisis-search-floating {
-  position: fixed;
-  left: 16px;
-  right: 16px;
+  position: sticky;
   bottom: 20px;
-  margin: 10px 10px;
+  margin: 10px 16px 20px;
   display: flex;
   align-items: center;
   backdrop-filter: blur(12px);
+  background: var(--analisis-wrapper-bg);
   border: 2px solid var(--analisis-search-border);
   border-radius: 30px;
   overflow: visible;
+  z-index: 10;
 }
 .analisis-search-floating input{
   width:100%;
@@ -209,6 +211,31 @@
 }
 input:focus {
   scroll-margin-bottom: 100px;
+}
+.analisis-hapus-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-hover, rgba(0,0,0,.06));
+  color: var(--analisis-loading);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  flex-shrink: 0;
+  transition: background .2s, transform .1s;
+  position: relative;
+}
+.analisis-hapus-btn:active {
+  transform: scale(0.93);
+}
+.analisis-hapus-btn.loading {
+  opacity: 0.6;
+}
+.analisis-hapus-btn.success {
+  background: var(--analisis-btn-success);
+  color: #fff;
 }
 .analisis-aktifkan-btn {
   width: 44px;
@@ -233,6 +260,87 @@ input:focus {
 }
 .analisis-aktifkan-btn.success {
   background: var(--analisis-btn-success);
+}
+.analisis-confirm-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+  padding: 24px;
+}
+.analisis-confirm-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.analisis-confirm-box {
+  width: 100%;
+  max-width: 340px;
+  background: var(--analisis-wrapper-bg);
+  border-radius: 22px;
+  padding: 26px 22px 20px;
+  text-align: center;
+  transform: scale(.94);
+  transition: transform .2s cubic-bezier(.32,1,.4,1);
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+}
+.analisis-confirm-overlay.show .analisis-confirm-box {
+  transform: scale(1);
+}
+.analisis-confirm-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  background: rgba(220,38,38,.12);
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.analisis-confirm-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-heading, #4a3f35);
+  margin-bottom: 8px;
+}
+.analisis-confirm-desc {
+  font-size: 13px;
+  color: var(--analisis-loading);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+.analisis-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+.analisis-confirm-btn {
+  flex: 1;
+  height: 46px;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+}
+.analisis-confirm-btn.cancel {
+  background: var(--bg-hover, rgba(0,0,0,.06));
+  color: var(--text-heading, #4a3f35);
+}
+.analisis-confirm-btn.ok {
+  background: #dc2626;
+  color: #fff;
+}
+.analisis-confirm-btn:active {
+  transform: scale(.96);
 }
 .analisis-aktifkan-tooltip {
   position: absolute;
@@ -307,6 +415,13 @@ input:focus {
 
 .analisis-info-btn{
   position: absolute; top: 24px; right: 20px;
+  width: 34px; height: 34px; border: none; border-radius: 10px;
+  background: rgba(255,255,255,0.2); color: #fff;
+  font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.analisis-back-btn{
+  position: absolute; top: 24px; left: 20px;
   width: 34px; height: 34px; border: none; border-radius: 10px;
   background: rgba(255,255,255,0.2); color: #fff;
   font-size: 15px; cursor: pointer;

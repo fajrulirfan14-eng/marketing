@@ -418,6 +418,85 @@ async function showAnalisisInfoPopup() {
 }
 
 document.getElementById("analisisInfoBtn")?.addEventListener("click", showAnalisisInfoPopup);
+function showAnalisisToast(text, isError = false) {
+  const t = document.createElement("div");
+  t.textContent = text;
+  t.style.cssText = `
+    position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+    background:${isError ? "#dc2626" : "#2eaf62"};color:#fff;
+    padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;
+    z-index:99999;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.2);
+  `;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+function showHapusBadgeConfirm() {
+  return new Promise(resolve => {
+    document.getElementById("hapusBadgeConfirmOverlay")?.remove();
+    const el = document.createElement("div");
+    el.id = "hapusBadgeConfirmOverlay";
+    el.className = "analisis-confirm-overlay";
+    el.innerHTML = `
+      <div class="analisis-confirm-box">
+        <div class="analisis-confirm-icon">
+          <i class="fa-solid fa-trash"></i>
+        </div>
+        <div class="analisis-confirm-title">Hapus Badge Trikotomi?</div>
+        <div class="analisis-confirm-desc">Badge P/S/NP akan hilang dari Input. Bisa diaktifkan lagi kapan saja.</div>
+        <div class="analisis-confirm-actions">
+          <button class="analisis-confirm-btn cancel" id="hapusBadgeCancel">Batal</button>
+          <button class="analisis-confirm-btn ok" id="hapusBadgeOk">Hapus</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+
+    function close(result) {
+      el.classList.remove("show");
+      setTimeout(() => el.remove(), 200);
+      resolve(result);
+    }
+    document.getElementById("hapusBadgeCancel").onclick = () => close(false);
+    document.getElementById("hapusBadgeOk").onclick = () => close(true);
+    el.onclick = e => { if (e.target === el) close(false); };
+  });
+}
+window.hapusBadgeTrikotomi = async function() {
+  const btn = document.getElementById("btnHapusBadge");
+  if (!btn || btn.disabled) return;
+
+  const konfirmasi = await showHapusBadgeConfirm();
+  if (!konfirmasi) return;
+
+  btn.disabled = true;
+  btn.classList.add("loading");
+
+  try {
+    const uid = window.auth.currentUser?.uid;
+    await window.updateDoc(window.doc(window.db, "users", uid), {
+      trikotomiResult: window.deleteField(),
+      trikotomiUpdatedAt: window.deleteField()
+    });
+
+    window.trikotomiResult = {};
+
+    btn.classList.remove("loading");
+    btn.classList.add("success");
+    showAnalisisToast("✓ Badge dihapus");
+
+    setTimeout(() => {
+      btn.classList.remove("success");
+      btn.disabled = false;
+    }, 1500);
+
+  } catch(err) {
+    console.log("Hapus badge error:", err);
+    btn.classList.remove("loading");
+    btn.disabled = false;
+    showAnalisisToast("Gagal menghapus badge, coba lagi", true);
+  }
+};
 window.aktifkanBadgeTrikotomi = async function() {
   const btn = document.getElementById("btnAktifkanBadge");
   if (!btn || btn.disabled) return;
@@ -448,24 +527,12 @@ window.aktifkanBadgeTrikotomi = async function() {
       throw new Error("Belum ada data klasifikasi");
     }
 
-    // Simpan ke IndexedDB supaya persist
-    const db = await window.openAppDB();
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction("usersDB", "readwrite");
-      const store = tx.objectStore("usersDB");
-      const uid = window.auth.currentUser?.uid;
-      const req = store.get(uid);
-      req.onsuccess = () => {
-        const existing = req.result || { id: uid, data: {} };
-        existing.trikotomiResult = result;
-        existing.trikotomiUpdatedAt = Date.now();
-        store.put(existing);
-        resolve();
-      };
-      req.onerror = () => reject(req.error);
+    // Simpan ke Firestore supaya persist & konsisten sama yang dibaca di Input view
+    const uid = window.auth.currentUser?.uid;
+    await window.updateDoc(window.doc(window.db, "users", uid), {
+      trikotomiResult: result,
+      trikotomiUpdatedAt: window.serverTimestamp()
     });
-
-    // Simpan ke window global supaya input view bisa baca
     window.trikotomiResult = result;
 
     // Success state

@@ -310,19 +310,7 @@ window.fetchSlipGaji = async function (periodeKey) {
       informasiKehadiran : raw.informasiKehadiran        || []
     };
 
-    // ── SIMPAN KE RAM ─────────────────────────────────
     _slipCache[periodeKey] = item;
-    console.log("Slip disimpan ke cache RAM:", periodeKey);
-
-    const idb = await window.openAppDB();
-
-    const tx = idb.transaction(
-      "slipGajiDB",
-      "readwrite"
-    );
-
-    tx.objectStore("slipGajiDB").put(item);
-
     if (nominalEl) {
       nominalEl.innerText = formatRupiah(item.totalPenerimaan);
     }
@@ -356,33 +344,27 @@ async function renderSlipDetail(d) {
   const container = document.getElementById("slipDetailContainer");
   if (!container) return;
 
-  const idb = await window.openAppDB();
-
-  // Baca kantorDB
-  const kantorData = await new Promise(resolve => {
+  let kantorData = window.globalKantor || null;
+  if (!kantorData) {
     try {
-      const tx  = idb.transaction("kantorDB", "readonly");
-      const req = tx.objectStore("kantorDB").getAll();
-      req.onsuccess = () => {
-        const raw = req.result?.[0] || {};
-        resolve(raw.data || raw);
-      };
-      req.onerror = () => resolve({});
-    } catch { resolve({}); }
-  });
-
+      const idCabang = window.currentUser?.idCabang || "";
+      if (idCabang) {
+        const snapKantor = await window.getDoc(window.doc(window.db, "kantorCabang", idCabang));
+        kantorData = snapKantor.exists() ? snapKantor.data() : {};
+        window.globalKantor = kantorData;
+      }
+    } catch { kantorData = {}; }
+  }
+  kantorData = kantorData || {};
   const userData = window.currentUser || {};
 
   function renderSection(title, obj) {
-
     if (!obj || typeof obj !== "object" || Object.keys(obj).length === 0) {
       return "";
     }
-
     let totalPembayaran = 0;
 
     const rows = Object.entries(obj).map(([key, val]) => {
-
       const label = key
         .replace(/([A-Z])/g, " $1")
         .replace(/^./, s => s.toUpperCase());

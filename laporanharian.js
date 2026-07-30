@@ -79,7 +79,7 @@ window.initLaporanHarianView = async function() {
       const tglAkhir = `${tahun}-${String(bulan).padStart(2,"0")}-31`;
 
       const snap = await window.getDocs(window.query(
-        window.collection(window.db, "users", uid, "laporanMarketing"),
+        window.collectionGroup(window.db, "laporanMarketing"),
         window.where("idMarketing", "==", uid),
         window.where("tanggal", ">=", tglAwal),
         window.where("tanggal", "<=", tglAkhir)
@@ -90,16 +90,17 @@ window.initLaporanHarianView = async function() {
         return;
       }
 
-      // Load varian dari usersDB
+      // Load varian dari RAM cache (globalUser), fallback fetch Firestore kalau belum ada
       let varianKeys = [];
       try {
-        const idb      = await window.openAppDB();
-        const userData = await new Promise(resolve => {
-          const tx  = idb.transaction("usersDB", "readonly");
-          const req = tx.objectStore("usersDB").get(uid);
-          req.onsuccess = () => resolve(req.result?.data || null);
-          req.onerror   = () => resolve(null);
-        });
+        let userData = window.globalUser;
+        if (!userData) {
+          const userSnap = await window.getDoc(window.doc(window.db, "users", uid));
+          if (userSnap.exists()) {
+            userData = userSnap.data();
+            window.globalUser = userData;
+          }
+        }
         varianKeys = (userData?.varian || [])
           .filter(v => { const k = Object.keys(v)[0]; return v[k]?.isAktif === true; })
           .map(v => Object.keys(v)[0]);

@@ -33,21 +33,59 @@ window.initOperasionalView = async function () {
     });
   }
 
-  // Preload semua data dari IndexedDB laporanMarketingDB
+  // Fetch semua laporan bulan ini langsung dari Firestore (1 query, range tanggal)
+  const uid = window.auth.currentUser?.uid;
   let laporanMap = {};
-  try {
-    const idb = await window.openAppDB();
-    const allLaporan = await new Promise((resolve, reject) => {
-      const tx = idb.transaction("laporanMarketingDB", "readonly");
-      const store = tx.objectStore("laporanMarketingDB");
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-    allLaporan.forEach(item => {
-      laporanMap[item.id] = item;
-    });
-  } catch { }
+  if (uid) {
+    try {
+      const monthStr = String(month + 1).padStart(2, "0");
+      const firstDay = `${year}-${monthStr}-01`;
+      const lastDay  = `${year}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
+      const snap = await window.getDocs(window.query(
+        window.collectionGroup(window.db, "laporanMarketing"),
+        window.where("idMarketing", "==", uid),
+        window.where("tanggal", ">=", firstDay),
+        window.where("tanggal", "<=", lastDay)
+      ));
+      snap.forEach(docSnap => {
+        laporanMap[docSnap.id] = docSnap.data();
+      });
+    } catch (err) {
+      console.error("❌ initOperasionalView (laporanMarketing):", err);
+    }
+  }
+  // KPI total sebulan — Kasbon, Potongan & Bonus
+  let totalKasbon   = 0;
+  let totalPotongan = 0;
+  let totalBonus    = 0;
+  Object.values(laporanMap).forEach(d => {
+    totalKasbon   += Number(d?.distribusi?.keuangan?.kasbon || 0);
+    totalPotongan += Number(d?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0);
+    totalBonus    += Number(d?.distribusi?.keuangan?.bonus?.jumlahBonus || 0);
+  });
+
+  let kpiGrid = document.getElementById("operasionalKpiGrid");
+  if (!kpiGrid) {
+    kpiGrid = document.createElement("div");
+    kpiGrid.id = "operasionalKpiGrid";
+    list.insertAdjacentElement("beforebegin", kpiGrid);
+  }
+  kpiGrid.style.cssText = "display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 15px 16px;";
+  kpiGrid.innerHTML = `
+    <div style="background:var(--lk-kasbon-bg);border:1px solid var(--lk-kasbon-border);border-radius:16px;padding:12px 10px;">
+      <div style="font-size:10px;font-weight:600;color:var(--lk-kasbon-text);opacity:.75;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Kasbon</div>
+      <div style="font-size:15px;font-weight:700;color:var(--lk-kasbon-text);">Rp ${totalKasbon.toLocaleString("id-ID")}</div>
+    </div>
+    <div style="background:var(--lk-potongan-bg);border:1px solid var(--lk-potongan-border);border-radius:16px;padding:12px 10px;">
+      <div style="font-size:10px;font-weight:600;color:var(--lk-potongan-text);opacity:.75;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Potongan</div>
+      <div style="font-size:15px;font-weight:700;color:var(--lk-potongan-text);">Rp ${totalPotongan.toLocaleString("id-ID")}</div>
+    </div>
+    <div style="background:var(--lk-bonus-bg);border:1px solid var(--lk-bonus-border);border-radius:16px;padding:12px 10px;">
+      <div style="font-size:10px;font-weight:600;color:var(--lk-bonus-text);opacity:.75;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">Bonus</div>
+      <div style="font-size:15px;font-weight:700;color:var(--lk-bonus-text);">Rp ${totalBonus.toLocaleString("id-ID")}</div>
+    </div>
+  `;
+
   list.innerHTML = dummy.map((item, index) => {
   
     const today = new Date();
@@ -58,14 +96,13 @@ window.initOperasionalView = async function () {
     
     const hari = index + 1;
 
-    // Ambil data dari IDB jika ada
     const day = String(index + 1).padStart(2, "0");
     const monthStr = String(month + 1).padStart(2, "0");
     const tanggalId = `${year}-${monthStr}-${day}`;
     const d = laporanMap[tanggalId] || null;
 
     const omzet   = d ? Number(d?.distribusi?.keuangan?.inputOmset || 0).toLocaleString("id-ID") : "0";
-    const kasbon  = d ? Number(d?.distribusi?.keuangan?.Kasbon || 0).toLocaleString("id-ID") : "0";
+    const kasbon  = d ? Number(d?.distribusi?.keuangan?.kasbon || 0).toLocaleString("id-ID") : "0";
     const potongan = d ? Number(d?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0).toLocaleString("id-ID") : "0";
     const bonus   = d ? Number(d?.distribusi?.keuangan?.bonus?.jumlahBonus || 0).toLocaleString("id-ID") : "0";
   
@@ -203,19 +240,9 @@ window.toggleOperasionalCard = function(index, el) {
 
           const fresh = snap.data();
 
-          // Simpan ke IDB
-          const idb = await window.openAppDB();
-          await new Promise((resolve, reject) => {
-            const tx    = idb.transaction("laporanMarketingDB", "readwrite");
-            const store = tx.objectStore("laporanMarketingDB");
-            store.put({ id: tanggalId, tanggal: tanggalId, idMarketing: uid, ...fresh, cachedAt: Date.now() });
-            tx.oncomplete = () => resolve();
-            tx.onerror    = () => reject(tx.error);
-          });
-
           // Update memory
           if (!window.operasionalLaporanMap) window.operasionalLaporanMap = {};
-          window.operasionalLaporanMap[tanggalId] = { id: tanggalId, tanggal: tanggalId, idMarketing: uid, ...fresh, cachedAt: Date.now() };
+          window.operasionalLaporanMap[tanggalId] = fresh;
 
           // Re-render detail
           const detailEl = el.querySelector(".operasional-detail");
@@ -236,7 +263,7 @@ window.toggleOperasionalCard = function(index, el) {
 
           // Update card summary
           const omzet    = Number(fresh?.distribusi?.keuangan?.inputOmset || 0).toLocaleString("id-ID");
-          const kasbon   = Number(fresh?.distribusi?.keuangan?.Kasbon || 0).toLocaleString("id-ID");
+          const kasbon   = Number(fresh?.distribusi?.keuangan?.kasbon || 0).toLocaleString("id-ID");
           const potongan = Number(fresh?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0).toLocaleString("id-ID");
           const bonus    = Number(fresh?.distribusi?.keuangan?.bonus?.jumlahBonus || 0).toLocaleString("id-ID");
 
@@ -266,25 +293,23 @@ async function buildJumlahUpah(d) {
     if (window.globalKantor?.upahHarian) {
       upahHarian = Number(window.globalKantor.upahHarian || 0);
     } else {
-      // Fallback baca dari IndexedDB kantorDB
+      // Fallback fetch langsung Firestore
       try {
         const user = window.currentUser || {};
-        const idb = await window.openAppDB();
-        const kantorRaw = await new Promise((resolve) => {
-          const tx = idb.transaction("kantorDB", "readonly");
-          const store = tx.objectStore("kantorDB");
-          const req = store.get(user.idCabang || "");
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror = () => resolve(null);
-        });
-        const kantorData = kantorRaw?.data || kantorRaw || {};
-        upahHarian = Number(kantorData?.upahHarian || 0);
+        if (user.idCabang) {
+          const kantorSnap = await window.getDoc(window.doc(window.db, "kantorCabang", user.idCabang));
+          if (kantorSnap.exists()) {
+            const kantorData = kantorSnap.data();
+            window.globalKantor = kantorData;
+            upahHarian = Number(kantorData?.upahHarian || 0);
+          }
+        }
       } catch { }
     }
 
     const bonus = Number(d?.distribusi?.keuangan?.bonus?.jumlahBonus || 0);
     const potongan = Number(d?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0);
-    const kasbon = Number(d?.distribusi?.keuangan?.Kasbon || 0);
+    const kasbon = Number(d?.distribusi?.keuangan?.kasbon || 0);
     const total = upahHarian + bonus - potongan - kasbon;
 
     return total.toLocaleString("id-ID");
@@ -360,9 +385,9 @@ function buildKiriHTML(d) {
 
 function buildKananHTML(d) {
   const info = d?.distribusi?.infoTarget || {};
-  const pot = info?.potongan || {};
+  const pot = d?.distribusi?.infoTarget?.potongan || {};
   const bonus = d?.distribusi?.keuangan?.bonus || {};
-  const kasbon = Number(d?.distribusi?.keuangan?.Kasbon || 0);
+  const kasbon = Number(d?.distribusi?.keuangan?.kasbon || 0);
 
   const rows = [
     ["Kasbon", kasbon.toLocaleString("id-ID")],

@@ -33,7 +33,8 @@ import {
   updateDoc,
   getDocs,
   onSnapshot,
-  deleteField
+  deleteField,
+  getCountFromServer
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -71,6 +72,7 @@ window.collectionGroup = collectionGroup;
 window.onSnapshot = onSnapshot;
 window.updateDoc = updateDoc;
 window.deleteField = deleteField;
+window.getCountFromServer = getCountFromServer;
 window.writeBatch = writeBatch;
 window.storage = storage;
 window.storageRef = storageRef;
@@ -110,39 +112,6 @@ onAuthStateChanged(auth, async(user)=>{
         window.location.href = "login.html";
         return;
       }
-    }
-    // Sync customer hari ini ke IndexedDB saat online
-    if(navigator.onLine && window.currentUser?.uid){
-      window.syncCustomerHarian?.();
-    }
-    // Sync kantor cabang ke IDB saat online
-    if (navigator.onLine && window.currentUser?.idCabang) {
-      try {
-        const idCabang  = window.currentUser.idCabang;
-        const idbK      = await window.openAppDB();
-        const existing  = await new Promise(resolve => {
-          const tx  = idbK.transaction("kantorDB", "readonly");
-          const req = tx.objectStore("kantorDB").get(idCabang);
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror   = () => resolve(null);
-        });
-        if (!existing) {
-          const kantorSnap = await window.getDoc(window.doc(window.db, "kantorCabang", idCabang));
-          if (kantorSnap.exists()) {
-            const kantorData = kantorSnap.data();
-            const idbK2 = await window.openAppDB();
-            await new Promise((resolve, reject) => {
-              const tx    = idbK2.transaction("kantorDB", "readwrite");
-              tx.objectStore("kantorDB").put({ id: idCabang, data: kantorData, updatedAt: Date.now() });
-              tx.oncomplete = () => resolve();
-              tx.onerror    = () => reject(tx.error);
-            });
-            window.globalKantor = kantorData;
-          }
-        } else {
-          window.globalKantor = existing.data;
-        }
-      } catch { }
     }
     initNavbar();
     showView("home");
@@ -220,9 +189,9 @@ window.logout = async function(){
     if (app.scrollTop > 0) return false;
     const activeView = document.querySelector(".view.active");
     if (activeView && activeView.scrollTop > 0) return false;
-    // Cek semua elemen scrollable di dalam view aktif
+    // Cek cuma container yang emang didesain buat scroll, bukan semua elemen
     if (activeView) {
-      const scrollables = activeView.querySelectorAll("*");
+      const scrollables = activeView.querySelectorAll("[style*='overflow'], .scroll-container");
       for (const el of scrollables) {
         if (el.scrollTop > 0) return false;
       }
@@ -277,19 +246,8 @@ window.logout = async function(){
       indicator.classList.add("ptr-loading");
 
       setTimeout(() => {
-        window.showView?.(window.currentView || "home");
-        setTimeout(() => {
-          // Animasi balik ke atas
-          indicator.style.transition = "transform 0.4s cubic-bezier(0.25,1,0.5,1)";
-          indicator.style.transform  = "translateY(-60px)";
-          indicator.classList.remove("ptr-loading");
-          circle.style.strokeDashoffset = FULL_DASH;
-          setTimeout(() => {
-            indicator.style.transition = "none";
-            refreshing = false;
-          }, 400);
-        }, 600);
-      }, 800);
+        window.location.reload();
+      }, 400);
     } else {
       // Tidak sampai threshold — balik halus
       indicator.style.transition = "transform 0.35s cubic-bezier(0.25,1,0.5,1)";
@@ -809,6 +767,34 @@ function showView(viewName, trigger = "direct"){
       el.scrollTop = 0;
     });
   });
+
+  // ── Sync nav bottom (active state, label, FAB) — biar konsisten dari trigger manapun,
+  // gak cuma pas back Android doang ──
+  const navViewMap = {
+    tentang:         "profil",
+    keamanan:        "profil",
+    perjanjian:      "profil",
+    slip:            "profil",
+    rollingcustomer: "profil",
+    peraturan:       "profil",
+    inputTabel:      "input",
+  };
+  const navTargetView = navViewMap[viewName] || viewName;
+  const navTarget = document.querySelector(`.nav-item[data-view="${navTargetView}"]`);
+
+  // Bersihin active state dulu, apapun hasilnya (biar gak ada yang nyangkut)
+  document.querySelectorAll(".nav-item").forEach(i => {
+    if (i.dataset.label) {
+      i.innerHTML = `<i class="${i.dataset.icon}"></i><span>${i.dataset.label}</span>`;
+    }
+    i.classList.remove("active");
+  });
+
+  if (navTarget) {
+    navTarget.innerHTML = `<span class="nav-placeholder"></span><span>${navTarget.dataset.label}</span>`;
+    navTarget.classList.add("active");
+    window._moveFab?.(navTarget);
+  }
 }
 window.showView = showView;
 function closeActivePopup(){

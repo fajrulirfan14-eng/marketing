@@ -12,8 +12,8 @@ window.initCustomerSalesView = async function() {
     btnToggle.onclick = () => bottomBar.classList.toggle("closed");
   }
 
-  // Filter hari
-  if (!window.salesFilterHari) window.salesFilterHari = "Hari Ini";
+  // Filter hari — default langsung nama hari sesuai device, bukan "Hari Ini"
+  if (!window.salesFilterHari) window.salesFilterHari = hariNama[now.getDay()];
 
   document.querySelectorAll(".customer-sales-hari-item").forEach(item => {
     item.classList.toggle("active", item.dataset.hari === window.salesFilterHari);
@@ -42,81 +42,31 @@ window.initCustomerSalesView = async function() {
     if (!e.target.closest("#customerSalesHariWrapper")) dropdown?.classList.remove("open");
   });
 
-  // Reload
-  const btnReload = document.getElementById("btnReloadCustomerSales");
-  if (btnReload) {
-    btnReload.onclick = async function() {
-      btnReload.classList.add("loading");
-      btnReload.disabled = true;
-      try {
-        const uid     = window.auth.currentUser.uid;
-        const hariSel = window.salesFilterHari;
-        const isHariSpesifik = hariSel && hariSel !== "Hari Ini" && hariSel !== "Semua";
-
-        const queryConstraints = [
-          window.collection(window.db, "customerSales"),
-          window.where("createdBy", "==", uid)
-        ];
-        if (isHariSpesifik) {
-          queryConstraints.push(window.where("hari", "==", hariSel));
-        }
-
-        console.log("[reload] uid:", uid, "hariSel:", hariSel, "isHariSpesifik:", isHariSpesifik);
-
-        const snap = await window.getDocs(window.query(...queryConstraints));
-        console.log("[reload] jumlah dokumen dari Firestore:", snap.docs.length);
-
-        const docs = snap.docs.map(d => {
-          const data = d.data();
-          if (data.lokasiCustomer) data.lokasiCustomer = window.normalizeGeoPoint(data.lokasiCustomer);
-          return { ...data, id: d.id };
-        });
-
-        const idb = await window.openAppDB();
-        await new Promise((resolve, reject) => {
-          const tx    = idb.transaction("customerSalesDB", "readwrite");
-          const store = tx.objectStore("customerSalesDB");
-          docs.forEach(item => store.put(item));
-          tx.oncomplete = () => resolve();
-          tx.onerror    = () => reject(tx.error);
-        });
-        console.log("[reload] selesai simpan ke IDB, total:", docs.length);
-      } catch(e) {
-        console.log("[reload] ERROR:", e);
-      } finally {
-        btnReload.classList.remove("loading");
-        btnReload.disabled = false;
-        window.initCustomerSalesView();
-      }
-    };
-  }
-
-  // Load dari IndexedDB
+  // Load dari Firestore langsung
   try {
-    const idb  = await window.openAppDB();
-    const data = await new Promise((resolve, reject) => {
-      const tx  = idb.transaction("customerSalesDB", "readonly");
-      const req = tx.objectStore("customerSalesDB").getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror   = () => reject(req.error);
-    });
+    const uid = window.auth.currentUser?.uid;
+    if (!uid) return;
 
-    const todayStr    = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
-    const uid         = window.auth.currentUser?.uid;
-    const hariIniNama = hariNama[now.getDay()];
-    const normHari = v => String(v || "").trim().toLowerCase();
+    const efektifHari = window.salesFilterHari;
 
-    let filtered = data.filter(item => item.diserahkan !== true && item.createdBy === uid);
-
-    if (window.salesFilterHari === "Hari Ini") {
-      filtered = filtered.filter(item =>
-        normHari(item.hari) === normHari(hariIniNama)
-      );
-    } else if (window.salesFilterHari !== "Semua") {
-      filtered = filtered.filter(item =>
-        normHari(item.hari) === normHari(window.salesFilterHari)
-      );
+    const queryConstraints = [
+      window.collection(window.db, "customerSales"),
+      window.where("createdBy", "==", uid)
+    ];
+    if (efektifHari && efektifHari !== "Semua") {
+      queryConstraints.push(window.where("hari", "==", efektifHari));
     }
+
+    const snap = await window.getDocs(window.query(...queryConstraints));
+    let filtered = snap.docs
+      .map(d => {
+        const item = d.data();
+        if (item.lokasiCustomer) item.lokasiCustomer = window.normalizeGeoPoint(item.lokasiCustomer);
+        return { ...item, id: d.id };
+      })
+      .filter(item => item.diserahkan !== true);
+
+    window._customerSalesData = filtered;
 
     const elJumlah = document.getElementById("customerSalesJumlah");
     if (elJumlah) elJumlah.textContent = filtered.length;
@@ -135,15 +85,15 @@ window.initCustomerSalesView = async function() {
     // Aset customer — jumlah filtered × upahHunter
     let upahHunter = 0;
     try {
-      const user     = window.currentUser || {};
-      const idbK     = await window.openAppDB();
-      const kantorRaw = await new Promise(resolve => {
-        const tx = idbK.transaction("kantorDB", "readonly");
-        const r  = tx.objectStore("kantorDB").get(user.idCabang || "");
-        r.onsuccess = () => resolve(r.result || null);
-        r.onerror   = () => resolve(null);
-      });
-      const kantorData = kantorRaw?.data || kantorRaw;
+      const user = window.currentUser || {};
+      let kantorData = window.globalKantor || null;
+      if (!kantorData && user.idCabang) {
+        const kantorSnap = await window.getDoc(window.doc(window.db, "kantorCabang", user.idCabang));
+        if (kantorSnap.exists()) {
+          kantorData = kantorSnap.data();
+          window.globalKantor = kantorData;
+        }
+      }
       upahHunter = Number(kantorData?.upahHunter || 0);
     } catch { }
 
@@ -228,13 +178,7 @@ window.initCustomerSalesView = async function() {
 };
 
 window.openMapFromCustomerSales = async function(idCustomer) {
-  const idb  = await window.openAppDB();
-  const data = await new Promise(resolve => {
-    const tx  = idb.transaction("customerSalesDB", "readonly");
-    const req = tx.objectStore("customerSalesDB").get(idCustomer);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror   = () => resolve(null);
-  });
+  const data = window._customerSalesData?.find(x => x.id === idCustomer);
   if (!data) return;
 
   const loc = data.lokasiCustomer;
@@ -294,59 +238,39 @@ window.openCatatanSales = async function(idCustomer, namaCustomer) {
   const simpanTxt = document.getElementById("btnSimpanCatatanText");
   if (!overlay) return;
 
-  // Load catatan dari IndexedDB
-  try {
-    const idb  = await window.openAppDB();
-    const data = await new Promise(resolve => {
-      const tx  = idb.transaction("customerSalesDB", "readonly");
-      const req = tx.objectStore("customerSalesDB").get(idCustomer);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror   = () => resolve(null);
-    });
-    if (namaEl)   namaEl.textContent   = namaCustomer || "-";
-    if (textEl)   textEl.value         = data?.catatan || "";
-    if (updateEl) updateEl.textContent = data?.catatanUpdatedAt
-      ? "Update: " + new Date(data.catatanUpdatedAt).toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
-      : "Update: -";
-  } catch {
-    if (namaEl)   namaEl.textContent   = namaCustomer || "-";
-    if (textEl)   textEl.value         = "";
-    if (updateEl) updateEl.textContent = "Update: -";
-  }
+  // Load catatan dari memory
+  const dataAwal = window._customerSalesData?.find(x => x.id === idCustomer);
+  if (namaEl)   namaEl.textContent   = namaCustomer || "-";
+  if (textEl)   textEl.value         = dataAwal?.catatan || "";
+  if (updateEl) updateEl.textContent = dataAwal?.catatanUpdatedAt
+    ? "Update: " + new Date(dataAwal.catatanUpdatedAt).toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
+    : "Update: -";
 
   overlay.classList.add("active");
 
   // Override tombol simpan
   simpanBtn.onclick = async function() {
+    if (!navigator.onLine) {
+      simpanTxt.textContent = "Tidak ada koneksi";
+      setTimeout(() => { simpanTxt.textContent = "Simpan"; }, 2000);
+      return;
+    }
     const catatan = textEl.value.trim();
     const now     = Date.now();
     simpanBtn.disabled  = true;
     simpanTxt.textContent = "Menyimpan...";
 
     try {
-      const idb      = await window.openAppDB();
-      const existing = await new Promise(resolve => {
-        const tx  = idb.transaction("customerSalesDB", "readonly");
-        const req = tx.objectStore("customerSalesDB").get(idCustomer);
-        req.onsuccess = () => resolve(req.result || {});
-        req.onerror   = () => resolve({});
-      });
+      await window.updateDoc(
+        window.doc(window.db, "customerSales", idCustomer),
+        { catatan, catatanUpdatedAt: now }
+      );
 
-      await new Promise((resolve, reject) => {
-        const tx    = idb.transaction("customerSalesDB", "readwrite");
-        const store = tx.objectStore("customerSalesDB");
-        store.put({ ...existing, catatan, catatanUpdatedAt: now });
-        tx.oncomplete = () => resolve();
-        tx.onerror    = () => reject(tx.error);
-      });
-
-      if (navigator.onLine) {
-        try {
-          await window.updateDoc(
-            window.doc(window.db, "customerSales", idCustomer),
-            { catatan, catatanUpdatedAt: now }
-          );
-        } catch { }
+      // Update memory
+      const entry = window._customerSalesData?.find(x => x.id === idCustomer);
+      if (entry) {
+        entry.catatan = catatan;
+        entry.catatanUpdatedAt = now;
       }
 
       simpanTxt.textContent = "Tersimpan ✓";
@@ -406,13 +330,7 @@ window.openCustomerSalesPopup = async function(idCustomer) {
   if (!popup || !inputNama || !inputAlamat || !container) return;
 
   try {
-    const idb  = await window.openAppDB();
-    const data = await new Promise(resolve => {
-      const tx  = idb.transaction("customerSalesDB", "readonly");
-      const req = tx.objectStore("customerSalesDB").get(idCustomer);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror   = () => resolve(null);
-    });
+    const data = window._customerSalesData?.find(x => x.id === idCustomer);
     if (!data) return;
 
     window.salesEditId = idCustomer;
@@ -445,15 +363,8 @@ window.openCustomerSalesPopup = async function(idCustomer) {
     document.addEventListener("click", e => {
       if (!e.target.closest("#salesHariDropdownWrap")) hariList?.classList.remove("open");
     });
-    // Load varian
-    const uid      = window.auth.currentUser.uid;
-    const userData = await new Promise(resolve => {
-      const tx  = idb.transaction("usersDB", "readonly");
-      const req = tx.objectStore("usersDB").get(uid);
-      req.onsuccess = () => resolve(req.result?.data || null);
-      req.onerror   = () => resolve(null);
-    });
-    const varian = Array.isArray(userData?.varian) ? userData.varian : [];
+    // Load varian dari RAM cache
+    const varian = Array.isArray(window.globalVarian) ? window.globalVarian : [];
 
     let htmlKonsinyasi = "";
     let htmlCash = "";
@@ -525,24 +436,12 @@ document.getElementById("btnUpdateSales")?.addEventListener("click", async funct
   if (!id) return;
 
   try {
-    const idb      = await window.openAppDB();
-    const existing = await new Promise(resolve => {
-      const tx  = idb.transaction("customerSalesDB", "readonly");
-      const req = tx.objectStore("customerSalesDB").get(id);
-      req.onsuccess = () => resolve(req.result || {});
-      req.onerror   = () => resolve({});
-    });
+    if (!navigator.onLine) throw new Error("offline");
 
-    const uid      = window.auth.currentUser.uid;
-    const userData = await new Promise(resolve => {
-      const tx  = idb.transaction("usersDB", "readonly");
-      const req = tx.objectStore("usersDB").get(uid);
-      req.onsuccess = () => resolve(req.result?.data || null);
-      req.onerror   = () => resolve(null);
-    });
+    const existing = { ...(window._customerSalesData?.find(x => x.id === id) || {}) };
 
     let varianMap = {};
-    (userData?.varian || []).forEach(item => {
+    (window.globalVarian || []).forEach(item => {
       const key = Object.keys(item)[0];
       if (key) varianMap[key] = item[key];
     });
@@ -592,54 +491,32 @@ document.getElementById("btnUpdateSales")?.addEventListener("click", async funct
     existing.cash       = Object.keys(cash).length ? cash : undefined;
     existing.keterangan = keterangan;
 
-    // Save IndexedDB
-    await new Promise((resolve, reject) => {
-      const tx    = idb.transaction("customerSalesDB", "readwrite");
-      const store = tx.objectStore("customerSalesDB");
-      store.put({ ...existing, isSync: false, isEdit: true });
-      tx.oncomplete = () => resolve();
-      tx.onerror    = () => reject(tx.error);
-    });
-
-    // Sync Firestore jika online
-    if (navigator.onLine) {
-      try {
-        let foto = existing.fotoLokal ? "" : (existing.foto || "");
-        if (existing.fotoLokal) {
-          const arr   = existing.fotoLokal.split(",");
-          const mime  = arr[0].match(/:(.*?);/)[1];
-          const bstr  = atob(arr[1]);
-          let n       = bstr.length;
-          const u8arr = new Uint8Array(n);
-          while (n--) u8arr[n] = bstr.charCodeAt(n);
-          const blob  = new Blob([u8arr], { type: mime });
-          const sRef  = window.storageRef(window.storage, `fotoCustomerSales/${id}`);
-          await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
-          foto = await window.getDownloadURL(sRef);
-        }
-
-        await window.updateDoc(
-          window.doc(window.db, "customerSales", id),
-          {
-            namaCustomer:   existing.namaCustomer,
-            alamatCustomer: existing.alamatCustomer,
-            hari:           existing.hari,
-            foto,
-            keterangan:     existing.keterangan || {},
-            konsinyasi:     Object.keys(konsinyasi).length ? konsinyasi : window.deleteField(),
-            cash:           Object.keys(cash).length ? cash : window.deleteField(),
-          }
-        );
-        // Tandai sync
-        await new Promise((resolve, reject) => {
-          const tx    = idb.transaction("customerSalesDB", "readwrite");
-          const store = tx.objectStore("customerSalesDB");
-          store.put({ ...existing, foto, fotoLokal: null, isSync: true, isEdit: false });
-          tx.oncomplete = () => resolve();
-          tx.onerror    = () => reject(tx.error);
-        });
-      } catch { }
+    let foto = existing.fotoLokal ? "" : (existing.foto || "");
+    if (existing.fotoLokal) {
+      const arr   = existing.fotoLokal.split(",");
+      const mime  = arr[0].match(/:(.*?);/)[1];
+      const bstr  = atob(arr[1]);
+      let n       = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      const blob  = new Blob([u8arr], { type: mime });
+      const sRef  = window.storageRef(window.storage, `fotoCustomerSales/${id}`);
+      await window.uploadBytes(sRef, blob, { contentType: "image/jpeg" });
+      foto = await window.getDownloadURL(sRef);
     }
+
+    await window.updateDoc(
+      window.doc(window.db, "customerSales", id),
+      {
+        namaCustomer:   existing.namaCustomer,
+        alamatCustomer: existing.alamatCustomer,
+        hari:           existing.hari,
+        foto,
+        keterangan:     existing.keterangan || {},
+        konsinyasi:     Object.keys(konsinyasi).length ? konsinyasi : window.deleteField(),
+        cash:           Object.keys(cash).length ? cash : window.deleteField(),
+      }
+    );
 
     document.getElementById("popupCustomerSales").classList.remove("active");
     window.initCustomerSalesView();
@@ -829,16 +706,6 @@ document.getElementById("btnUpdateSales")?.addEventListener("click", async funct
         await batch.commit();
         toast.textContent = `Menghapus ${Math.min(i + batchSize, total)} dari ${total}...`;
       }
-
-      // Hapus IndexedDB
-      const idb = await window.openAppDB();
-      await new Promise((resolve, reject) => {
-        const tx    = idb.transaction("customerSalesDB", "readwrite");
-        const store = tx.objectStore("customerSalesDB");
-        ids.forEach(id => store.delete(id));
-        tx.oncomplete = () => resolve();
-        tx.onerror    = () => reject(tx.error);
-      });
 
       toast.style.background = "#2eaf62";
       toast.textContent = `✓ ${total} customer berhasil dihapus`;

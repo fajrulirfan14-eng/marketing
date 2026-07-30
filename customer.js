@@ -42,7 +42,6 @@ window.initCustomerView = function() {
     };
   });
   window.loadCustomerFromIndexDB(selectedHari, "");
-  window.syncPendingCustomer();
 
   if (btnMapHari) {
     btnMapHari.onclick = function() {
@@ -86,89 +85,6 @@ window.initCustomerView = function() {
   // Init icon filter
   const hasActive = Object.values(window._customerFilter).some(v => v);
   btnFilter?.classList.toggle("active-filter", hasActive);
-  const btnReload = document.getElementById("btnReloadCustomer");
-  if (btnReload) {
-    btnReload.onclick = async function() {
-      if (btnReload.classList.contains("loading")) return;
-
-      // Blok jika Semua Hari
-      if (selectedHari === "Semua Hari") {
-        const toast = document.createElement("div");
-        toast.textContent = "Pilih hari terlebih dahulu";
-        toast.style.cssText = `
-          position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
-          background:#333;color:#fff;padding:10px 20px;border-radius:20px;
-          font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;
-          animation:csToastIn .3s cubic-bezier(.34,1.56,.64,1) both;
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
-        return;
-      }
-
-      btnReload.classList.add("loading");
-      btnReload.disabled = true;
-
-      try {
-        const uid = window.auth.currentUser?.uid;
-        if (!uid) return;
-
-        const snap = await window.getDocs(window.query(
-          window.collection(window.db, "customer"),
-          window.where("pemilik", "==", uid),
-          window.where("status",  "==", true),
-          window.where("hari",    "==", selectedHari)
-        ));
-
-        const data = snap.docs.map(d => {
-          const dd = d.data();
-          return {
-            id: d.id,
-            ...dd,
-            lokasiCustomer: window.normalizeGeoPoint(dd.lokasiCustomer)
-          };
-        });
-
-        const idb = await window.openAppDB();
-        await new Promise((resolve, reject) => {
-          const tx    = idb.transaction("customerHarianDB", "readwrite");
-          const store = tx.objectStore("customerHarianDB");
-          store.put({ id: `${uid}_${selectedHari}`, data, updatedAt: Date.now() });
-          tx.oncomplete = () => resolve();
-          tx.onerror    = () => reject(tx.error);
-        });
-
-        window.loadCustomerFromIndexDB(selectedHari, searchInput.value);
-
-        // Toast sukses
-        const toast = document.createElement("div");
-        toast.textContent = `✓ ${data.length} customer diperbarui`;
-        toast.style.cssText = `
-          position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
-          background:#2eaf62;color:#fff;padding:10px 20px;border-radius:20px;
-          font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;
-          animation:csToastIn .3s cubic-bezier(.34,1.56,.64,1) both;
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
-
-      } catch {
-        const toast = document.createElement("div");
-        toast.textContent = "Gagal reload, coba lagi";
-        toast.style.cssText = `
-          position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
-          background:#e53935;color:#fff;padding:10px 20px;border-radius:20px;
-          font-size:13px;font-weight:600;z-index:99999;white-space:nowrap;
-          animation:csToastIn .3s cubic-bezier(.34,1.56,.64,1) both;
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
-      } finally {
-        btnReload.classList.remove("loading");
-        btnReload.disabled = false;
-      }
-    };
-  }
   document.addEventListener("click", function(e) {
     if (!e.target.closest("#customerHari") && !e.target.closest("#hariMenu")) {
       hariMenu.classList.remove("active");
@@ -208,31 +124,27 @@ window.initCustomerView = function() {
 };
 window.openMapRoutingHari = async function(hari) {
   try {
-    const db  = await window.openAppDB();
     const uid = window.auth.currentUser?.uid;
-    const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-    let dataArray = [];
+    if (!uid) return;
 
-    const hariList = hari === "Semua Hari" ? hariNama : [hari];
-    await Promise.all(hariList.map(h => new Promise(resolve => {
-      const tx  = db.transaction("customerHarianDB", "readonly");
-      const req = tx.objectStore("customerHarianDB").get(`${uid}_${h}`);
-      req.onsuccess = () => {
-        if (req.result?.data && Array.isArray(req.result.data)) {
-          dataArray.push(...req.result.data);
-        }
-        resolve();
-      };
-      req.onerror = () => resolve();
-    })));
+    let q;
+    if (hari === "Semua Hari") {
+      q = window.query(
+        window.collection(window.db, "customer"),
+        window.where("pemilik", "==", uid),
+        window.where("status",  "==", true)
+      );
+    } else {
+      q = window.query(
+        window.collection(window.db, "customer"),
+        window.where("pemilik", "==", uid),
+        window.where("status",  "==", true),
+        window.where("hari",    "==", hari)
+      );
+    }
 
-    const seen = new Set();
-    dataArray = dataArray.filter(x => {
-      const cid = x.idCustomer || x.id;
-      if (!cid || seen.has(cid)) return false;
-      seen.add(cid);
-      return true;
-    });
+    const snap = await window.getDocs(q);
+    const dataArray = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     if (dataArray.length === 0) {
       alert("Tidak ada customer untuk hari ini.");
@@ -334,47 +246,34 @@ window.loadCustomerFromIndexDB = async function(hari, keyword = "") {
   try {
     const uid = window.auth.currentUser?.uid;
     if (!uid) return;
-    const db = await window.openAppDB();
 
-    // Jika semua hari — baca semua key milik uid, gabungkan
-    let dataArray = [];
+    let q;
     if (hari === "Semua Hari") {
-      const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-      await Promise.all(hariNama.map(h => new Promise(resolve => {
-        const tx    = db.transaction("customerHarianDB", "readonly");
-        const req   = tx.objectStore("customerHarianDB").get(`${uid}_${h}`);
-        req.onsuccess = () => {
-          if (req.result?.data && Array.isArray(req.result.data)) {
-            dataArray.push(...req.result.data);
-          }
-          resolve();
-        };
-        req.onerror = () => resolve();
-      })));
+      q = window.query(
+        window.collection(window.db, "customer"),
+        window.where("pemilik", "==", uid),
+        window.where("status",  "==", true)
+      );
     } else {
-      // Baca hanya key spesifik hari ini
-      const cacheKey = `${uid}_${hari}`;
-      const raw = await new Promise(resolve => {
-        const tx  = db.transaction("customerHarianDB", "readonly");
-        const req = tx.objectStore("customerHarianDB").get(cacheKey);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror   = () => resolve(null);
-      });
-      if (raw?.data && Array.isArray(raw.data)) {
-        dataArray = raw.data;
-      }
+      q = window.query(
+        window.collection(window.db, "customer"),
+        window.where("pemilik", "==", uid),
+        window.where("status",  "==", true),
+        window.where("hari",    "==", hari)
+      );
     }
 
-    // DEDUPE berdasarkan idCustomer
-    const seen = new Set();
-    dataArray = dataArray.filter(x => {
-      const cid = x.idCustomer || x.id;
-      if (!cid || seen.has(cid)) return false;
-      seen.add(cid);
-      return true;
+    const snap = await window.getDocs(q);
+    let dataArray = snap.docs.map(d => {
+      const dd = d.data();
+      return {
+        id: d.id,
+        ...dd,
+        lokasiCustomer: window.normalizeGeoPoint(dd.lokasiCustomer)
+      };
     });
 
-      if (keyword) {
+    if (keyword) {
       const k = keyword.toLowerCase();
       dataArray = dataArray.filter(x =>
         (x.namaCustomer || "").toLowerCase().includes(k)
@@ -388,6 +287,7 @@ window.loadCustomerFromIndexDB = async function(hari, keyword = "") {
     window._customerViewData = dataArray;
     window.renderCustomer(hari, keyword, dataArray);
   } catch (err) {
+    console.error("❌ loadCustomerFromIndexDB:", err);
     listEl.innerHTML = `<div class="customer-empty">Gagal memuat</div>`;
   }
 };
@@ -422,63 +322,37 @@ window.openCatatanCustomer = function(data) {
       btn.disabled = true;
       btn.classList.add("loading");
       btnText.innerText = "Menyimpan...";
+      const pesan = textEl.value.trim();
+
       await window.updateDoc(
         window.doc(window.db, "customer", data.id),
         {
           catatan: {
-            pesan: textEl.value.trim(),
+            pesan,
             updateAt: window.serverTimestamp()
           }
         }
       );
-      try {
-        const idb = await window.openAppDB();
-        const txIdb = idb.transaction("customerHarianDB", "readwrite");
-        const storeIdb = txIdb.objectStore("customerHarianDB");
-        // Key di customerHarianDB adalah uid_hari
-        const uid = window.auth.currentUser?.uid;
-        const hari = data.hari || "";
-        const key = `${uid}_${hari}`;
 
-        const existing = await new Promise((resolve) => {
-          const r = storeIdb.get(key);
-          r.onsuccess = () => resolve(r.result || null);
-          r.onerror = () => resolve(null);
-        });
-
-        if (existing && Array.isArray(existing.data)) {
-          const idx = existing.data.findIndex(
-            x => (x.idCustomer || x.id) === (data.idCustomer || data.id)
-          );
-          if (idx !== -1) {
-            existing.data[idx] = {
-              ...existing.data[idx],
-              catatan: {
-                pesan: textEl.value.trim(),
-                updateAt: Date.now()
-              }
-            };
-            storeIdb.put({
-              ...existing,
-              updatedAt: Date.now()
-            });
-          }
-        }
-      } catch(e) { }
       btn.classList.remove("loading");
       btn.classList.add("success");
       btnText.innerText = "Sukses";
       updateEl.innerText = "Update: Baru saja";
 
-      // Update badge catatan di list
+      // Update memory & badge catatan di list
       const customerId = data.idCustomer || data.id;
-      const listItems  = document.querySelectorAll(".customer-list-item");
+      const entry = window._customerViewData?.find(x => (x.idCustomer || x.id) === customerId);
+      if (entry) {
+        if (!entry.catatan) entry.catatan = {};
+        entry.catatan.pesan = pesan;
+      }
+
+      const listItems = document.querySelectorAll(".customer-list-item");
       listItems.forEach(item => {
         const namaEl = item.querySelector(".customer-nama");
         if (namaEl && namaEl.textContent.trim() === (data.namaCustomer || "-")) {
           const badgeExisting = item.querySelector(".customer-note-badge");
           const fotoWrapper   = item.querySelector(".customer-foto-wrapper");
-          const pesan         = textEl.value.trim();
           if (pesan && !badgeExisting && fotoWrapper) {
             fotoWrapper.insertAdjacentHTML("beforeend", `<div class="customer-note-badge"><i class="fa-solid fa-bookmark"></i></div>`);
           } else if (!pesan && badgeExisting) {
@@ -504,78 +378,6 @@ window.openCatatanCustomer = function(data) {
     }
   };
 };
-window.syncPendingCustomer = async function() {
-  try {
-    if (!navigator.onLine) return;
-    const uid = window.auth.currentUser?.uid;
-    if (!uid) return;
-    const db = await window.openAppDB();
-    const tx = db.transaction("customerHarianDB", "readwrite");
-    const store = tx.objectStore("customerHarianDB");
-    const req = store.getAll();
-    req.onsuccess = async function() {
-      const raw = req.result || [];
-      for (const item of raw) {
-        if (
-          !item?.data ||
-          !Array.isArray(item.data)
-        ) continue;
-        let changed = false;
-        for (
-          let i = 0;
-          i < item.data.length;
-          i++
-        ) {
-          const customer = item.data[i];
-          if (
-            customer.syncStatus
-            !== "pending"
-          ) continue;
-          try {
-            const dataFirestore = {
-              ...customer,
-              lokasiCustomer:
-                new window.GeoPoint(
-                  customer
-                  .lokasiCustomer?.lat || 0,
-                  customer
-                  .lokasiCustomer?.lng || 0
-                )
-            };
-            delete
-            dataFirestore.syncStatus;
-            await window.setDoc(
-              window.doc(
-                window.db,
-                "customer",
-                customer.idCustomer
-              ),
-              dataFirestore
-            );
-            item.data[i].syncStatus = "synced";
-            changed = true;
-          } catch(err){  }
-        }
-        if (changed) {
-          const db2 = await window.openAppDB();
-          const tx2 = db2.transaction("customerHarianDB", "readwrite");
-          const store2 = tx2.objectStore("customerHarianDB");
-          store2.put({
-            ...item,
-            updatedAt: Date.now()
-          });
-        }
-      }
-    };
-  } catch(err){ }
-};
-
-window.addEventListener("online",
-  function() {
-    console.log("🌐 Online detected");
-    window.syncPendingCustomer();
-  }
-);
 window.inputCustomer = function() {
   const popup = document.getElementById("popupCustomer");
   const stokContainer = document.getElementById("stokContainer");
@@ -844,30 +646,26 @@ window.inputCustomer = function() {
         throw new Error("Nama customer wajib diisi");
       }
 
-      // Cek duplikat nama di semua hari IndexedDB
-      try {
-        const idbCek = await window.openAppDB();
-        const allRaw = await new Promise((resolve, reject) => {
-          const tx    = idbCek.transaction("customerHarianDB", "readonly");
-          const store = tx.objectStore("customerHarianDB");
-          const req   = store.getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror   = () => reject(req.error);
-        });
-        let allCustomer = [];
-        allRaw.forEach(item => {
-          if (Array.isArray(item.data)) allCustomer.push(...item.data);
-        });
-        const namaBaru = namaCustomer.toLowerCase().trim();
-        const duplikat = allCustomer.find(c =>
-          (c.namaCustomer || "").toLowerCase().trim() === namaBaru
-        );
-        if (duplikat) {
-          throw new Error(`Nama "${namaCustomer}" sudah ada di hari ${duplikat.hari}`);
-        }
-      } catch(err) {
-        throw err;
+      if (!navigator.onLine) {
+        throw new Error("Tidak ada koneksi internet");
       }
+
+      // Cek duplikat nama — query langsung ke Firestore
+      const snapDup = await window.getDocs(window.query(
+        window.collection(window.db, "customer"),
+        window.where("pemilik", "==", uid),
+        window.where("status",  "==", true)
+      ));
+      const namaBaru = namaCustomer.toLowerCase().trim();
+      let duplikat = null;
+      snapDup.forEach(d => {
+        const c = d.data();
+        if ((c.namaCustomer || "").toLowerCase().trim() === namaBaru) duplikat = c;
+      });
+      if (duplikat) {
+        throw new Error(`Nama "${namaCustomer}" sudah ada di hari ${duplikat.hari}`);
+      }
+
       const alamatCustomer = document.getElementById("alamatCustomer")?.value.trim() || "";
       if (!alamatCustomer) {
         throw new Error("Alamat wajib diisi");
@@ -882,19 +680,16 @@ window.inputCustomer = function() {
       const hari = hariNama[new Date().getDay()];
       let jarak = 0;
       try {
-        const idbKantor = await window.openAppDB();
-        const txKantor = idbKantor.transaction("kantorDB", "readonly");
-        const storeKantor = txKantor.objectStore("kantorDB");
-        const kantorData = await new Promise(resolve => {
-          const r = storeKantor.get(user.idCabang || "");
-          r.onsuccess = () => resolve(r.result?.data || null);
-          r.onerror = () => resolve(null);
-        });
-        console.log("kantorData:", kantorData);
-        console.log("idCabang:", user.idCabang);
+        let kantorData = window.globalKantor || null;
+        if (!kantorData && user.idCabang) {
+          const kantorSnap = await window.getDoc(window.doc(window.db, "kantorCabang", user.idCabang));
+          if (kantorSnap.exists()) {
+            kantorData = kantorSnap.data();
+            window.globalKantor = kantorData;
+          }
+        }
         if (kantorData) {
           const lokasiCabang = kantorData.lokasiCabang;
-          console.log("lokasiCabang:", lokasiCabang);
           if (lokasiCabang && customerLat && customerLng) {
             const toRad = (v) => v * Math.PI / 180;
             const R = 6371;
@@ -915,13 +710,11 @@ window.inputCustomer = function() {
         console.log("Gagal hitung jarak:", err);
       }
       const idCustomer = crypto.randomUUID();
-      let syncStatus = navigator.onLine ? "synced" : "pending";
 
-      // Upload foto ke Storage jika ada
+      // Upload foto ke Storage
       let fotoUrl = "";
-      if (fotoBase64 && navigator.onLine) {
+      if (fotoBase64) {
         try {
-          // Compress dulu
           const compressed = await new Promise(resolve => {
             const img = new Image();
             img.onload = () => {
@@ -941,7 +734,6 @@ window.inputCustomer = function() {
           );
           await window.uploadBytes(storageRef, compressed, { contentType: "image/jpeg" });
           fotoUrl = await window.getDownloadURL(storageRef);
-          console.log("📸 Foto uploaded:", fotoUrl);
         } catch(err) {
           console.log("❌ Upload foto gagal:", err);
         }
@@ -961,50 +753,13 @@ window.inputCustomer = function() {
         createdAt: window.serverTimestamp(),
         isNew: true,
         status: true,
-        acc: true,
-        syncStatus
+        acc: true
       };
-      if (navigator.onLine) {
-        try {
-          await window.setDoc(
-            window.doc(window.db, "customer", idCustomer),
-            dataCustomer
-          );
-          syncStatus = "synced";
-          console.log("☁ Firestore saved");
-        } catch(err) {
-          console.log("Firestore gagal → pending", err);
-        }
-      } else {
-        console.log("Offline → pending sync");
-      }
-      const idb = await window.openAppDB();
-      const tx = idb.transaction("customerHarianDB", "readwrite");
-      const store = tx.objectStore("customerHarianDB");
-      const dataToSave = {
-        ...dataCustomer,
-        syncStatus,
-        lokasiCustomer: window.normalizeGeoPoint(dataCustomer.lokasiCustomer),
-        createdAt: Date.now()
-      };
-      const key = uid + "_" + hari;
-      const existing = await new Promise(resolve => {
-        const req = store.get(key);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => resolve(null);
-      }
-    );
-      let currentData = existing?.data || [];
-      currentData.unshift(dataToSave);
-      await new Promise((resolve, reject) => {
-        const req = store.put({
-          id: key,
-          data: currentData,
-          updatedAt: Date.now()
-        });
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
+
+      await window.setDoc(
+        window.doc(window.db, "customer", idCustomer),
+        dataCustomer
+      );
 
       btnSimpan.classList.remove("loading");
       btnSimpan.classList.add("success");
@@ -1036,8 +791,8 @@ window.inputCustomer = function() {
     const content = document.getElementById("popupContent");
     if (!popup || !content) return;
     if (!popup.classList.contains("active")) return;
-    // Stop jika touch di dalam map popup
-    if (e.target.closest("#mapPopupHome")) {
+    // Stop jika touch di dalam map (peta lokasi inline)
+    if (e.target.closest("#customerLokasiMapContainer")) {
       canSwipe = false;
       return;
     }

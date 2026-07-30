@@ -163,15 +163,14 @@ window.initInputTabelView = async function() {
   let plBayar = 0;
   try {
     const today = new Date().toISOString().split("T")[0];
-    const idb   = await window.openAppDB();
-    const rawPL = await new Promise(resolve => {
-      const tx  = idb.transaction("penjualanLangsungDB", "readonly");
-      const req = tx.objectStore("penjualanLangsungDB").get(`${uid}_${today}`);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror   = () => resolve(null);
-    });
-    plData  = rawPL?.penjualanLangsung || {};
-    plBayar = Number(rawPL?.pembayaran?.bayarKonsumen || 0);
+    const snapPL = await window.getDoc(
+      window.doc(window.db, "users", uid, "penjualanLangsung", today)
+    );
+    if (snapPL.exists()) {
+      const d = snapPL.data();
+      plData  = d.penjualanLangsung || {};
+      plBayar = Number(d.pembayaran?.bayarKonsumen || 0);
+    }
   } catch { }
 
   sumPay += plBayar;

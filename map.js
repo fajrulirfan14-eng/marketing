@@ -755,14 +755,20 @@ window.openMapView = function() {
   }
 
   async function tampilkanPinCustomer() {
+    const badgeEl      = document.getElementById("mapCustBadge");
+    const badgeCountEl = document.getElementById("mapCustBadgeCount");
     if (pinVisible) {
       pinMarkers.forEach(m => { try { m.map = null; } catch { } });
       pinMarkers = []; pinVisible = false; updateBtnPin(false);
       if (pinInfoEl) { pinInfoEl.remove(); pinInfoEl = null; }
+      if (badgeEl) badgeEl.style.display = "none";
       return;
     }
     const customers = await loadPinCustomer();
-    if (!customers.length) return;
+    if (!customers.length) {
+      if (badgeEl) badgeEl.style.display = "none";
+      return;
+    }
     const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
     for (const c of customers) {
       try {
@@ -807,6 +813,10 @@ window.openMapView = function() {
       } catch { }
     }
     pinVisible = true; updateBtnPin(true);
+    if (badgeEl && badgeCountEl) {
+      badgeCountEl.textContent = pinMarkers.length;
+      badgeEl.style.display = "flex";
+    }
   }
   // ── PIN KANTOR CABANG ──
   async function tampilkanPinKantor() {
@@ -890,7 +900,28 @@ window.openMapView = function() {
       window._mapUsersCabangCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch { }
   })();
-  // Auto tampilkan pin saat buka
+  // ── SEARCH CUSTOMER ──
+  let searchDebounce = null;
+  let tempPinMarker  = null;
+  let allCustomers   = [];
+
+  // ── BADGE JUMLAH CUSTOMER (di bawah search bar, kanan atas) — ngitung dari pin yang tampil ──
+  const custBadge = document.createElement("div");
+  custBadge.id = "mapCustBadge";
+  custBadge.style.cssText = `
+    position:absolute; top:64px; right:16px; z-index:5;
+    background:rgba(0,0,0,.65); color:#fff; font-size:12px; font-weight:700;
+    padding:5px 12px; border-radius:20px; box-shadow:0 2px 8px rgba(0,0,0,.25);
+    display:none; align-items:center; gap:5px; pointer-events:none;
+  `;
+  custBadge.innerHTML = `<i class="fa-solid fa-users" style="font-size:11px;"></i> <span id="mapCustBadgeCount">0</span> Customer`;
+  mapEl.appendChild(custBadge);
+
+  getMapOwnData().then(own => {
+    allCustomers.push(...own.harian, ...own.baru, ...own.sales);
+  }).catch(() => {});
+
+  // Auto tampilkan pin saat buka (badge udah ada duluan di atas, jadi langsung ke-update)
   tampilkanPinCustomer();
 
   // ── GPS INIT ──
@@ -917,17 +948,6 @@ window.openMapView = function() {
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
     );
   }
-  // ── SEARCH CUSTOMER ──
-  let searchDebounce = null;
-  let tempPinMarker  = null;
-  let allCustomers   = [];
-
-  // Load customer milik sendiri ke memory buat search suggest.
-  // Customer staff lain otomatis ikut ditambahkan begitu getMapLainData()
-  // pertama kali di-trigger (lihat isi fungsi itu).
-  getMapOwnData().then(own => {
-    allCustomers.push(...own.harian, ...own.baru, ...own.sales);
-  }).catch(() => {});
 
   const searchWrap = document.createElement("div");
   searchWrap.className = "map-search-wrap";
@@ -1496,9 +1516,6 @@ window.openMapFromCustomerBaru = async function(idCustomer) {
   if (!data) return;
 
   const loc = window.normalizeGeoPoint?.(data.lokasiCustomer) || data.lokasiCustomer;
-  if (!loc?.lat || !loc?.lng) return;
-
-  const loc = data.lokasiCustomer;
   if (!loc?.lat || !loc?.lng) return;
 
   window.openMapView();
