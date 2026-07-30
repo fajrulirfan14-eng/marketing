@@ -13,20 +13,9 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(payload => {
-  const { title, body, icon } = payload.notification || {};
-  self.registration.showNotification(title || "TTN Marketing", {
-    body: body || "",
+  const { title, body, icon } = payload.notification;
+  self.registration.showNotification(title, {
+    body,
     icon: icon || '/logoTTN.png',
   });
-});
-
-self.addEventListener("install", () => {
-  self.skipWaiting();
-});
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.map(key => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
 });
