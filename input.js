@@ -4,6 +4,8 @@ window.initInputView = async function(){
   if(window._inputViewCleanup){
     window._inputViewCleanup();
   }
+  // Generation guard — run lama yang telat selesai gak boleh nimpa run baru
+  const myGen = (window._inputViewGen = (window._inputViewGen || 0) + 1);
   const hariEl = document.getElementById("inputHari");
   const bawaEl = document.getElementById("inputBawaBarang");
   const listCustomerEl = document.getElementById("listCustomer");
@@ -154,6 +156,7 @@ window.initInputView = async function(){
     try{
       const userRef = window.doc(window.db, "users", uid);
       const userSnap = await window.getDoc(userRef);
+      if (myGen !== window._inputViewGen) return; // udah kalah start, stop
       if(!userSnap.exists()){
         bawaEl.innerHTML = `
           <div class="input-bawa-item expired">
@@ -187,7 +190,7 @@ window.initInputView = async function(){
       ? rawBawaBarang.map(item => {
           const key = Object.keys(item)[0];
           if (!key) return item;
-          // isAktif WAJIB ikut varian (sumber kebenaran), field lain (bawa, dll) ikut item
+          // isAktif WAJIB ikut varian (sumber kebenaran), field lain (bawa dll) ikut item
           return {
             [key]: {
               ...varianMap[key],
@@ -201,6 +204,7 @@ window.initInputView = async function(){
           return { [key]: { ...v[key], bawa: 0 } };
         });
 
+    if (myGen !== window._inputViewGen) return; // udah kalah start, stop
     // GLOBAL
     window.globalBawaBarang = bawaBarang;
     window.globalVarian = varian;
@@ -265,6 +269,7 @@ window.initInputView = async function(){
       `;
       return;
     }
+    if (myGen !== window._inputViewGen) return; // udah kalah start, stop
     if(customerSnap.empty){
       listCustomerEl.innerHTML = `
         <div class="input-customer-empty">
@@ -317,6 +322,8 @@ window.initInputView = async function(){
         if (dd.idCustomer) dataHarianMap[dd.idCustomer] = dd;
       });
     } catch (e) { }
+
+    if (myGen !== window._inputViewGen) return; // udah kalah start, stop
 
     const customerList = [];
     for(const docSnap of customerSnap.docs){

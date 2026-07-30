@@ -253,6 +253,13 @@ window.initHomeView = async function(){
 
   const { userData: homeUserData, kantorData: homeKantorData } = await loadHomeDataCacheAside(user.uid, role);
   if (myGen !== window._homeViewGen) return;
+
+  // Cuma timpa global bawaBarang/varian kalau "home" masih view aktif sekarang —
+  // cegah nimpa data input.js yang udah bener kalau kamu udah buru² pindah view
+  if (window.currentView === "home") {
+    window.globalBawaBarang = homeUserData.bawaBarang || [];
+    window.globalVarian     = homeUserData.varian || [];
+  }
   const homeVarian = homeUserData.varian || [];
 
   if (window.currentView === "home") {
