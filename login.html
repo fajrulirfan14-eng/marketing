@@ -38,5 +38,11 @@
 </div>
 <script type="module" src="login.js"></script>
 
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/firebase-messaging-sw.js").catch(() => {});
+    });
+  }
 </body>
 </html>
