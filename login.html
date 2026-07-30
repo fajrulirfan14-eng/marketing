@@ -40,9 +40,29 @@
 
 <script>
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
+    window.addEventListener("load", async () => {
+      try {
+        // 1. Cari SEMUA registrasi Service Worker yang ada di device ini,
+        //    hapus yang BUKAN firebase-messaging-sw.js (sisa service-worker.js lama, dll)
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          const scriptUrl = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || "";
+          if (!scriptUrl.endsWith("/firebase-messaging-sw.js")) {
+            await reg.unregister();
+          }
+        }
+      } catch (e) {}
+
+      try {
+        // 2. Hapus SEMUA Cache Storage yang mungkin masih nyangkut dari versi lama
+        const keys = await caches.keys();
+        await Promise.all(keys.map(key => caches.delete(key)));
+      } catch (e) {}
+
+      // 3. Baru register ulang SW yang bener (FCM doang, gak ada cache)
       navigator.serviceWorker.register("/firebase-messaging-sw.js").catch(() => {});
     });
   }
+</script>
 </body>
 </html>
