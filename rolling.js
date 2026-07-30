@@ -16,9 +16,8 @@ async function getRollingBulanData(bulan, tahun, forceRefresh = false) {
 
   let docs = [];
   try {
-    const colRef = window.collection(window.db, "users", uid, "customerBaruHunter");
     const q = window.query(
-      colRef,
+      window.collectionGroup(window.db, "customerBaruHunter"),
       window.where("createdBy", "==", uid),
       window.where("tanggal", ">=", tglAwal),
       window.where("tanggal", "<=", tglAkhir)
@@ -424,9 +423,13 @@ document.getElementById("btnUpdateRolling")?.addEventListener("click", async fun
     const docRef = window.doc(window.db, "users", uid, "customerBaruHunter", id);
     await window.updateDoc(docRef, updatePayload);
 
-    // update RAM cache biar list langsung ke-refresh tanpa fetch ulang Firestore
     const idx = cacheArr.findIndex(c => c.id === id);
-    if (idx > -1) cacheArr[idx] = { ...cacheArr[idx], ...updatePayload };
+    if (idx > -1) {
+      const updated = { ...cacheArr[idx], namaCustomer, alamatCustomer, foto: fotoUrl, keterangan };
+      if (Object.keys(konsinyasi).length) updated.konsinyasi = konsinyasi; else delete updated.konsinyasi;
+      if (Object.keys(cash).length) updated.cash = cash; else delete updated.cash;
+      cacheArr[idx] = updated;
+    }
 
     document.getElementById("popupRollingCustomer").classList.remove("active");
     window.initRollingView();
