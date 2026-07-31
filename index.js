@@ -19,6 +19,7 @@ import {
   getFirestore,
   doc,
   getDoc,
+  getDocFromServer,
   collection,
   writeBatch,
   collectionGroup,
@@ -63,6 +64,7 @@ window.addDoc = addDoc;
 window.doc = doc;
 window.setDoc = setDoc;
 window.getDoc = getDoc;
+window.getDocFromServer = getDocFromServer;
 window.query = query;
 window.where = where;
 window.orderBy = orderBy;
@@ -80,6 +82,70 @@ window.uploadBytes = uploadBytes;
 window.getDownloadURL = getDownloadURL;
 window.currentUser = null;
 window.globalUsersCache = [];
+
+// ============================================
+// CACHE BERSAMA: bawaBarang + varian dari users/{uid}
+// SATU-SATUNYA tempat proses merge isAktif — dipakai Home & Input.
+// Selalu ambil dari SERVER dulu (bukan cache SDK lokal), karena cache lokal
+// bisa "cemar" cuma berisi sebagian field kalau ada write lain (misal fcm.js)
+// yang duluan nyentuh dokumen ini pas WebView belum connect penuh.
+// ============================================
+window._bawaVarianCache = null;
+window.loadBawaVarianData = async function(forceRefresh = false){
+  const uid = window.auth?.currentUser?.uid;
+  if(!uid) return { userData:{}, bawaBarang:[], varian:[] };
+
+  if(!forceRefresh && window._bawaVarianCache){
+    return window._bawaVarianCache;
+  }
+
+  let userData = {};
+  try{
+    const snap = await window.getDocFromServer(window.doc(window.db, "users", uid));
+    userData = snap.exists() ? snap.data() : {};
+  }catch(err){
+    console.error("❌ loadBawaVarianData (server):", err);
+    try{
+      const snapCache = await window.getDoc(window.doc(window.db, "users", uid));
+      userData = snapCache.exists() ? snapCache.data() : {};
+    }catch(err2){
+      console.error("❌ loadBawaVarianData (cache fallback):", err2);
+      if(window._bawaVarianCache) return window._bawaVarianCache;
+      return { userData:{}, bawaBarang:[], varian:[] };
+    }
+  }
+
+  const varian = userData.varian || [];
+  const varianMap = {};
+  varian.forEach(v => {
+    const key = Object.keys(v)[0];
+    if(key) varianMap[key] = v[key];
+  });
+
+  const rawBawaBarang = userData.bawaBarang || [];
+  const bawaBarang = rawBawaBarang.length > 0
+    ? rawBawaBarang.map(item => {
+        const key = Object.keys(item)[0];
+        if(!key) return item;
+        return {
+          [key]: {
+            ...varianMap[key],
+            ...item[key],
+            isAktif: !!(varianMap[key]?.isAktif ?? item[key]?.isAktif)
+          }
+        };
+      })
+    : varian.map(v => {
+        const key = Object.keys(v)[0];
+        return { [key]: { ...v[key], isAktif: !!v[key]?.isAktif, bawa: 0 } };
+      });
+
+  window._bawaVarianCache = { userData, bawaBarang, varian };
+  window.globalUser       = userData;
+  window.globalBawaBarang = bawaBarang;
+  window.globalVarian     = varian;
+  return window._bawaVarianCache;
+};
 
 onAuthStateChanged(auth, async(user)=>{
   if(user){

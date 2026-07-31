@@ -4,6 +4,8 @@ window.initInputView = async function(){
   if(window._inputViewCleanup){
     window._inputViewCleanup();
   }
+  // Generation guard — run lama yang telat selesai gak boleh nimpa run baru
+  const myGen = (window._inputViewGen = (window._inputViewGen || 0) + 1);
   const hariEl = document.getElementById("inputHari");
   const bawaEl = document.getElementById("inputBawaBarang");
   const listCustomerEl = document.getElementById("listCustomer");
@@ -150,20 +152,12 @@ window.initInputView = async function(){
   hariEl.innerText = hariAktif;
   try{
     const uid = window.auth.currentUser.uid;
-    let userData = null;
+
+    // Selalu fetch FRESH dari server lewat cache bersama (sama yang dipakai Home) —
+    // biar merge isAktif SATU logic doang, gak ada lagi beda hasil Home vs Input
+    let cacheData;
     try{
-      const userRef = window.doc(window.db, "users", uid);
-      const userSnap = await window.getDoc(userRef);
-      if(!userSnap.exists()){
-        bawaEl.innerHTML = `
-          <div class="input-bawa-item expired">
-            Data user tidak ditemukan
-          </div>
-        `;
-        return;
-      }
-      userData = { id: uid, data: userSnap.data() };
-      window.globalUser = userData.data;
+      cacheData = await window.loadBawaVarianData(true);
     } catch(err){
       bawaEl.innerHTML = `
         <div class="input-bawa-item expired">
@@ -172,45 +166,28 @@ window.initInputView = async function(){
       `;
       return;
     }
-    const data = userData.data || userData;
-    const varian = data.varian || [];
+    if (myGen !== window._inputViewGen) return; // udah kalah start, stop
 
-    // Merge bawaBarang + varian supaya isAktif selalu ada
-    const varianMap = {};
-    varian.forEach(v => {
-      const key = Object.keys(v)[0];
-      if (key) varianMap[key] = v[key];
-    });
+    const data = cacheData.userData || {};
+    if(!data || Object.keys(data).length === 0){
+      bawaEl.innerHTML = `
+        <div class="input-bawa-item expired">
+          Data user tidak ditemukan
+        </div>
+      `;
+      return;
+    }
+    const varian = cacheData.varian || [];
+    const bawaBarang = cacheData.bawaBarang || [];
 
-    const rawBawaBarang = data.bawaBarang || [];
-    const bawaBarang = rawBawaBarang.length > 0
-      ? rawBawaBarang.map(item => {
-          const key = Object.keys(item)[0];
-          if (!key) return item;
-          // isAktif WAJIB ikut varian (sumber kebenaran), field lain (bawa, dll) ikut item
-          return {
-            [key]: {
-              ...varianMap[key],
-              ...item[key],
-              isAktif: varianMap[key]?.isAktif ?? item[key]?.isAktif
-            }
-          };
-        })
-      : varian.map(v => {
-          const key = Object.keys(v)[0];
-          return { [key]: { ...v[key], bawa: 0 } };
-        });
-
-    // GLOBAL
+    // GLOBAL (udah di-set juga di dalam loadBawaVarianData, ini cuma jaga-jaga)
     window.globalBawaBarang = bawaBarang;
     window.globalVarian = varian;
     if (data?.trikotomiResult) {
       window.trikotomiResult = data.trikotomiResult;
     }
     let isToday = false;
-    const rawUpdate =
-      userData?.data?.bawaBarangUpdate ||
-      userData?.bawaBarangUpdate || null;
+    const rawUpdate = data?.bawaBarangUpdate || null;
 
     if(rawUpdate?.seconds){
       const updateDate = new Date(rawUpdate.seconds * 1000);
@@ -265,6 +242,7 @@ window.initInputView = async function(){
       `;
       return;
     }
+    if (myGen !== window._inputViewGen) return; // udah kalah start, stop
     if(customerSnap.empty){
       listCustomerEl.innerHTML = `
         <div class="input-customer-empty">
@@ -317,6 +295,8 @@ window.initInputView = async function(){
         if (dd.idCustomer) dataHarianMap[dd.idCustomer] = dd;
       });
     } catch (e) { }
+
+    if (myGen !== window._inputViewGen) return; // udah kalah start, stop
 
     const customerList = [];
     for(const docSnap of customerSnap.docs){
