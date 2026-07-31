@@ -131,6 +131,8 @@ window.initProfilView = async function() {
       }
     }
   });
+  // STORAGE USAGE
+  await loadStorageInfo();
   const logoutModal = document.getElementById("logoutModal");
   const btnLogoutCancel = document.getElementById("btnLogoutCancel");
   const btnLogoutConfirm = document.getElementById("btnLogoutConfirm");
@@ -195,6 +197,17 @@ window.initProfilView = async function() {
       document.getElementById("logoutModalDesc").innerText = "Apakah Anda yakin ingin keluar dari aplikasi?";
       document.getElementById("btnLogoutConfirm").dataset.action = "logout";
       document.getElementById("logoutModal")?.classList.add("open");
+    });
+  }
+  const btnBersihkan = document.getElementById("btnBersihkanStorage");
+  if (btnBersihkan && !btnBersihkan.dataset.listener) {
+    btnBersihkan.dataset.listener = "true";
+    btnBersihkan.addEventListener("click", async () => {
+      try {
+        await showCleanerOverlay();
+      } catch (err) {
+        console.error("Cleaner error:", err);
+      }
     });
   }
   // Bottom sheet edit profil
@@ -377,6 +390,373 @@ async function compressProfilFoto(file) {
     };
     reader.readAsDataURL(file);
   });
+}
+async function loadStorageInfo() {
+  const pemakaianEl = document.getElementById("storagePemakaian");
+  const kuotaEl     = document.getElementById("storageKuota");
+  const barFillEl   = document.getElementById("storageBarFill");
+  try {
+    const storeNames = [
+      "customerHarianDB",
+      "usersDB",
+      "kantorDB",
+      "customerBaruDB",
+      "dataHarianDB",
+      "laporanMarketingDB",
+      "customerLainDB",
+      "customerHunterDB",
+      "customerSalesDB",
+      "customerSalesLainDB",
+      "slipGajiDB",
+    ];
+
+    const db = await window.openAppDB();
+    let totalRecords = 0;
+    const storeDetails = [];
+
+    for (const storeName of storeNames) {
+      const count = await new Promise(resolve => {
+        try {
+          const tx = db.transaction(storeName, "readonly");
+          const store = tx.objectStore(storeName);
+          const req = store.count();
+          req.onsuccess = () => resolve(req.result || 0);
+          req.onerror  = () => resolve(0);
+        } catch(e) {
+          resolve(0);
+        }
+      });
+      totalRecords += count;
+      if (count > 0) storeDetails.push(`${storeName.replace("DB", "")}: ${count}`);
+    }
+
+    let usedMB  = "-";
+    let sisaMB  = "-";
+    let persen  = 0;
+
+    if (navigator.storage?.estimate) {
+      const estimate = await navigator.storage.estimate();
+      const used  = estimate.usage  || 0;
+      const quota = estimate.quota  || 0;
+      usedMB  = (used  / 1024 / 1024).toFixed(2) + " MB";
+      const sisaBytes = quota - used;
+      sisaMB = sisaBytes > 1024 * 1024 * 1024
+        ? (sisaBytes / 1024 / 1024 / 1024).toFixed(1) + " GB"
+        : (sisaBytes / 1024 / 1024).toFixed(2) + " MB";
+      persen  = quota > 0 ? Math.min((used / quota) * 100, 100) : 0;
+    }
+
+    if (pemakaianEl) pemakaianEl.innerText = usedMB;
+    if (kuotaEl)     kuotaEl.innerText     = sisaMB;
+    if (barFillEl)   barFillEl.style.width = `${persen.toFixed(1)}%`;
+  } catch(e) {
+    console.log("loadStorageInfo error:", e);
+    if (pemakaianEl) pemakaianEl.innerText = "Tidak tersedia";
+  }
+}
+async function showCleanerOverlay() {
+  // ─── 1. BUAT OVERLAY & STYLE ───
+  let overlay = document.getElementById("cleanerOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "cleanerOverlay";
+    overlay.innerHTML = `
+      <div class="cl-bg">
+        <div class="cl-nebula cl-nebula-1"></div>
+        <div class="cl-nebula cl-nebula-2"></div>
+        <div class="cl-nebula cl-nebula-3"></div>
+      </div>
+      <div class="cl-scanline"></div>
+
+      <div class="cl-content">
+        <!-- ORBITAL -->
+        <div class="cl-orbital">
+          <div class="cl-pulse-ring"></div>
+          <div class="cl-pulse-ring"></div>
+          <div class="cl-pulse-ring"></div>
+
+          <svg class="cl-svg" viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stop-color="#c9a96e"/>
+                <stop offset="50%"  stop-color="#b3874f"/>
+                <stop offset="100%" stop-color="#8b6914"/>
+              </linearGradient>
+            </defs>
+            <circle class="cl-track" cx="100" cy="100" r="90"/>
+            <circle class="cl-fill" id="clRing" cx="100" cy="100" r="90" stroke="url(#ringGrad)"/>
+          </svg>
+
+
+          <div class="cl-center">
+            <span class="cl-icon" id="clIcon">🧹</span>
+            <span class="cl-pct" id="clPct">0%</span>
+          </div>
+
+          <div class="cl-orbit-dot"></div>
+          <div class="cl-orbit-dot cl-orbit-dot-2"></div>
+          <div class="cl-particles" id="clParticles"></div>
+        </div>
+
+        <!-- COUNTER -->
+        <div class="cl-counter-wrap">
+          <div class="cl-counter-label">Data Terhapus</div>
+          <div class="cl-counter" id="clCounter">0</div>
+        </div>
+
+        <!-- LABELS -->
+        <div class="cl-label-wrap">
+          <div class="cl-label" id="clLabel">Memindai penyimpanan...</div>
+          <div class="cl-sublabel" id="clSub">Mencari data kedaluwarsa</div>
+        </div>
+
+        <!-- STEPS -->
+        <div class="cl-steps">
+          <div class="cl-step" id="step0"></div>
+          <div class="cl-step" id="step1"></div>
+          <div class="cl-step" id="step2"></div>
+          <div class="cl-step" id="step3"></div>
+        </div>
+
+        <!-- DONE -->
+        <button class="cl-done" id="clDone">
+          ✦ Selesai
+        </button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  // ─── 2. REFERENSI ELEMEN ───
+  const CIRCUMF = 565.5;
+  const ring    = document.getElementById("clRing");
+  const pctEl   = document.getElementById("clPct");
+  const icon    = document.getElementById("clIcon");
+  const counterEl = document.getElementById("clCounter");
+  const labelEl   = document.getElementById("clLabel");
+  const subEl     = document.getElementById("clSub");
+  const doneBtn   = document.getElementById("clDone");
+  const particlesWrap = document.getElementById("clParticles");
+
+  // ─── 3. HELPER FUNCTIONS ───
+  function setProgress(pct) {
+    ring.style.strokeDashoffset = CIRCUMF - (CIRCUMF * pct / 100);
+    pctEl.textContent = Math.round(pct) + "%";
+  }
+
+  function setStep(idx) {
+    for (let i = 0; i < 4; i++) {
+      const s = document.getElementById("step" + i);
+      if (i < idx)      s.className = "cl-step done";
+      else if (i === idx) s.className = "cl-step active";
+      else              s.className = "cl-step";
+    }
+  }
+
+  function setLabel(main, sub) {
+    labelEl.style.opacity = "0";
+    labelEl.style.transform = "translateY(6px)";
+    labelEl.style.transition = "opacity .25s ease, transform .25s ease";
+    setTimeout(() => {
+      labelEl.textContent = main;
+      subEl.textContent = sub;
+      labelEl.style.opacity = "1";
+      labelEl.style.transform = "translateY(0)";
+    }, 200);
+  }
+
+  const COLORS = ["#ff6ef7","#b44fff","#7b2fff","#ffffff","#ffcf6e","#6ef7ff"];
+  function spawnParticles(n = 8) {
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement("div");
+      p.className = "cl-p";
+      const size  = 3 + Math.random() * 9;
+      const angle = Math.random() * 360;
+      const dist  = 50 + Math.random() * 90;
+      const tx    = Math.cos(angle * Math.PI / 180) * dist;
+      const ty    = Math.sin(angle * Math.PI / 180) * dist;
+      const dur   = 0.4 + Math.random() * 0.6;
+      const ease  = Math.random() > .5 ? "ease-out" : "cubic-bezier(.2,.8,.4,1)";
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      p.style.cssText = `width:${size}px;height:${size}px;background:${color};box-shadow:0 0 ${size*2}px ${color};--tx:${tx}px;--ty:${ty}px;--d:${dur}s;--e:${ease};`;
+      particlesWrap.appendChild(p);
+      setTimeout(() => p.remove(), dur * 1000 + 100);
+    }
+  }
+
+  function burstParticles() {
+    for (let wave = 0; wave < 4; wave++) {
+      setTimeout(() => spawnParticles(16), wave * 150);
+    }
+  }
+
+  let displayCount = 0;
+  let countInterval = null;
+  function animateCounter(target, duration = 800) {
+    clearInterval(countInterval);
+    const start = displayCount;
+    const diff  = target - start;
+    if (diff <= 0) { displayCount = target; return; }
+    const steps = Math.max(20, diff);
+    const delay = duration / steps;
+    let current = start;
+
+    countInterval = setInterval(() => {
+      const step = Math.ceil((target - current) / 6) || 1;
+      current = Math.min(current + step, target);
+      displayCount = current;
+      counterEl.textContent = current;
+      counterEl.classList.add("bump");
+      spawnParticles(2);
+      setTimeout(() => counterEl.classList.remove("bump"), 80);
+      if (current >= target) clearInterval(countInterval);
+    }, delay);
+  }
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function animateProgress(from, to, duration = 600) {
+    const start = performance.now();
+    return new Promise(resolve => {
+      function frame(now) {
+        const t   = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
+        setProgress(from + (to - from) * ease);
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve();
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  // ─── 4. TAMPILKAN OVERLAY ───
+  overlay.classList.add("visible");
+  doneBtn.style.display = "none";
+  displayCount = 0;
+  counterEl.textContent = "0";
+  setProgress(0);
+  setStep(0);
+
+  // ─── 5. HITUNG DATA YANG AKAN DIHAPUS ───
+  const now       = new Date();
+  const cutoff    = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}`;
+  
+  const storesWithDate = [
+    { name: "customerHarianDB",    field: "updatedAt", isTimestamp: true },
+    { name: "dataHarianDB",        field: "tanggal"  },
+    { name: "laporanMarketingDB",  field: "tanggal"  },
+    { name: "slipGajiDB",          field: "bulanKey" },
+    { name: "customerBaruDB",      field: "tanggal"  },
+    { name: "customerSalesDB",     field: "tanggal"  },
+    { name: "customerLainDB",      field: "tanggal"  },
+    { name: "customerHunterDB",    field: "tanggal"  },
+    { name: "customerSalesLainDB", field: "tanggal"  },
+  ];
+
+  let toDelete = [];
+
+  try {
+    const db = await window.openAppDB();
+    for (const { name, field } of storesWithDate) {
+      const all = await new Promise(resolve => {
+        try {
+          const tx    = db.transaction(name, "readonly");
+          const store = tx.objectStore(name);
+          const req   = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror   = () => resolve([]);
+        } catch { resolve([]); }
+      });
+
+      for (const item of all) {
+        const val = item[field];
+        if (!val) continue;
+        let monthKey;
+        if (typeof val === "number") {
+          const d = new Date(val);
+          monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+        } else {
+          monthKey = String(val).substring(0, 7);
+        }
+        if (monthKey < cutoffKey) {
+          toDelete.push({ storeName: name, id: item.id });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("DB error:", e);
+  }
+
+  // ─── 6. ANIMASI 4 FASE ───
+  // FASE 1: Scan
+  setStep(0);
+  setLabel("Memindai penyimpanan...", "Mencari data kedaluwarsa");
+  await animateProgress(0, 20, 800);
+  await sleep(300);
+  spawnParticles(6);
+
+  // FASE 2: Analisis
+  setStep(1);
+  setLabel("Menganalisis data lama", `Ditemukan ${toDelete.length} record kedaluwarsa`);
+  await animateProgress(20, 50, 700);
+  await sleep(400);
+  spawnParticles(8);
+
+  // FASE 3: Hapus
+  setStep(2);
+  setLabel("Membersihkan data...", "Menghapus record kedaluwarsa");
+  icon.classList.add("sweeping");
+  await animateProgress(50, 55, 200);
+
+  const total = toDelete.length;
+  let deleted = 0;
+
+  if (total > 0) {
+    const dbDel = await window.openAppDB();
+    for (const { storeName, id } of toDelete) {
+      try {
+        const tx    = dbDel.transaction(storeName, "readwrite");
+        const store = tx.objectStore(storeName);
+        await new Promise((resolve) => {
+          const req = store.delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror   = () => resolve();
+        });
+      } catch { }
+
+      deleted++;
+      const pct = 55 + (deleted / total) * 38;
+      setProgress(pct);
+      animateCounter(deleted, 60);
+      if (deleted % 5 === 0) spawnParticles(4);
+
+      if (total < 50) await sleep(18 + Math.random() * 22);
+    }
+  }
+
+  await sleep(300);
+
+  // FASE 4: Selesai
+  icon.classList.remove("sweeping");
+  setStep(3);
+  await animateProgress(total > 0 ? 93 : 55, 100, 400);
+  spawnParticles(12);
+  await sleep(150);
+  burstParticles();
+
+  if (total === 0) {
+    setLabel("Data sudah bersih! ✦", "Tidak ada data lama ditemukan");
+  } else {
+    setLabel("Pembersihan Selesai! ✦", "Penyimpanan telah dioptimalkan");
+  }
+
+  // Tombol selesai
+  doneBtn.style.display = "block";
+  doneBtn.onclick = () => {
+    overlay.classList.remove("visible");
+    setTimeout(() => loadStorageInfo(), 400);
+  };
 }
 
 if (!window._profilMenuListener) {

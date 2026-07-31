@@ -19,7 +19,6 @@ import {
   getFirestore,
   doc,
   getDoc,
-  getDocFromServer,
   collection,
   writeBatch,
   collectionGroup,
@@ -34,8 +33,7 @@ import {
   updateDoc,
   getDocs,
   onSnapshot,
-  deleteField,
-  getCountFromServer
+  deleteField
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -64,7 +62,6 @@ window.addDoc = addDoc;
 window.doc = doc;
 window.setDoc = setDoc;
 window.getDoc = getDoc;
-window.getDocFromServer = getDocFromServer;
 window.query = query;
 window.where = where;
 window.orderBy = orderBy;
@@ -74,7 +71,6 @@ window.collectionGroup = collectionGroup;
 window.onSnapshot = onSnapshot;
 window.updateDoc = updateDoc;
 window.deleteField = deleteField;
-window.getCountFromServer = getCountFromServer;
 window.writeBatch = writeBatch;
 window.storage = storage;
 window.storageRef = storageRef;
@@ -82,85 +78,6 @@ window.uploadBytes = uploadBytes;
 window.getDownloadURL = getDownloadURL;
 window.currentUser = null;
 window.globalUsersCache = [];
-
-// ============================================
-// CACHE BERSAMA: bawaBarang + varian dari users/{uid}
-// SATU-SATUNYA tempat proses merge isAktif — dipakai Home & Input.
-// Selalu ambil dari SERVER dulu (bukan cache SDK lokal), karena cache lokal
-// bisa "cemar" cuma berisi sebagian field kalau ada write lain (misal fcm.js)
-// yang duluan nyentuh dokumen ini pas WebView belum connect penuh.
-// ============================================
-window._bawaVarianCache = null;
-window._bawaVarianFetchPromise = null; // biar gak ada 2 fetch bersamaan rebutan nulis cache
-window.loadBawaVarianData = async function(forceRefresh = false){
-  const uid = window.auth?.currentUser?.uid;
-  if(!uid) return { userData:{}, bawaBarang:[], varian:[] };
-
-  if(!forceRefresh && window._bawaVarianCache){
-    return window._bawaVarianCache;
-  }
-
-  // Kalau udah ada fetch yang lagi jalan (misal Home & Input manggil hampir bareng),
-  // numpang nunggu hasil yang SAMA — jangan bikin request baru yang bisa saling nimpa
-  if(window._bawaVarianFetchPromise){
-    return window._bawaVarianFetchPromise;
-  }
-
-  window._bawaVarianFetchPromise = (async () => {
-    let userData = {};
-    try{
-      const snap = await window.getDocFromServer(window.doc(window.db, "users", uid));
-      userData = snap.exists() ? snap.data() : {};
-    }catch(err){
-      console.error("❌ loadBawaVarianData (server):", err);
-      try{
-        const snapCache = await window.getDoc(window.doc(window.db, "users", uid));
-        userData = snapCache.exists() ? snapCache.data() : {};
-      }catch(err2){
-        console.error("❌ loadBawaVarianData (cache fallback):", err2);
-        if(window._bawaVarianCache) return window._bawaVarianCache;
-        return { userData:{}, bawaBarang:[], varian:[] };
-      }
-    }
-
-    const varian = userData.varian || [];
-    const varianMap = {};
-    varian.forEach(v => {
-      const key = Object.keys(v)[0];
-      if(key) varianMap[key] = v[key];
-    });
-
-    const rawBawaBarang = userData.bawaBarang || [];
-    const bawaBarang = rawBawaBarang.length > 0
-      ? rawBawaBarang.map(item => {
-          const key = Object.keys(item)[0];
-          if(!key) return item;
-          return {
-            [key]: {
-              ...varianMap[key],
-              ...item[key],
-              isAktif: !!(varianMap[key]?.isAktif ?? item[key]?.isAktif)
-            }
-          };
-        })
-      : varian.map(v => {
-          const key = Object.keys(v)[0];
-          return { [key]: { ...v[key], isAktif: !!v[key]?.isAktif, bawa: 0 } };
-        });
-
-    window._bawaVarianCache = { userData, bawaBarang, varian };
-    window.globalUser       = userData;
-    window.globalBawaBarang = bawaBarang;
-    window.globalVarian     = varian;
-    return window._bawaVarianCache;
-  })();
-
-  try {
-    return await window._bawaVarianFetchPromise;
-  } finally {
-    window._bawaVarianFetchPromise = null; // buka slot lagi buat forceRefresh berikutnya
-  }
-};
 
 onAuthStateChanged(auth, async(user)=>{
   if(user){
@@ -193,6 +110,39 @@ onAuthStateChanged(auth, async(user)=>{
         window.location.href = "login.html";
         return;
       }
+    }
+    // Sync customer hari ini ke IndexedDB saat online
+    if(navigator.onLine && window.currentUser?.uid){
+      window.syncCustomerHarian?.();
+    }
+    // Sync kantor cabang ke IDB saat online
+    if (navigator.onLine && window.currentUser?.idCabang) {
+      try {
+        const idCabang  = window.currentUser.idCabang;
+        const idbK      = await window.openAppDB();
+        const existing  = await new Promise(resolve => {
+          const tx  = idbK.transaction("kantorDB", "readonly");
+          const req = tx.objectStore("kantorDB").get(idCabang);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror   = () => resolve(null);
+        });
+        if (!existing) {
+          const kantorSnap = await window.getDoc(window.doc(window.db, "kantorCabang", idCabang));
+          if (kantorSnap.exists()) {
+            const kantorData = kantorSnap.data();
+            const idbK2 = await window.openAppDB();
+            await new Promise((resolve, reject) => {
+              const tx    = idbK2.transaction("kantorDB", "readwrite");
+              tx.objectStore("kantorDB").put({ id: idCabang, data: kantorData, updatedAt: Date.now() });
+              tx.oncomplete = () => resolve();
+              tx.onerror    = () => reject(tx.error);
+            });
+            window.globalKantor = kantorData;
+          }
+        } else {
+          window.globalKantor = existing.data;
+        }
+      } catch { }
     }
     initNavbar();
     showView("home");
@@ -270,9 +220,9 @@ window.logout = async function(){
     if (app.scrollTop > 0) return false;
     const activeView = document.querySelector(".view.active");
     if (activeView && activeView.scrollTop > 0) return false;
-    // Cek cuma container yang emang didesain buat scroll, bukan semua elemen
+    // Cek semua elemen scrollable di dalam view aktif
     if (activeView) {
-      const scrollables = activeView.querySelectorAll("[style*='overflow'], .scroll-container");
+      const scrollables = activeView.querySelectorAll("*");
       for (const el of scrollables) {
         if (el.scrollTop > 0) return false;
       }
@@ -327,8 +277,19 @@ window.logout = async function(){
       indicator.classList.add("ptr-loading");
 
       setTimeout(() => {
-        window.location.reload();
-      }, 400);
+        window.showView?.(window.currentView || "home");
+        setTimeout(() => {
+          // Animasi balik ke atas
+          indicator.style.transition = "transform 0.4s cubic-bezier(0.25,1,0.5,1)";
+          indicator.style.transform  = "translateY(-60px)";
+          indicator.classList.remove("ptr-loading");
+          circle.style.strokeDashoffset = FULL_DASH;
+          setTimeout(() => {
+            indicator.style.transition = "none";
+            refreshing = false;
+          }, 400);
+        }, 600);
+      }, 800);
     } else {
       // Tidak sampai threshold — balik halus
       indicator.style.transition = "transform 0.35s cubic-bezier(0.25,1,0.5,1)";
@@ -848,34 +809,6 @@ function showView(viewName, trigger = "direct"){
       el.scrollTop = 0;
     });
   });
-
-  // ── Sync nav bottom (active state, label, FAB) — biar konsisten dari trigger manapun,
-  // gak cuma pas back Android doang ──
-  const navViewMap = {
-    tentang:         "profil",
-    keamanan:        "profil",
-    perjanjian:      "profil",
-    slip:            "profil",
-    rollingcustomer: "profil",
-    peraturan:       "profil",
-    inputTabel:      "input",
-  };
-  const navTargetView = navViewMap[viewName] || viewName;
-  const navTarget = document.querySelector(`.nav-item[data-view="${navTargetView}"]`);
-
-  // Bersihin active state dulu, apapun hasilnya (biar gak ada yang nyangkut)
-  document.querySelectorAll(".nav-item").forEach(i => {
-    if (i.dataset.label) {
-      i.innerHTML = `<i class="${i.dataset.icon}"></i><span>${i.dataset.label}</span>`;
-    }
-    i.classList.remove("active");
-  });
-
-  if (navTarget) {
-    navTarget.innerHTML = `<span class="nav-placeholder"></span><span>${navTarget.dataset.label}</span>`;
-    navTarget.classList.add("active");
-    window._moveFab?.(navTarget);
-  }
 }
 window.showView = showView;
 function closeActivePopup(){
