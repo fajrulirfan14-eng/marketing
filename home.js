@@ -210,7 +210,14 @@ window.initNotifikasi = async function() {
   btn.onclick = openPopupNotif;
 };
 async function loadHomeDataCacheAside(uid, role) {
-  const { userData } = await window.loadBawaVarianData(true);
+  let userData = {};
+  try {
+    const snap = await window.getDoc(window.doc(window.db, "users", uid));
+    userData = snap.exists() ? snap.data() : {};
+  } catch (err) {
+    console.error("❌ loadHomeDataCacheAside (users):", err);
+  }
+  window.globalUser = userData;
 
   let kantorData = null;
   const idCabang = userData.idCabang || "";
@@ -247,6 +254,11 @@ window.initHomeView = async function(){
   const { userData: homeUserData, kantorData: homeKantorData } = await loadHomeDataCacheAside(user.uid, role);
   if (myGen !== window._homeViewGen) return;
   const homeVarian = homeUserData.varian || [];
+
+  if (window.currentView === "home") {
+    window.globalBawaBarang = homeUserData.bawaBarang || [];
+    window.globalVarian     = homeVarian;
+  }
 
   // Sync foto sampul ke header home
   const headerHome = document.querySelector(".headerHome");
