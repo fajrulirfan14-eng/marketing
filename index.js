@@ -80,6 +80,57 @@ window.uploadBytes = uploadBytes;
 window.getDownloadURL = getDownloadURL;
 window.currentUser = null;
 window.globalUsersCache = [];
+window._bawaVarianCache = null;
+window.loadBawaVarianData = async function(forceRefresh = false){
+  const uid = window.auth?.currentUser?.uid;
+  if(!uid) return { userData:{}, bawaBarang:[], varian:[] };
+
+  if(!forceRefresh && window._bawaVarianCache){
+    return window._bawaVarianCache;
+  }
+
+  let userData = {};
+  try{
+    const snap = await window.getDoc(window.doc(window.db, "users", uid));
+    userData = snap.exists() ? snap.data() : {};
+  }catch(err){
+    console.error("❌ loadBawaVarianData:", err);
+    if(window._bawaVarianCache) return window._bawaVarianCache; // fetch gagal, pakai cache lama drpd kosong
+    return { userData:{}, bawaBarang:[], varian:[] };
+  }
+
+  const varian = userData.varian || [];
+  const varianMap = {};
+  varian.forEach(v => {
+    const key = Object.keys(v)[0];
+    if(key) varianMap[key] = v[key];
+  });
+
+  const rawBawaBarang = userData.bawaBarang || [];
+  const bawaBarang = rawBawaBarang.length > 0
+    ? rawBawaBarang.map(item => {
+        const key = Object.keys(item)[0];
+        if(!key) return item;
+        // isAktif WAJIB dari varian (sumber kebenaran) & WAJIB boolean asli
+        return {
+          [key]: {
+            ...varianMap[key],
+            ...item[key],
+            isAktif: !!(varianMap[key]?.isAktif ?? item[key]?.isAktif)
+          }
+        };
+      })
+    : varian.map(v => {
+        const key = Object.keys(v)[0];
+        return { [key]: { ...v[key], isAktif: !!v[key]?.isAktif, bawa: 0 } };
+      });
+
+  window._bawaVarianCache = { userData, bawaBarang, varian };
+  window.globalUser       = userData;
+  window.globalBawaBarang = bawaBarang;
+  window.globalVarian     = varian;
+  return window._bawaVarianCache;
+};
 
 onAuthStateChanged(auth, async(user)=>{
   if(user){
