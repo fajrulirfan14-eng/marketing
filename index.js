@@ -91,6 +91,7 @@ window.globalUsersCache = [];
 // yang duluan nyentuh dokumen ini pas WebView belum connect penuh.
 // ============================================
 window._bawaVarianCache = null;
+window._bawaVarianFetchPromise = null; // biar gak ada 2 fetch bersamaan rebutan nulis cache
 window.loadBawaVarianData = async function(forceRefresh = false){
   const uid = window.auth?.currentUser?.uid;
   if(!uid) return { userData:{}, bawaBarang:[], varian:[] };
@@ -99,52 +100,66 @@ window.loadBawaVarianData = async function(forceRefresh = false){
     return window._bawaVarianCache;
   }
 
-  let userData = {};
-  try{
-    const snap = await window.getDocFromServer(window.doc(window.db, "users", uid));
-    userData = snap.exists() ? snap.data() : {};
-  }catch(err){
-    console.error("❌ loadBawaVarianData (server):", err);
-    try{
-      const snapCache = await window.getDoc(window.doc(window.db, "users", uid));
-      userData = snapCache.exists() ? snapCache.data() : {};
-    }catch(err2){
-      console.error("❌ loadBawaVarianData (cache fallback):", err2);
-      if(window._bawaVarianCache) return window._bawaVarianCache;
-      return { userData:{}, bawaBarang:[], varian:[] };
-    }
+  // Kalau udah ada fetch yang lagi jalan (misal Home & Input manggil hampir bareng),
+  // numpang nunggu hasil yang SAMA — jangan bikin request baru yang bisa saling nimpa
+  if(window._bawaVarianFetchPromise){
+    return window._bawaVarianFetchPromise;
   }
 
-  const varian = userData.varian || [];
-  const varianMap = {};
-  varian.forEach(v => {
-    const key = Object.keys(v)[0];
-    if(key) varianMap[key] = v[key];
-  });
+  window._bawaVarianFetchPromise = (async () => {
+    let userData = {};
+    try{
+      const snap = await window.getDocFromServer(window.doc(window.db, "users", uid));
+      userData = snap.exists() ? snap.data() : {};
+    }catch(err){
+      console.error("❌ loadBawaVarianData (server):", err);
+      try{
+        const snapCache = await window.getDoc(window.doc(window.db, "users", uid));
+        userData = snapCache.exists() ? snapCache.data() : {};
+      }catch(err2){
+        console.error("❌ loadBawaVarianData (cache fallback):", err2);
+        if(window._bawaVarianCache) return window._bawaVarianCache;
+        return { userData:{}, bawaBarang:[], varian:[] };
+      }
+    }
 
-  const rawBawaBarang = userData.bawaBarang || [];
-  const bawaBarang = rawBawaBarang.length > 0
-    ? rawBawaBarang.map(item => {
-        const key = Object.keys(item)[0];
-        if(!key) return item;
-        return {
-          [key]: {
-            ...varianMap[key],
-            ...item[key],
-            isAktif: !!(varianMap[key]?.isAktif ?? item[key]?.isAktif)
-          }
-        };
-      })
-    : varian.map(v => {
-        const key = Object.keys(v)[0];
-        return { [key]: { ...v[key], isAktif: !!v[key]?.isAktif, bawa: 0 } };
-      });
+    const varian = userData.varian || [];
+    const varianMap = {};
+    varian.forEach(v => {
+      const key = Object.keys(v)[0];
+      if(key) varianMap[key] = v[key];
+    });
 
-  window._bawaVarianCache = { userData, bawaBarang, varian };
-  window.globalUser       = userData;
-  window.globalBawaBarang = bawaBarang;
-  window.globalVarian     = varian;
-  return window._bawaVarianCache;
+    const rawBawaBarang = userData.bawaBarang || [];
+    const bawaBarang = rawBawaBarang.length > 0
+      ? rawBawaBarang.map(item => {
+          const key = Object.keys(item)[0];
+          if(!key) return item;
+          return {
+            [key]: {
+              ...varianMap[key],
+              ...item[key],
+              isAktif: !!(varianMap[key]?.isAktif ?? item[key]?.isAktif)
+            }
+          };
+        })
+      : varian.map(v => {
+          const key = Object.keys(v)[0];
+          return { [key]: { ...v[key], isAktif: !!v[key]?.isAktif, bawa: 0 } };
+        });
+
+    window._bawaVarianCache = { userData, bawaBarang, varian };
+    window.globalUser       = userData;
+    window.globalBawaBarang = bawaBarang;
+    window.globalVarian     = varian;
+    return window._bawaVarianCache;
+  })();
+
+  try {
+    return await window._bawaVarianFetchPromise;
+  } finally {
+    window._bawaVarianFetchPromise = null; // buka slot lagi buat forceRefresh berikutnya
+  }
 };
 
 onAuthStateChanged(auth, async(user)=>{
