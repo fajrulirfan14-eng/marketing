@@ -638,15 +638,16 @@ async function showCleanerOverlay() {
   setStep(0);
 
   // ─── 5. HITUNG DATA YANG AKAN DIHAPUS ───
-  const now       = new Date();
-  const cutoff    = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}`;
-  
+  const now           = new Date();
+  const cutoff         = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const cutoffKey      = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}`;
+  const cutoffMonthKey = cutoffKey.substring(0, 7);
+
   const storesWithDate = [
     { name: "customerHarianDB",    field: "updatedAt", isTimestamp: true },
     { name: "dataHarianDB",        field: "tanggal"  },
     { name: "laporanMarketingDB",  field: "tanggal"  },
-    { name: "slipGajiDB",          field: "bulanKey" },
+    { name: "slipGajiDB",          field: "bulanKey", isMonthKey: true },
     { name: "customerBaruDB",      field: "tanggal"  },
     { name: "customerSalesDB",     field: "tanggal"  },
     { name: "customerLainDB",      field: "tanggal"  },
@@ -658,7 +659,7 @@ async function showCleanerOverlay() {
 
   try {
     const db = await window.openAppDB();
-    for (const { name, field } of storesWithDate) {
+    for (const { name, field, isMonthKey } of storesWithDate) {
       const all = await new Promise(resolve => {
         try {
           const tx    = db.transaction(name, "readonly");
@@ -672,14 +673,22 @@ async function showCleanerOverlay() {
       for (const item of all) {
         const val = item[field];
         if (!val) continue;
-        let monthKey;
+
+        if (isMonthKey) {
+          if (String(val).substring(0, 7) < cutoffMonthKey) {
+            toDelete.push({ storeName: name, id: item.id });
+          }
+          continue;
+        }
+
+        let dateKey;
         if (typeof val === "number") {
           const d = new Date(val);
-          monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+          dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
         } else {
-          monthKey = String(val).substring(0, 7);
+          dateKey = String(val).substring(0, 10);
         }
-        if (monthKey < cutoffKey) {
+        if (dateKey < cutoffKey) {
           toDelete.push({ storeName: name, id: item.id });
         }
       }
