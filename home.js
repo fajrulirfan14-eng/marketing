@@ -297,41 +297,21 @@ async function loadHomeDataCacheAside(uid, role) {
   if (role !== "hunter" && role !== "sales") {
     const hariNama  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
     const hariAktif = hariNama[new Date().getDay()];
-    const customerCacheKey = `${uid}_${hariAktif}`;
 
-    const existingEntry = await new Promise(resolve => {
-      const tx  = idb.transaction("customerHarianDB", "readonly");
-      const req = tx.objectStore("customerHarianDB").get(customerCacheKey);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror   = () => resolve(null);
-    });
-
-    if (existingEntry) {
-      window.customerCache = existingEntry.data || [];
-    } else {
-      try {
-        const snap = await window.getDocs(window.query(
-          window.collection(window.db, "customer"),
-          window.where("pemilik", "==", uid),
-          window.where("status", "==", true),
-          window.where("hari", "==", hariAktif)
-        ));
-        const customerData = snap.docs.map(doc => {
-          const data = doc.data();
-          return { id: doc.id, ...data, lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer) };
-        });
-        window.customerCache = customerData;
-
-        await new Promise((resolve, reject) => {
-          const tx = idb.transaction("customerHarianDB", "readwrite");
-          tx.objectStore("customerHarianDB").put({ id: customerCacheKey, data: customerData, updatedAt: Date.now() });
-          tx.oncomplete = () => resolve();
-          tx.onerror    = () => reject(tx.error);
-        });
-      } catch (err) {
-        console.error("❌ loadHomeDataCacheAside (customer):", err);
-        window.customerCache = [];
-      }
+    try {
+      const snap = await window.getDocs(window.query(
+        window.collection(window.db, "customer"),
+        window.where("pemilik", "==", uid),
+        window.where("status", "==", true),
+        window.where("hari", "==", hariAktif)
+      ));
+      window.customerCache = snap.docs.map(doc => {
+        const data = doc.data();
+        return { id: doc.id, ...data, lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer) };
+      });
+    } catch (err) {
+      console.error("❌ loadHomeDataCacheAside (customer):", err);
+      window.customerCache = [];
     }
   }
 }
@@ -531,7 +511,7 @@ window.initHomeView = async function(){
       <div class="home-extra-wrapper">
         <div class="home-extra-card">
           <div class="extra-title">Customer Per Hari</div>
-          <div class="extra-subtitle">Data dari IndexedDB</div>
+          <div class="extra-subtitle">Data real-time</div>
           <div class="extra-body" id="ringkasanCustomerBody">
             <div class="extra-item"><span>Memuat...</span></div>
           </div>
@@ -687,7 +667,6 @@ window.initHomeView = async function(){
         ];
   
         const hariAktif = hariNama[new Date().getDay()];
-        const customerCacheKey = `${uid}_${hariAktif}`;
         const userRef = window.doc(window.db, "users", uid);
         const userSnap = await window.getDoc(userRef);
         const userData = userSnap.exists() ? userSnap.data() : {};
@@ -719,7 +698,7 @@ window.initHomeView = async function(){
             );
 
           const snap = await window.getDocs(customerQuery);
-          const customerData = snap.docs.map(doc => {
+          window.customerCache = snap.docs.map(doc => {
             const data = doc.data();
             return {
               id: doc.id,
@@ -727,53 +706,6 @@ window.initHomeView = async function(){
               lokasiCustomer: window.normalizeGeoPoint(data.lokasiCustomer)
             };
           });
-          window.customerCache = customerData;
-
-          try {
-            const idb = await window.openAppDB();
-            const existingAll = await new Promise((resolve, reject) => {
-              const tx = idb.transaction("customerHarianDB", "readonly");
-              const store = tx.objectStore("customerHarianDB");
-              const req = store.getAll();
-              req.onsuccess = () => resolve(req.result || []);
-              req.onerror = () => reject(req.error);
-            });
-
-            const existingMap = {};
-            existingAll.forEach(item => { existingMap[item.id] = item; });
-
-            const existingEntry = existingMap[customerCacheKey] || null;
-            const existingData  = existingEntry?.data || [];
-            const customerHariIni = customerData.filter(c => c.hari === hariAktif);
-            const semuaKeys = Object.keys(existingMap);
-
-            await new Promise((resolve, reject) => {
-              const tx = idb.transaction("customerHarianDB", "readwrite");
-              const store = tx.objectStore("customerHarianDB");
-              semuaKeys.forEach(k => { if (k.startsWith(uid)) store.delete(k); });
-              tx.oncomplete = () => resolve();
-              tx.onerror    = () => reject(tx.error);
-            });
-
-            const customerHariLain = existingData.filter(c => c.hari !== hariAktif);
-            const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-            const perHari  = {};
-            hariNama.forEach(h => perHari[h] = []);
-            customerHariLain.forEach(c => { if (perHari[c.hari]) perHari[c.hari].push(c); });
-
-            await new Promise((resolve, reject) => {
-              const tx = idb.transaction("customerHarianDB", "readwrite");
-              const store = tx.objectStore("customerHarianDB");
-              hariNama.forEach(h => {
-                if (h !== hariAktif && perHari[h].length > 0) {
-                  store.put({ id: `${uid}_${h}`, data: perHari[h], updatedAt: Date.now() });
-                }
-              });
-              store.put({ id: customerCacheKey, data: customerHariIni, updatedAt: Date.now() });
-              tx.oncomplete = () => resolve();
-              tx.onerror    = () => reject(tx.error);
-            });
-          } catch { }
         }
       } catch {
         const t = document.createElement("div");
@@ -951,7 +883,7 @@ window.loadLaporanKemarin = async function() {
 
     function renderLaporan(data) {
       if (omzetEl)    omzetEl.innerText    = Number(data?.distribusi?.keuangan?.inputOmset || 0).toLocaleString("id-ID");
-      if (kasbonEl)   kasbonEl.innerText   = Number(data?.distribusi?.keuangan?.Kasbon || 0).toLocaleString("id-ID");
+      if (kasbonEl)   kasbonEl.innerText   = Number(data?.distribusi?.keuangan?.kasbon || 0).toLocaleString("id-ID");
       if (potonganEl) potonganEl.innerText = Number(data?.distribusi?.infoTarget?.potongan?.jumlahPotongan || 0).toLocaleString("id-ID");
       if (bonusEl)    bonusEl.innerText    = Number(data?.distribusi?.keuangan?.bonus?.jumlahBonus || 0).toLocaleString("id-ID");
     }
@@ -963,52 +895,21 @@ window.loadLaporanKemarin = async function() {
       if (bonusEl)    bonusEl.innerText    = "-";
     }
 
-    // Cek IDB dulu
-    const idb = await window.openAppDB();
-    const dataIdb = await new Promise((resolve) => {
-      const tx  = idb.transaction("laporanMarketingDB", "readonly");
-      const req = tx.objectStore("laporanMarketingDB").get(tanggalKemarin);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror   = () => resolve(null);
-    });
-
-    if (dataIdb) {
-      renderLaporan(dataIdb);
-      return;
-    }
-
-    // IDB kosong — fetch Firestore
     if (!navigator.onLine) {
       renderTidakTersedia();
       return;
     }
 
-    try {
-      const uid    = window.auth.currentUser?.uid;
-      const docRef = window.doc(window.db, "users", uid, "laporanMarketing", tanggalKemarin);
-      const snap   = await window.getDoc(docRef);
+    const uid    = window.auth.currentUser?.uid;
+    const docRef = window.doc(window.db, "users", uid, "laporanMarketing", tanggalKemarin);
+    const snap   = await window.getDoc(docRef);
 
-      if (!snap.exists()) {
-        renderTidakTersedia();
-        return;
-      }
-
-      const fresh = snap.data();
-
-      // Simpan ke IDB
-      const idb2 = await window.openAppDB();
-      await new Promise((resolve, reject) => {
-        const tx    = idb2.transaction("laporanMarketingDB", "readwrite");
-        const store = tx.objectStore("laporanMarketingDB");
-        store.put({ id: tanggalKemarin, tanggal: tanggalKemarin, idMarketing: uid, ...fresh, cachedAt: Date.now() });
-        tx.oncomplete = () => resolve();
-        tx.onerror    = () => reject(tx.error);
-      });
-
-      renderLaporan(fresh);
-    } catch {
+    if (!snap.exists()) {
       renderTidakTersedia();
+      return;
     }
+
+    renderLaporan(snap.data());
 
   } catch { }
 };
@@ -1019,22 +920,22 @@ window.loadRingkasanCustomer = async function() {
   const hariNama = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
   try {
-    const idb = await window.openAppDB();
-    const allRaw = await new Promise((resolve, reject) => {
-      const tx = idb.transaction("customerHarianDB", "readonly");
-      const store = tx.objectStore("customerHarianDB");
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
+    const uid = window.auth?.currentUser?.uid;
+    if (!uid) return;
+
+    // 1 query doang ke Firestore — semua customer aktif milik user ini, semua hari sekaligus
+    const snap = await window.getDocs(window.query(
+      window.collection(window.db, "customer"),
+      window.where("pemilik", "==", uid),
+      window.where("status", "==", true)
+    ));
+
+    let allCustomer = [];
+    snap.forEach(docSnap => {
+      allCustomer.push({ id: docSnap.id, ...docSnap.data() });
     });
 
-    // Flatten semua customer
-    let allCustomer = [];
-    allRaw.forEach(item => {
-      if (Array.isArray(item.data)) {
-        allCustomer.push(...item.data);
-      }
-    });
+    window._ringkasanCustomerCache = allCustomer; // cache RAM doang, bukan IDB
 
     // Hitung per hari, dedupe by idCustomer per hari
     const countPerHari = {};
@@ -1042,16 +943,14 @@ window.loadRingkasanCustomer = async function() {
 
     allCustomer.forEach(c => {
       const hari = c.hari || "";
-      const cid = c.idCustomer || c.id || "";
+      const cid = c.id || "";
       if (hariNama.includes(hari) && cid) {
         countPerHari[hari].add(cid);
       }
     });
     // TOTAL SEMUA CUSTOMER (semua hari, tanpa duplikat)
     const totalAllCustomer = new Set(
-      allCustomer
-        .map(c => c.idCustomer || c.id)
-        .filter(Boolean)
+      allCustomer.map(c => c.id).filter(Boolean)
     );
     // Render — urut Senin-Minggu
     const urutan = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
