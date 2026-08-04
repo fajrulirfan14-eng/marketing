@@ -396,6 +396,8 @@ function showSyncToast(pesan, sukses = true) {
       toast.remove();
       await window.syncOfflineDataHarian();
     };
+
+    setTimeout(() => toast.remove(), 2000);
   }
 }
 async function doSyncAll(pendingHarian, pendingPenjualan, db) {
