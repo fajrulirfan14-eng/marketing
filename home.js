@@ -210,33 +210,7 @@ window.initNotifikasi = async function() {
   btn.onclick = openPopupNotif;
 };
 async function loadHomeDataCacheAside(uid, role) {
-  // ── HUNTER & SALES: full Firestore, gak nyentuh IDB sama sekali ──
-  if (role === "hunter" || role === "sales") {
-    let userData = {};
-    try {
-      const snap = await window.getDoc(window.doc(window.db, "users", uid));
-      userData = snap.exists() ? snap.data() : {};
-    } catch (err) {
-      console.error("❌ loadHomeDataCacheAside (users, hunter/sales):", err);
-    }
-    window.globalUser       = userData;
-    window.globalBawaBarang = userData.bawaBarang || [];
-    window.globalVarian     = userData.varian || [];
-
-    const idCabangHS = userData.idCabang || "";
-    if (idCabangHS) {
-      try {
-        const snapKantor = await window.getDoc(window.doc(window.db, "kantorCabang", idCabangHS));
-        window.globalKantor = snapKantor.exists() ? snapKantor.data() : null;
-      } catch (err) {
-        console.error("❌ loadHomeDataCacheAside (kantorCabang, hunter/sales):", err);
-        window.globalKantor = null;
-      }
-    }
-    return; // hunter/sales gak butuh customerHarianDB (itu khusus kurir)
-  }
-
-  // ── KURIR & role lain: tetap cache-aside IDB seperti semula ──
+  // ── SEMUA ROLE (kurir, hunter, sales): cache-aside IDB seragam ──
   const idb = await window.openAppDB();
 
   // 1. users/{uid} — cek IDB dulu, kalau kosong fetch & simpan
