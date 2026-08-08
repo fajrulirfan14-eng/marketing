@@ -1,26 +1,16 @@
 window.rollingTabAktif    = "aktif";
 window.rollingFilterBulan = new Date().getMonth() + 1;
 window.rollingFilterTahun = new Date().getFullYear();
-window._rollingCache      = {}; // RAM cache, key "tahun-bulan" -> array customer
-
-// ── FETCH DATA SEBULAN (Firestore + RAM cache) ──
-async function getRollingBulanData(bulan, tahun, forceRefresh = false) {
-  const key = `${tahun}-${bulan}`;
-  if (!forceRefresh && window._rollingCache[key]) return window._rollingCache[key];
-
+// ── FETCH SEMUA DATA MILIK HUNTER INI (langsung Firestore, gak ada cache) ──
+async function getRollingBulanData() {
   const uid = window.auth?.currentUser?.uid;
   if (!uid) return [];
-
-  const tglAwal  = `${tahun}-${String(bulan).padStart(2, "0")}-01`;
-  const tglAkhir = `${tahun}-${String(bulan).padStart(2, "0")}-31`;
 
   let docs = [];
   try {
     const q = window.query(
-      window.collectionGroup(window.db, "customerBaruHunter"),
-      window.where("createdBy", "==", uid),
-      window.where("tanggal", ">=", tglAwal),
-      window.where("tanggal", "<=", tglAkhir)
+      window.collection(window.db, "users", uid, "customerBaruHunter"),
+      window.where("createdBy", "==", uid)
     );
     const snapshot = await window.getDocs(q);
     snapshot.forEach(d => {
@@ -35,7 +25,6 @@ async function getRollingBulanData(bulan, tahun, forceRefresh = false) {
     console.error("❌ getRollingBulanData:", err);
   }
 
-  window._rollingCache[key] = docs;
   return docs;
 }
 
@@ -131,38 +120,25 @@ window.initRollingView = async function () {
   }
 
   try {
-    const idCabangAktif = window.currentUser?.idCabang || "";
-    const bulan = window.rollingFilterBulan || (new Date().getMonth() + 1);
-    const tahun = window.rollingFilterTahun || new Date().getFullYear();
-
-    const data = await getRollingBulanData(bulan, tahun);
-
-    const nowLocal = new Date();
-    const todayStr =
-      nowLocal.getFullYear() + "-" +
-      String(nowLocal.getMonth() + 1).padStart(2, "0") + "-" +
-      String(nowLocal.getDate()).padStart(2, "0");
+    const data = await getRollingBulanData();
 
     let filtered;
     if (window.rollingTabAktif === "history") {
-      filtered = data.filter(item => item.diserahkan === true);
-    } else {
-      if (window.rollingFilterHari === "CustomerBaru") {
-        filtered = data.filter(item =>
-          item.tanggal === todayStr &&
-          item.diserahkan !== true &&
-          item.idCabang === idCabangAktif
-        );
-      } else if (window.rollingFilterHari === "Semua") {
-        filtered = data.filter(item =>
-          item.diserahkan !== true &&
-          item.idCabang === idCabangAktif
-        );
+      if (window.rollingFilterHari === "Semua" || window.rollingFilterHari === "CustomerBaru") {
+        filtered = data.filter(item => item.diserahkan === true);
       } else {
         filtered = data.filter(item =>
-          item.hari === window.rollingFilterHari &&
+          item.diserahkan === true &&
+          item.hari === window.rollingFilterHari
+        );
+      }
+    } else {
+      if (window.rollingFilterHari === "Semua" || window.rollingFilterHari === "CustomerBaru") {
+        filtered = data.filter(item => item.diserahkan !== true);
+      } else {
+        filtered = data.filter(item =>
           item.diserahkan !== true &&
-          item.idCabang === idCabangAktif
+          item.hari === window.rollingFilterHari
         );
       }
     }
@@ -251,9 +227,7 @@ window.openRollingCustomerPopup = async function (idCustomer) {
   if (!popup || !inputNama || !inputAlamat || !container) return;
 
   try {
-    const bulan = window.rollingFilterBulan || (new Date().getMonth() + 1);
-    const tahun = window.rollingFilterTahun || new Date().getFullYear();
-    const data = (await getRollingBulanData(bulan, tahun)).find(c => c.id === idCustomer);
+    const data = (await getRollingBulanData()).find(c => c.id === idCustomer);
     if (!data) return;
 
     window.rollingEditId = idCustomer;
@@ -338,10 +312,7 @@ document.getElementById("btnUpdateRolling")?.addEventListener("click", async fun
 
   try {
     const uid = window.auth.currentUser.uid;
-    const bulan = window.rollingFilterBulan || (new Date().getMonth() + 1);
-    const tahun = window.rollingFilterTahun || new Date().getFullYear();
-    const cacheKey = `${tahun}-${bulan}`;
-    const cacheArr = window._rollingCache[cacheKey] || [];
+    const cacheArr = await getRollingBulanData();
     const existing = cacheArr.find(c => c.id === id) || {};
 
     const varianMap = {};
@@ -441,9 +412,7 @@ document.getElementById("btnUpdateRolling")?.addEventListener("click", async fun
 
 window.openCatatanPopup = async function(idCustomer) {
   try {
-    const bulan = window.rollingFilterBulan || (new Date().getMonth() + 1);
-    const tahun = window.rollingFilterTahun || new Date().getFullYear();
-    const data = (await getRollingBulanData(bulan, tahun)).find(c => c.id === idCustomer);
+    const data = (await getRollingBulanData()).find(c => c.id === idCustomer);
     if (!data) return;
 
     window.catatanEditId = idCustomer;
@@ -476,17 +445,7 @@ document.getElementById("btnSimpanCatatan")?.addEventListener("click", async fun
     const uid = window.auth.currentUser.uid;
     const docRef = window.doc(window.db, "users", uid, "customerBaruHunter", id);
     await window.updateDoc(docRef, { catatan, catatanUpdatedAt: now });
-
-    // update RAM cache
-    const bulan = window.rollingFilterBulan || (new Date().getMonth() + 1);
-    const tahun = window.rollingFilterTahun || new Date().getFullYear();
-    const cacheArr = window._rollingCache[`${tahun}-${bulan}`] || [];
-    const idx = cacheArr.findIndex(c => c.id === id);
-    if (idx > -1) {
-      cacheArr[idx].catatan = catatan;
-      cacheArr[idx].catatanUpdatedAt = now;
-    }
-
+    
     btnText.textContent = "Tersimpan ✓";
     setTimeout(() => {
       document.getElementById("popupCatatanCustomer").classList.remove("active");
