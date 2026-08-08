@@ -1391,14 +1391,96 @@ window.openHomeCustomerPopup = async function() {
   `;
   btnLokasiHome.insertAdjacentElement("afterend", mapContainerHome);
 
+  let followWatchIdHome  = null;
+  let followingHome      = false;
+  let btnFollowHome      = null;
+  let orientHandlerHome  = null;
+  let lastHeadingHome    = 0;
+  let rafPendingHome     = false;
+
+  async function startFollowHome() {
+    if (!navigator.geolocation) return;
+    followingHome = true;
+    if (btnFollowHome) btnFollowHome.classList.add("active");
+    if (followWatchIdHome != null) navigator.geolocation.clearWatch(followWatchIdHome);
+    followWatchIdHome = navigator.geolocation.watchPosition(
+      pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        customerLat = lat;
+        customerLng = lng;
+        lokasiSuccess = true;
+        btnLokasiHome.classList.add("success");
+        btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
+        if (lokasiMarkerHome) lokasiMarkerHome.setPosition({ lat, lng });
+        if (lokasiMapHome) lokasiMapHome.panTo({ lat, lng });
+      },
+      err => console.error("❌ followWatchIdHome:", err),
+      { enableHighAccuracy: true, maximumAge: 0 }
+    );
+
+    // ── Ikutin arah hadap HP (kompas) ──
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+      try {
+        const p = await DeviceOrientationEvent.requestPermission();
+        if (p !== "granted") return; // posisi tetep jalan, cuma rotasi arah yang gak aktif
+      } catch { return; }
+    }
+
+    let usedAbs = false;
+    const testAbs = e => { if (e.alpha !== null) usedAbs = true; window.removeEventListener("deviceorientationabsolute", testAbs, true); };
+    window.addEventListener("deviceorientationabsolute", testAbs, true);
+    await new Promise(r => setTimeout(r, 300));
+
+    let lastOrientTime = 0;
+    orientHandlerHome = function(e) {
+      const now = Date.now();
+      if (now - lastOrientTime < 100) return; // throttle 100ms
+      lastOrientTime = now;
+
+      let h = null;
+      if (typeof e.webkitCompassHeading === "number") h = e.webkitCompassHeading;
+      else if (e.alpha !== null) h = (360 - e.alpha + (screen.orientation?.angle || window.orientation || 0)) % 360;
+      if (h === null) return;
+
+      let d = h - lastHeadingHome;
+      if (d > 180) d -= 360; if (d < -180) d += 360;
+      lastHeadingHome += d * 0.15; lastHeadingHome = (lastHeadingHome + 360) % 360;
+
+      if (!rafPendingHome) {
+        rafPendingHome = true;
+        requestAnimationFrame(() => {
+          if (lokasiMapHome) lokasiMapHome.setHeading(lastHeadingHome);
+          rafPendingHome = false;
+        });
+      }
+    };
+    if (usedAbs) window.addEventListener("deviceorientationabsolute", orientHandlerHome, true);
+    else window.addEventListener("deviceorientation", orientHandlerHome, true);
+  }
+
+  function stopFollowHome() {
+    followingHome = false;
+    if (btnFollowHome) btnFollowHome.classList.remove("active");
+    if (followWatchIdHome != null) {
+      navigator.geolocation.clearWatch(followWatchIdHome);
+      followWatchIdHome = null;
+    }
+    if (orientHandlerHome) {
+      window.removeEventListener("deviceorientation", orientHandlerHome, true);
+      window.removeEventListener("deviceorientationabsolute", orientHandlerHome, true);
+      orientHandlerHome = null;
+    }
+    if (lokasiMapHome) { try { lokasiMapHome.setHeading(0); } catch {} }
+  }
+
   function tampilkanPetaHome(lat, lng) {
     mapContainerHome.style.display = "block";
 
     if (!lokasiMapHome) {
-      const savedMapType = localStorage.getItem("mapType") || "roadmap";
       lokasiMapHome = new google.maps.Map(mapContainerHome, {
         center: { lat, lng }, zoom: 17,
-        mapTypeId: savedMapType,
+        mapId: "3f6f47bf59913618a195fe2e",
         zoomControl: true, mapTypeControl: false,
         streetViewControl: false, fullscreenControl: false,
         gestureHandling: "greedy",
@@ -1410,12 +1492,39 @@ window.openHomeCustomerPopup = async function() {
         animation: google.maps.Animation.DROP,
       });
       lokasiMarkerHome.addListener("dragend", e => {
+        stopFollowHome(); // drag manual pin = matiin auto-follow
         customerLat = e.latLng.lat();
         customerLng = e.latLng.lng();
         lokasiSuccess = true;
         btnLokasiHome.classList.add("success");
         btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
       });
+
+      // Geser peta / gesture 2 jari (rotate/tilt) = matiin auto-follow juga
+      lokasiMapHome.addListener("dragstart", () => {
+        if (followingHome) stopFollowHome();
+      });
+
+      // Tombol follow lokasi — kiri bawah
+      btnFollowHome = document.createElement("button");
+      btnFollowHome.type = "button";
+      btnFollowHome.id = "btnFollowLokasiHome";
+      btnFollowHome.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+        </svg>`;
+      btnFollowHome.style.cssText = `
+        position:absolute; left:10px; bottom:10px; z-index:5;
+        width:36px; height:36px; border-radius:50%; border:none;
+        display:flex; align-items:center;
+        justify-content:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.25);
+      `;
+      btnFollowHome.onclick = () => {
+        if (followingHome) stopFollowHome();
+        else startFollowHome();
+      };
+      mapContainerHome.appendChild(btnFollowHome);
     } else {
       lokasiMapHome.setCenter({ lat, lng });
       lokasiMarkerHome.setPosition({ lat, lng });
@@ -1427,6 +1536,8 @@ window.openHomeCustomerPopup = async function() {
     lokasiSuccess = true;
     btnLokasiHome.classList.add("success");
     btnLokasiTextHome.innerText = "✓ Lokasi Dipilih";
+
+    startFollowHome(); // default aktif tiap sheet dibuka
   }
 
   // KLIK AMBIL LOKASI

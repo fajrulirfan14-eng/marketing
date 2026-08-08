@@ -1295,3 +1295,13 @@
   opacity: 0.7;
   font-family: "Poppins", sans-serif;
 }
+
+#btnFollowLokasiHome {
+  background: #fff;
+  color: #555;
+  transition: background .2s, color .2s;
+}
+#btnFollowLokasiHome.active {
+  background: var(--accent, #b3874f);
+  color: #fff;
+}
