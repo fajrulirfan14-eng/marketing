@@ -33,7 +33,8 @@ import {
   updateDoc,
   getDocs,
   onSnapshot,
-  deleteField
+  deleteField,
+  deleteDoc
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -71,6 +72,7 @@ window.collectionGroup = collectionGroup;
 window.onSnapshot = onSnapshot;
 window.updateDoc = updateDoc;
 window.deleteField = deleteField;
+window.deleteDoc = deleteDoc;
 window.writeBatch = writeBatch;
 window.storage = storage;
 window.storageRef = storageRef;

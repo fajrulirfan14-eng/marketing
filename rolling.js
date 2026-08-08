@@ -1,6 +1,8 @@
-window.rollingTabAktif    = "aktif";
-window.rollingFilterBulan = new Date().getMonth() + 1;
-window.rollingFilterTahun = new Date().getFullYear();
+window.rollingTabAktif      = "aktif";
+window.rollingFilterBulan   = new Date().getMonth() + 1;
+window.rollingFilterTahun   = new Date().getFullYear();
+window._rollingSelectMode   = false;
+window._rollingSelectedIds  = new Set();
 // ── FETCH SEMUA DATA MILIK HUNTER INI (langsung Firestore, gak ada cache) ──
 async function getRollingBulanData() {
   const uid = window.auth?.currentUser?.uid;
@@ -164,8 +166,11 @@ window.initRollingView = async function () {
 
     if (!tampil.length) {
       customerList.innerHTML = `<div class="placeholder">Tidak ada customer</div>`;
+      updateRollingSelectBar();
       return;
     }
+
+    const selectMode = window.rollingTabAktif === "history" && window._rollingSelectMode;
 
     customerList.innerHTML = tampil.map(item => {
       const foto = item.foto || "https://via.placeholder.com/100";
@@ -183,8 +188,17 @@ window.initRollingView = async function () {
             `<span class="rolling-badge rolling-badge-cash">${k}: ${v}</span>`
           ).join("")
         : "";
+      const cardClick = selectMode
+        ? `window.toggleRollingSelect('${item.id}')`
+        : `openRollingCustomerPopup('${item.id}')`;
+      const checkboxHtml = selectMode
+        ? `<label class="rolling-checkbox-wrap" onclick="event.stopPropagation()">
+             <input type="checkbox" class="rolling-select-checkbox" data-id="${item.id}" ${window._rollingSelectedIds.has(item.id) ? "checked" : ""}>
+           </label>`
+        : "";
       return `
-        <div class="rolling-customer-item" onclick="openRollingCustomerPopup('${item.id}')">
+        <div class="rolling-customer-item" data-id="${item.id}" onclick="${cardClick}">
+          ${checkboxHtml}
           <img class="rolling-avatar" src="${foto}" />
           <div class="rolling-info">
             <div class="rolling-name">${nama} ${badgeCatatan} ${badgeKonsinyasi} ${badgeCash}</div>
@@ -212,11 +226,133 @@ window.initRollingView = async function () {
       `;
     }).join("");
 
+    attachRollingCardListeners();
+
   } catch (err) {
     console.error("❌ Rolling view error:", err);
     customerList.innerHTML = `<div class="placeholder">Gagal load customer</div>`;
   }
 };
+
+function attachRollingCardListeners() {
+  document.querySelectorAll(".rolling-customer-item").forEach(card => {
+    const id = card.dataset.id;
+    let pressTimer = null;
+    const startPress = () => {
+      if (window.rollingTabAktif !== "history" || window._rollingSelectMode) return;
+      pressTimer = setTimeout(() => {
+        window._rollingSelectMode = true;
+        window._rollingSelectedIds.add(id);
+        window.initRollingView();
+      }, 500);
+    };
+    const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };
+
+    card.addEventListener("touchstart", startPress, { passive: true });
+    card.addEventListener("touchend", cancelPress);
+    card.addEventListener("touchmove", cancelPress);
+    card.addEventListener("mousedown", startPress);
+    card.addEventListener("mouseup", cancelPress);
+    card.addEventListener("mouseleave", cancelPress);
+  });
+
+  document.querySelectorAll(".rolling-select-checkbox").forEach(cb => {
+    cb.addEventListener("change", function() {
+      const id = this.dataset.id;
+      if (this.checked) window._rollingSelectedIds.add(id);
+      else window._rollingSelectedIds.delete(id);
+      updateRollingSelectBar();
+    });
+  });
+
+  updateRollingSelectBar();
+}
+
+window.toggleRollingSelect = function(id) {
+  if (window._rollingSelectedIds.has(id)) window._rollingSelectedIds.delete(id);
+  else window._rollingSelectedIds.add(id);
+  window.initRollingView();
+};
+
+function updateRollingSelectBar() {
+  let bar = document.getElementById("rollingSelectBar");
+  const aktif = window.rollingTabAktif === "history" && window._rollingSelectMode;
+
+  if (aktif) {
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "rollingSelectBar";
+      bar.className = "rolling-select-bar";
+      bar.innerHTML = `
+        <button class="rolling-select-cancel" id="rollingSelectCancel">Batal</button>
+        <span id="rollingSelectCount">0 dipilih</span>
+        <button class="rolling-select-delete" id="rollingSelectDelete">Hapus</button>
+      `;
+      document.querySelector(".rolling-page")?.appendChild(bar);
+      document.getElementById("rollingSelectCancel").onclick = () => {
+        window._rollingSelectMode = false;
+        window._rollingSelectedIds.clear();
+        window.initRollingView();
+      };
+      document.getElementById("rollingSelectDelete").onclick = konfirmasiHapusRollingTerpilih;
+    }
+    document.getElementById("rollingSelectCount").textContent = `${window._rollingSelectedIds.size} dipilih`;
+  } else if (bar) {
+    bar.remove();
+  }
+}
+
+function konfirmasiHapusRollingTerpilih() {
+  const jumlah = window._rollingSelectedIds.size;
+  if (!jumlah) return;
+
+  const existing = document.getElementById("rollingHapusOverlay");
+  if (existing) existing.remove();
+
+  const el = document.createElement("div");
+  el.id = "rollingHapusOverlay";
+  el.style.cssText = `
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; box-sizing: border-box;
+  `;
+  el.innerHTML = `
+    <div style="background:#fff; border-radius:20px; padding:24px 20px; max-width:320px; width:100%; text-align:center; font-family:'Poppins',sans-serif;">
+      <div style="font-size:36px; margin-bottom:10px;">⚠️</div>
+      <div style="font-size:17px; font-weight:700; color:#1a1a1a; margin-bottom:8px;">Hapus Customer?</div>
+      <div style="font-size:13px; color:#666; margin-bottom:20px; line-height:1.4;">${jumlah} customer yang dipilih akan dihapus permanen dan tidak bisa dikembalikan.</div>
+      <div style="display:flex; gap:10px;">
+        <button id="rollingHapusNo" style="flex:1; height:44px; border:none; border-radius:12px; background:#f0f0f0; color:#333; font-weight:700; font-size:14px; cursor:pointer;">Batal</button>
+        <button id="rollingHapusYes" style="flex:1; height:44px; border:none; border-radius:12px; background:#e53935; color:#fff; font-weight:700; font-size:14px; cursor:pointer;">Hapus</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+
+  document.getElementById("rollingHapusNo").onclick = () => el.remove();
+  document.getElementById("rollingHapusYes").onclick = async () => {
+    el.remove();
+    await hapusRollingTerpilih();
+  };
+}
+
+async function hapusRollingTerpilih() {
+  const uid = window.auth?.currentUser?.uid;
+  if (!uid) return;
+  const ids = Array.from(window._rollingSelectedIds);
+  try {
+    await Promise.all(ids.map(id =>
+      window.deleteDoc(window.doc(window.db, "users", uid, "customerBaruHunter", id))
+    ));
+    window.showToast?.("Customer dihapus", "success");
+  } catch (err) {
+    console.error("❌ hapusRollingTerpilih:", err);
+    window.showToast?.("Gagal menghapus", "error");
+  }
+  window._rollingSelectMode = false;
+  window._rollingSelectedIds.clear();
+  window.initRollingView();
+}
 
 window.openRollingCustomerPopup = async function (idCustomer) {
   const popup = document.getElementById("popupRollingCustomer");

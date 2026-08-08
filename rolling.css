@@ -465,3 +465,63 @@
   cursor: pointer;
 }
 .rolling-btn-update:active { opacity: .85; }
+
+/* SELECT MODE — hapus massal di tab Submitted */
+.rolling-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rolling-select-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.rolling-select-bar {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  padding: 10px 14px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+}
+.rolling-select-bar span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.rolling-select-cancel,
+.rolling-select-delete {
+  height: 38px;
+  border: none;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  padding: 0 16px;
+}
+.rolling-select-cancel {
+  background: var(--nav-fab-border);
+  color: var(--text-secondary);
+}
+.rolling-select-cancel:active {
+  background: var(--color-icon-orange-bg);
+}
+.rolling-select-delete {
+  background: var(--danger, #e53935);
+  color: #fff;
+}
+.rolling-select-delete:active {
+  opacity: .85;
+}
