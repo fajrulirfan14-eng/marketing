@@ -468,6 +468,12 @@
           </svg>
         </button>
         <span>Input Harian</span>
+        <button class="inputharian-pl-btn" id="btnAnalisisSalesHeader" onclick="window.showView('analisissales')" style="margin-left:auto;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <path d="M3 3v18h18"/>
+            <path d="M18 17V9M13 17V5M8 17v-3"/>
+          </svg>
+        </button>
         <button class="inputharian-pl-btn" id="btnPenjualanLangsungHeader" onclick="window.openBottomSheetPenjualanLangsungSales()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/>
@@ -673,6 +679,11 @@
   <div class="view" id="view-analisis">
     <div class="analisis-page">
       <div class="analisis-header">
+        <button class="analisis-back-btn" id="analisisBackBtn" onclick="window.showView('home','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
         <button class="analisis-info-btn" id="analisisInfoBtn">
           <i class="fa-solid fa-circle-info"></i>
         </button>
@@ -737,15 +748,75 @@
           </div>
         </div>
         <div id="accordionContainer"></div>
+        <div class="analisis-search-floating">
+          <input type="text" id="customerSearch" placeholder="Cari customer...">
+          <button class="analisis-aktifkan-btn" id="btnAktifkanBadge" onclick="aktifkanBadgeTrikotomi()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
-    <div class="analisis-search-floating">
-      <input type="text" id="customerSearch" placeholder="Cari customer...">
-      <button class="analisis-aktifkan-btn" id="btnAktifkanBadge" onclick="aktifkanBadgeTrikotomi()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      </button>
+  </div>
+  
+  <!-- ===== ANALISIS SALES VIEW ===== -->
+  <div class="view" id="view-analisissales">
+    <div class="analisis-page">
+      <div class="analisis-header">
+        <button class="analisis-back-btn" id="analisisSalesBackBtn" onclick="window.showView('inputharian','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
+        <button class="analisis-info-btn" id="analisisSalesInfoBtn">
+          <i class="fa-solid fa-circle-info"></i>
+        </button>
+        <div class="analisis-header-title">
+          Analisa Trikotomi
+        </div>
+        <div class="analisis-header-subtitle">
+          Klasifikasi customer berdasarkan aktivitas transaksi
+        </div>
+      </div>
+      <div class="analisis-wrapper">
+        <div class="analisis-total-card">
+          <div class="analisis-total-label">Total Customer</div>
+          <div class="analisis-total-value" id="totalCustomerSales">0</div>
+        </div>
+        <div class="analisis-periode-row">
+          <div class="analisis-filter-chips" id="analisisSalesFilterChips">
+            <button class="analisis-chip" data-filter="return">Ret</button>
+            <button class="analisis-chip" data-filter="expired">Exp</button>
+          </div>
+          <div class="analisis-periode-wrap" id="analisisSalesPeriodeWrap">
+            <button class="analisis-periode-btn" id="analisisSalesPeriodeBtn">
+              <i class="fa-solid fa-calendar-week"></i>
+              <span id="analisisSalesPeriodeLabel">T-1</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <div class="analisis-periode-dropdown" id="analisisSalesPeriodeDropdown" style="display:none"></div>
+          </div>
+        </div>
+        <div class="analisis-summary">
+          <div class="summary-card green">
+            <div class="summary-value" id="greenCountSales">0</div>
+            <div class="summary-label">Produktif</div>
+          </div>
+          <div class="summary-card yellow">
+            <div class="summary-value" id="yellowCountSales">0</div>
+            <div class="summary-label">Stabil</div>
+          </div>
+          <div class="summary-card red">
+            <div class="summary-value" id="redCountSales">0</div>
+            <div class="summary-label">Non Produktif</div>
+          </div>
+        </div>
+        <div id="accordionContainerSales"></div>
+        <div class="analisis-search-floating">
+          <input type="text" id="customerSearchSales" placeholder="Cari customer...">
+        </div>
+      </div>
     </div>
   </div>
   
@@ -2597,6 +2668,7 @@
 <script type="module" src="tabel.js"></script>
 <script src="customer.js"></script>
 <script src="analisis.js"></script>
+<script src="analisissales.js"></script>
 <script src="rolling.js"></script>
 <script type="module" src="laporanharian.js"></script>
 <script type="module" src="customersales.js"></script>
