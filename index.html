@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="home.css">
 <link rel="stylesheet" href="profil.css">
 <link rel="stylesheet" href="input.css">
+<link rel="stylesheet" href="inputharian.css">
 <link rel="stylesheet" href="tabel.css">
 <link rel="stylesheet" href="customer.css">
 <link rel="stylesheet" href="analisis.css">
@@ -453,6 +454,87 @@
       </div>
     </div>
     <div class="it-canvas-wrap" id="inputTabelInner"></div>
+  </div>
+  
+  <!-- ===== VIEW INPUT HARIAN (SALES) ===== -->
+  <div class="view" id="view-inputharian">
+    <div class="inputharian-page">
+  
+      <!-- HEADER -->
+      <div class="inputharian-header">
+        <button class="inputharian-back-btn" onclick="window.showView('home','back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="20" height="20">
+            <path d="M19 12H5M5 12l7-7M5 12l7 7"/>
+          </svg>
+        </button>
+        <span>Input Harian</span>
+        <button class="inputharian-pl-btn" id="btnPenjualanLangsungHeader" onclick="window.openBottomSheetPenjualanLangsungSales()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>
+  
+      <!-- TAB -->
+      <div class="inputharian-tab-bar">
+        <button class="inputharian-tab active" id="inputharianTabInput" onclick="window.setInputHarianTab('input')">Input</button>
+        <button class="inputharian-tab" id="inputharianTabRiwayat" onclick="window.setInputHarianTab('riwayat')">Riwayat</button>
+      </div>
+  
+      <!-- SECTION RIWAYAT -->
+      <div class="inputharian-wrapper" id="inputharianRiwayatSection" style="display:none;">
+        <div class="inputharian-card inputharian-card-total" style="margin-bottom:14px;">
+          <div class="inputharian-group">
+            <label>Tanggal</label>
+            <input type="date" id="riwayatTanggalFilterTab">
+          </div>
+          <div id="riwayatHeaderCard"></div>
+        </div>
+        <div class="inputharian-card">
+          <div class="inputharian-group" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+            <label style="margin:0;">Jumlah Customer</label>
+            <span id="riwayatJumlahCustomer" style="font-size:15px;font-weight:800;color:var(--accent, #b3874f);">0</span>
+          </div>
+          <div id="riwayatListWrapTab"></div>
+        </div>
+      </div>
+  
+      <!-- SECTION INPUT -->
+      <div class="inputharian-wrapper" id="inputharianInputSection">
+        <div class="inputharian-card">
+  
+          <!-- NAMA CUSTOMER + SUGGEST -->
+          <div class="inputharian-group">
+            <label>Nama Customer</label>
+            <div class="inputharian-suggest-wrap">
+              <input type="text" id="inputharianNama" placeholder="Ketik nama customer..." autocomplete="off">
+              <div class="inputharian-suggest-list" id="inputharianSuggestList"></div>
+            </div>
+          </div>
+  
+          <!-- DATA KEMARIN -->
+          <div class="popup-group stoksaatini">
+            <div class="popup-group-title">Data Kemarin</div>
+            <div class="popup-group-list" id="inputharianKemarinList"></div>
+          </div>
+  
+          <!-- TOTAL PEMBAYARAN -->
+          <div class="popup-preview-pay-wrapper">
+            <span class="popup-preview-pay-label">Total Pembayaran</span>
+            <span class="popup-preview-pay" id="inputharianPreviewPay">Rp0</span>
+          </div>
+  
+          <!-- GRID INPUT (di-generate JS per varian) -->
+          <div class="inputharian-grid" id="inputharianGrid"></div>
+  
+          <!-- SIMPAN -->
+          <button class="inputharian-btn-simpan" id="inputharianBtnSimpan">Simpan</button>
+  
+        </div>
+      </div>
+  
+    </div>
   </div>
   
   <!-- ===== CUSTOMER VIEW ===== -->
@@ -2511,6 +2593,7 @@
 <script type="module" src="index.js"></script>
 <script type="module" src="home.js"></script>
 <script type="module" src="input.js"></script>
+<script src="inputharian.js"></script>
 <script type="module" src="tabel.js"></script>
 <script src="customer.js"></script>
 <script src="analisis.js"></script>

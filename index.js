@@ -147,7 +147,7 @@ onAuthStateChanged(auth, async(user)=>{
       } catch { }
     }
     initNavbar();
-    showView("home");
+    showView(localStorage.getItem("lastActiveView") || "home");
   } else {
     // Cek cache dulu sebelum redirect
     const cache = localStorage.getItem("userCache");
@@ -155,7 +155,7 @@ onAuthStateChanged(auth, async(user)=>{
       // Offline dan ada cache — jangan logout
       window.currentUser = JSON.parse(cache);
       initNavbar();
-      showView("home");
+      showView(localStorage.getItem("lastActiveView") || "home");
     } else {
       localStorage.clear();
       window.location.href = "login.html";
@@ -279,18 +279,8 @@ window.logout = async function(){
       indicator.classList.add("ptr-loading");
 
       setTimeout(() => {
-        window.showView?.(window.currentView || "home");
-        setTimeout(() => {
-          // Animasi balik ke atas
-          indicator.style.transition = "transform 0.4s cubic-bezier(0.25,1,0.5,1)";
-          indicator.style.transform  = "translateY(-60px)";
-          indicator.classList.remove("ptr-loading");
-          circle.style.strokeDashoffset = FULL_DASH;
-          setTimeout(() => {
-            indicator.style.transition = "none";
-            refreshing = false;
-          }, 400);
-        }, 600);
+        localStorage.setItem("lastActiveView", window.currentView || "home");
+        location.reload();
       }, 800);
     } else {
       // Tidak sampai threshold — balik halus
@@ -712,6 +702,23 @@ function showView(viewName, trigger = "direct"){
   if (location.hash !== "#" + viewName) {
     history.replaceState(null, "", "#" + viewName);
   }
+
+  // Sync nav bottom biar konsisten walau showView dipanggil bukan dari klik navbar
+  const matchingNavItem = document.querySelector(`.nav-item[data-view="${viewName}"]`);
+  if (matchingNavItem && !matchingNavItem.classList.contains("active")) {
+    const prevActiveNav = document.querySelector(".nav-item.active");
+    if (prevActiveNav && prevActiveNav !== matchingNavItem) {
+      prevActiveNav.innerHTML =
+        `<i class="${prevActiveNav.dataset.icon}"></i>` +
+        `<span>${prevActiveNav.dataset.label}</span>`;
+      prevActiveNav.classList.remove("active");
+    }
+    matchingNavItem.innerHTML =
+      `<span class="nav-placeholder"></span>` +
+      `<span>${matchingNavItem.dataset.label}</span>`;
+    matchingNavItem.classList.add("active");
+    window._moveFab?.(matchingNavItem);
+  }
   document.querySelectorAll(".view").forEach(view=>{
     view.classList.remove("active","anim-slide-up","anim-slide-right","anim-slide-left");
   });
@@ -767,7 +774,8 @@ function showView(viewName, trigger = "direct"){
     "rollingcustomer",
     "chatAi",
     "peraturan",
-    "customersales"
+    "customersales",
+    "inputharian"
   ];
 
   if (navbar) {
@@ -803,6 +811,7 @@ function showView(viewName, trigger = "direct"){
     case "peraturan": window.initPeraturanView?.(); break;
     case "customersales": window.initCustomerSalesView?.(); break;
     case "laporanharian": window.initLaporanHarianView?.(); break;
+    case "inputharian": window.initInputHarianView?.(); break;
   }
 
   // Reset scroll semua view container
@@ -902,8 +911,8 @@ history.pushState({ app: true }, "");
 history.pushState({ app: true }, "");
 history.pushState({ app: true }, "");
 // ── ANDROID BACK via hashchange ──────────────────
-// Set hash awal
-location.hash = "home";
+// Set hash awal — pake view terakhir kalau ada (misal abis pull-to-refresh)
+location.hash = localStorage.getItem("lastActiveView") || "home";
 
 let _backLocked = false;
 
@@ -1122,7 +1131,7 @@ function initNavbar() {
   const hideNavbarViews = [
     "customer","input","inputTabel","analisis","rolling",
     "tentang","keamanan","perjanjian","slip",
-    "rollingcustomer","chatAi","peraturan", "customersales"
+    "rollingcustomer","chatAi","peraturan", "customersales", "inputharian"
   ];
 
   appEl?.addEventListener("scroll", () => {
