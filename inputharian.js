@@ -1,3 +1,34 @@
+window.showToast = function(message, type = "success", duration = 2500) {
+  document.getElementById("inputharianToast")?.remove();
+
+  const el = document.createElement("div");
+  el.id = "inputharianToast";
+  const bg = type === "error" ? "#c0555a" : "#3a9a62";
+  el.textContent = message;
+  el.style.cssText = `
+    position: fixed; left: 50%; bottom: 90px; z-index: 99999;
+    transform: translateX(-50%) translateY(20px);
+    background: ${bg}; color: #fff;
+    padding: 12px 20px; border-radius: 14px;
+    font-size: 13px; font-weight: 700; font-family: "Poppins", sans-serif;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    opacity: 0; transition: opacity .25s ease, transform .25s ease;
+    max-width: 85vw; text-align: center;
+  `;
+  document.body.appendChild(el);
+
+  requestAnimationFrame(() => {
+    el.style.opacity = "1";
+    el.style.transform = "translateX(-50%) translateY(0)";
+  });
+
+  setTimeout(() => {
+    el.style.opacity = "0";
+    el.style.transform = "translateX(-50%) translateY(20px)";
+    setTimeout(() => el.remove(), 250);
+  }, duration);
+};
+
 window.initInputHarianView = async function() {
   const namaInput    = document.getElementById("inputharianNama");
   const suggestList  = document.getElementById("inputharianSuggestList");
@@ -500,6 +531,9 @@ async function loadRiwayatHeaderCard(tanggal, entries) {
   };
 }
 
+const RIWAYAT_PAGE_SIZE = 10;
+window._riwayatRenderCount = RIWAYAT_PAGE_SIZE;
+
 async function loadRiwayatListTab(tanggal) {
   const listWrap = document.getElementById("riwayatListWrapTab");
   const uid = window.auth?.currentUser?.uid;
@@ -519,6 +553,7 @@ async function loadRiwayatListTab(tanggal) {
       _entryId: d.id
     }));
     window._riwayatEntriesCache = entries;
+    window._riwayatRenderCount  = RIWAYAT_PAGE_SIZE;
 
     const jumlahEl = document.getElementById("riwayatJumlahCustomer");
     if (jumlahEl) jumlahEl.textContent = entries.length;
@@ -531,19 +566,43 @@ async function loadRiwayatListTab(tanggal) {
       return;
     }
 
-    listWrap.innerHTML = entries.map((e, i) => {
-      const bayar = Number(e.pembayaran?.bayarKonsumen || 0);
-      return `
-        <div class="riwayat-list-item" onclick="window.openDetailRiwayatSheet(${i})">
-          <span class="riwayat-list-item-nama">${e.namaCustomer || "-"}</span>
-          <span class="riwayat-list-item-total">Rp${bayar.toLocaleString("id-ID")}</span>
-        </div>
-      `;
-    }).join("");
+    renderRiwayatListPage();
 
   } catch (err) {
     console.error("❌ loadRiwayatListTab:", err);
     listWrap.innerHTML = `<div style="text-align:center;padding:20px;color:#c0555a;">Gagal memuat riwayat</div>`;
+  }
+}
+
+function renderRiwayatListPage() {
+  const listWrap = document.getElementById("riwayatListWrapTab");
+  const entries  = window._riwayatEntriesCache || [];
+  const count    = Math.min(window._riwayatRenderCount, entries.length);
+
+  const itemsHtml = entries.slice(0, count).map((e, i) => {
+    const bayar = Number(e.pembayaran?.bayarKonsumen || 0);
+    return `
+      <div class="riwayat-list-item" onclick="window.openDetailRiwayatSheet(${i})">
+        <span class="riwayat-list-item-nama">${e.namaCustomer || "-"}</span>
+        <span class="riwayat-list-item-total">Rp${bayar.toLocaleString("id-ID")}</span>
+      </div>
+    `;
+  }).join("");
+
+  const loadMoreHtml = count < entries.length
+    ? `<button class="riwayat-expand-btn" id="riwayatLoadMoreBtn">
+        <span>Muat ${Math.min(RIWAYAT_PAGE_SIZE, entries.length - count)} Lagi (${count}/${entries.length})</span>
+      </button>`
+    : "";
+
+  listWrap.innerHTML = itemsHtml + loadMoreHtml;
+
+  const btnMore = document.getElementById("riwayatLoadMoreBtn");
+  if (btnMore) {
+    btnMore.onclick = () => {
+      window._riwayatRenderCount += RIWAYAT_PAGE_SIZE;
+      renderRiwayatListPage();
+    };
   }
 }
 
