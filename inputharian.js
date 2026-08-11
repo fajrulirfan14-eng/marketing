@@ -377,13 +377,22 @@ async function loadRiwayatHeaderCard(tanggal, entries) {
   const uid = window.auth?.currentUser?.uid;
   const varianKeys = window._inputHarianVarianKeys || [];
 
-  // Bawa Barang — sum dari konsinyasi yang diinput (bukan laporanMarketing, itu gak dipakai sales)
-  const bawaMap = {};
+  // Bawa Barang — dari laporanMarketing.order (sama sumbernya kayak card Home)
+  let bawaMap = {};
   varianKeys.forEach(k => { bawaMap[k] = 0; });
-  entries.forEach(e => {
-    const konsinyasi = e.konsinyasi || {};
-    varianKeys.forEach(k => { bawaMap[k] += Number(konsinyasi[k] || 0); });
-  });
+  try {
+    const snapLap = await window.getDocs(window.query(
+      window.collection(window.db, "users", uid, "laporanMarketing"),
+      window.where("tanggal", "==", tanggal),
+      window.where("idMarketing", "==", uid)
+    ));
+    if (!snapLap.empty) {
+      const orderData = snapLap.docs[0].data()?.order || {};
+      varianKeys.forEach(k => { bawaMap[k] = Number(orderData[k] || 0); });
+    }
+  } catch (err) {
+    console.error("❌ loadRiwayatHeaderCard (laporanMarketing):", err);
+  }
 
   // Closing — sum dari semua entry inputHarian tanggal ini
   const closingMap = {};
