@@ -617,11 +617,14 @@ window.openDetailRiwayatSheet = function(index) {
   const varianKeys = window._inputHarianVarianKeys || [];
 
   function renderGroup(title, obj, type) {
-    const rows = varianKeys.map(key => `
-      <div class="popup-input-item">
-        <div class="popup-input-number popup-detail-number ${type}">${key}: ${Number(obj?.[key] || 0)}</div>
-      </div>
-    `).join("");
+    const rows = varianKeys.map(key => {
+      const val = Number(obj?.[key] || 0);
+      return `
+        <div class="popup-input-item">
+          <input type="number" class="popup-input-number" placeholder="${key}" value="${val === 0 ? "" : val}" readonly disabled>
+        </div>
+      `;
+    }).join("");
     return `
       <div class="popup-group ${type}">
         <div class="popup-group-title">${title}</div>

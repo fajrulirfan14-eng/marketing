@@ -775,7 +775,8 @@ function showView(viewName, trigger = "direct"){
     "chatAi",
     "peraturan",
     "customersales",
-    "inputharian"
+    "inputharian",
+    "analisissales"
   ];
 
   if (navbar) {
@@ -812,6 +813,7 @@ function showView(viewName, trigger = "direct"){
     case "customersales": window.initCustomerSalesView?.(); break;
     case "laporanharian": window.initLaporanHarianView?.(); break;
     case "inputharian": window.initInputHarianView?.(); break;
+    case "analisissales": window.initAnalisisSalesView?.(); break;
   }
 
   // Reset scroll semua view container
@@ -935,11 +937,14 @@ function _handleBack() {
       "slip", "rollingcustomer", "peraturan"
     ];
     const backToInputViews = ["inputTabel"];
+    const backToInputHarianViews = ["analisissales"];
 
     const backTarget = backToProfilViews.includes(currentView)
       ? "profil"
       : backToInputViews.includes(currentView)
       ? "input"
+      : backToInputHarianViews.includes(currentView)
+      ? "inputharian"
       : "home";
 
     showView(backTarget, "back");
@@ -986,11 +991,14 @@ document.addEventListener("backbutton",
       ];
 
       const backToInputViews = ["inputTabel"];
+      const backToInputHarianViews = ["analisissales"];
 
       const backTarget = backToProfilViews.includes(currentView)
         ? "profil"
         : backToInputViews.includes(currentView)
         ? "input"
+        : backToInputHarianViews.includes(currentView)
+        ? "inputharian"
         : "home";
       showView(backTarget, "back");
 
@@ -1131,7 +1139,7 @@ function initNavbar() {
   const hideNavbarViews = [
     "customer","input","inputTabel","analisis","rolling",
     "tentang","keamanan","perjanjian","slip",
-    "rollingcustomer","chatAi","peraturan", "customersales", "inputharian"
+    "rollingcustomer","chatAi","peraturan", "customersales", "inputharian", "analisissales"
   ];
 
   appEl?.addEventListener("scroll", () => {

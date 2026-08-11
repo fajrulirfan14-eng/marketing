@@ -1,5 +1,36 @@
 
 // INIT VIEW
+function showInputKurirToast(message, type = "success", duration = 2500) {
+  document.getElementById("inputKurirToast")?.remove();
+
+  const el = document.createElement("div");
+  el.id = "inputKurirToast";
+  const bg = type === "error" ? "#c0555a" : "#3a9a62";
+  el.textContent = message;
+  el.style.cssText = `
+    position: fixed; left: 50%; bottom: 90px; z-index: 99999;
+    transform: translateX(-50%) translateY(20px);
+    background: ${bg}; color: #fff;
+    padding: 12px 20px; border-radius: 14px;
+    font-size: 13px; font-weight: 700; font-family: "Poppins", sans-serif;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    opacity: 0; transition: opacity .25s ease, transform .25s ease;
+    max-width: 85vw; text-align: center;
+  `;
+  document.body.appendChild(el);
+
+  requestAnimationFrame(() => {
+    el.style.opacity = "1";
+    el.style.transform = "translateX(-50%) translateY(0)";
+  });
+
+  setTimeout(() => {
+    el.style.opacity = "0";
+    el.style.transform = "translateX(-50%) translateY(20px)";
+    setTimeout(() => el.remove(), 250);
+  }, duration);
+}
+
 window.initInputView = async function(){
   if(window._inputViewCleanup){
     window._inputViewCleanup();
@@ -1290,10 +1321,11 @@ window.initInputView = async function(){
           };
         }
 
+        showInputKurirToast("Fee/Disable tersimpan", "success");
         overlay.classList.remove("active");
       } catch (err) {
         console.log(err);
-        alert("Gagal simpan");
+        showInputKurirToast("Gagal simpan", "error");
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerText = "Simpan";
@@ -2072,10 +2104,11 @@ window.initInputView = async function(){
         // Re-render list
         window._renderCustomerList?.();
 
+        showInputKurirToast("Data tersimpan", "success");
         overlay.classList.remove("active");
       } catch (err) {
         console.log(err);
-        alert("Gagal simpan, silakan coba lagi");
+        showInputKurirToast("Gagal simpan, silakan coba lagi", "error");
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerText = "Kirim";
@@ -2532,6 +2565,7 @@ window.initInputView = async function(){
         }
 
         btnText.textContent = "Tersimpan ✓";
+        showInputKurirToast("Penjualan langsung tersimpan", "success");
         setTimeout(() => {
           overlay.remove();
           // Buka ulang popup detail supaya data terupdate
@@ -2541,6 +2575,7 @@ window.initInputView = async function(){
       } catch {
         btn.disabled = false;
         btnText.textContent = "Gagal, coba lagi";
+        showInputKurirToast("Gagal menyimpan", "error");
         setTimeout(() => { btnText.textContent = "Simpan"; btn.disabled = false; }, 2000);
       }
     };
