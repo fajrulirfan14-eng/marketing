@@ -683,7 +683,7 @@ window.openMapView = function() {
     // Tombol kunjungi
     document.getElementById("mapBtnKunjungi").onclick = () => startRouting(c, loc, color, sheet, closeSheet);
     document.getElementById("mapBtnGmaps").onclick = () => {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`, "_blank");
+      window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
     };
     // Listener klik map — hanya tutup jika bukan navigasi
     const mapClickListener = map.addListener("click", () => {

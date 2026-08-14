@@ -210,7 +210,8 @@ window.logout = async function(){
       el.classList.contains("active") ||
       el.classList.contains("open") ||
       el.classList.contains("show") ||
-      el.style.display === "flex"
+      el.style.display === "flex" ||
+      el.style.display === "block"
     );
   }
 
