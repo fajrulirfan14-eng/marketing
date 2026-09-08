@@ -882,6 +882,14 @@ window.openMapView = function() {
     } catch { }
   }
 
+  window._mapRefreshPins = function () {
+    pinMarkers.forEach(m => { try { m.map = null; } catch { } });
+    pinMarkers = [];
+    pinVisible = false;
+    window._mapLainDataCache = null;
+    tampilkanPinCustomer();
+  };
+
   tampilkanPinKantor();
   // Preload users cabang ke cache
   (async () => {

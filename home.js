@@ -346,6 +346,13 @@ window.initHomeView = async function(){
                 <path d="M20 8v6"/><path d="M17 11h6"/>
               </svg>
             </button>
+            <button class="home-customer-plus secondary" onclick="showView('database')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="8" ry="3"/>
+                <path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/>
+                <path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/>
+              </svg>
+            </button>
             <button class="home-customer-plus" onclick="window.openHomeCustomerPopup()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 5v14"/><path d="M5 12h14"/>

@@ -32,6 +32,7 @@ import {
   limit,
   updateDoc,
   getDocs,
+  getCountFromServer,
   onSnapshot,
   deleteField,
   deleteDoc
@@ -68,6 +69,7 @@ window.where = where;
 window.orderBy = orderBy;
 window.limit = limit;
 window.getDocs = getDocs;
+window.getCountFromServer = getCountFromServer;
 window.collectionGroup = collectionGroup;
 window.onSnapshot = onSnapshot;
 window.updateDoc = updateDoc;
@@ -777,7 +779,8 @@ function showView(viewName, trigger = "direct"){
     "peraturan",
     "customersales",
     "inputharian",
-    "analisissales"
+    "analisissales",
+    "database"
   ];
 
   if (navbar) {
@@ -815,6 +818,7 @@ function showView(viewName, trigger = "direct"){
     case "laporanharian": window.initLaporanHarianView?.(); break;
     case "inputharian": window.initInputHarianView?.(); break;
     case "analisissales": window.initAnalisisSalesView?.(); break;
+    case "database": window.initDatabaseView?.(); break;
   }
 
   // Reset scroll semua view container
@@ -1140,7 +1144,7 @@ function initNavbar() {
   const hideNavbarViews = [
     "customer","input","inputTabel","analisis","rolling",
     "tentang","keamanan","perjanjian","slip",
-    "rollingcustomer","chatAi","peraturan", "customersales", "inputharian", "analisissales"
+    "rollingcustomer","chatAi","peraturan", "customersales", "inputharian", "analisissales", "database"
   ];
 
   appEl?.addEventListener("scroll", () => {
