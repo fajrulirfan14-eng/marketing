@@ -751,9 +751,9 @@
   border: 1px solid var(--cust-cash-border);
 }
 .home-customer-box.tester {
-  background: #8e24aa;
-  color: #fff;
-  border: 1px solid #7b1fa2;
+  background: var(--cust-tester-bg);
+  color: var(--cust-tester-text);
+  border: 1px solid var(--cust-tester-border);
 }
 .home-customer-payment {
   margin-top: 14px;

@@ -86,6 +86,9 @@
   --cust-cash-bg:           #d1f2e1;
   --cust-cash-text:         #145a32;
   --cust-cash-border:       #a9dfbf;
+  --cust-tester-bg:         #e6d1f2;
+  --cust-tester-text:       #5b2c6f;
+  --cust-tester-border:     #d1a9df;
   --customer-done-bg:      #d8f7dc;
   --customer-done-border:  rgba(67, 160, 71, 0.15);
   --customer-done-text:    #2e7d32;
@@ -750,6 +753,9 @@ body.dark-mode {
   --cust-cash-bg:          rgba(74, 222, 128, 0.15);
   --cust-cash-text:        #4ade80;
   --cust-cash-border:      rgba(74, 222, 128, 0.3);
+  --cust-tester-bg:        rgba(192, 132, 252, 0.15);
+  --cust-tester-text:      #c084fc;
+  --cust-tester-border:    rgba(192, 132, 252, 0.3);
   --customer-done-bg:      rgba(74, 222, 128, 0.15);
   --customer-done-border:  rgba(74, 222, 128, 0.3);
   --customer-done-text:    #4ade80;
