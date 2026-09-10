@@ -364,6 +364,7 @@ window.initHomeView = async function(){
           <div class="home-customer-box closing"><div class="box-label">Closing</div><div class="box-value" id="homeClosingTotal">0</div></div>
           <div class="home-customer-box konsinyasi"><div class="box-label">Konsinyasi</div><div class="box-value" id="homeKonsinyasiTotal">0</div></div>
           <div class="home-customer-box cash"><div class="box-label">Cash</div><div class="box-value" id="homeCashTotal">0</div></div>
+          <div class="home-customer-box tester"><div class="box-label">Tester</div><div class="box-value" id="homeTesterTotal">0</div></div>
         </div>
         <div class="home-customer-payment">
           <div class="payment-label">Jumlah Bayaran</div>
@@ -1010,9 +1011,10 @@ window.updateHomeStats = async function() {
     // JUMLAH CUSTOMER
     const jumlahCustomer = todayData.length;
 
-    // KONSINYASI & CASH (total, dan per varian buat saldo barang)
+    // KONSINYASI, CASH & TESTER (total, dan per varian buat saldo barang)
     let totalKonsinyasi = 0;
     let totalCash = 0;
+    let totalTester = 0;
     const closingPerVarian = {};
 
     todayData.forEach(item => {
@@ -1026,11 +1028,15 @@ window.updateHomeStats = async function() {
         totalCash += Number(val || 0);
         closingPerVarian[key] = (closingPerVarian[key] || 0) + Number(val || 0);
       });
+      // JUMLAH SEMUA VALUE DI tester
+      Object.entries(item.tester || {}).forEach(([key, val]) => {
+        totalTester += Number(val || 0);
+        closingPerVarian[key] = (closingPerVarian[key] || 0) + Number(val || 0);
+      });
     });
 
-    // CLOSING
-    const totalClosing = totalKonsinyasi + totalCash;
-
+    // CLOSING = konsinyasi + cash + tester
+    const totalClosing = totalKonsinyasi + totalCash + totalTester;
     // SALDO BARANG PER VARIAN = bawa (order laporanMarketing) - (konsinyasi+cash)
     let orderMap = {};
     try {
@@ -1094,12 +1100,14 @@ window.updateHomeStats = async function() {
     const elClosing = document.getElementById("homeClosingTotal");
     const elKonsinyasi = document.getElementById("homeKonsinyasiTotal");
     const elCash = document.getElementById("homeCashTotal");
+    const elTester = document.getElementById("homeTesterTotal");
     const elBayaran = document.getElementById("homeTotalBayaran");
 
     countUp(elTotal, jumlahCustomer);
     countUp(elClosing, totalClosing);
     countUp(elKonsinyasi, totalKonsinyasi);
     countUp(elCash, totalCash);
+    countUp(elTester, totalTester);
     countUpRupiah(elBayaran, totalBayaran);
 
   } catch { }
