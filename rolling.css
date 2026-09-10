@@ -239,6 +239,10 @@
   background: rgba(46,175,98,.15);
   color: var(--success);
 }
+.rolling-badge-tester {
+  background: rgba(142,36,170,.15);
+  color: #8e24aa;
+}
 
 /* BOTTOM BAR */
 .rolling-bottom-bar {

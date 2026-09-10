@@ -188,6 +188,11 @@ window.initRollingView = async function () {
             `<span class="rolling-badge rolling-badge-cash">${k}: ${v}</span>`
           ).join("")
         : "";
+      const badgeTester = Object.keys(item.tester || {}).length
+        ? Object.entries(item.tester).map(([k, v]) =>
+            `<span class="rolling-badge rolling-badge-tester">${k}: ${v}</span>`
+          ).join("")
+        : "";
       const cardClick = selectMode
         ? `window.toggleRollingSelect('${item.id}')`
         : `openRollingCustomerPopup('${item.id}')`;
@@ -201,7 +206,7 @@ window.initRollingView = async function () {
           ${checkboxHtml}
           <img class="rolling-avatar" src="${foto}" />
           <div class="rolling-info">
-            <div class="rolling-name">${nama} ${badgeCatatan} ${badgeKonsinyasi} ${badgeCash}</div>
+            <div class="rolling-name">${nama} ${badgeCatatan} ${badgeKonsinyasi} ${badgeCash} ${badgeTester}</div>
             <div class="rolling-distance">${jarak}</div>
             <div class="rolling-hari">${hari}</div>
           </div>
@@ -374,11 +379,13 @@ window.openRollingCustomerPopup = async function (idCustomer) {
 
     let htmlKonsinyasi = "";
     let htmlCash = "";
+    let htmlTester = "";
     varian.forEach(item => {
       const key = Object.keys(item)[0];
       if (!key) return;
       const valK = data.konsinyasi?.[key] ?? "";
       const valC = data.cash?.[key] ?? "";
+      const valT = data.tester?.[key] ?? "";
       htmlKonsinyasi += `
         <div class="rolling-data-item">
           <input type="number" class="rolling-input-konsinyasi rolling-data-input" data-key="${key}" value="${valK}" placeholder="${key}">
@@ -387,6 +394,11 @@ window.openRollingCustomerPopup = async function (idCustomer) {
       htmlCash += `
         <div class="rolling-data-item">
           <input type="number" class="rolling-input-cash rolling-data-input" data-key="${key}" value="${valC}" placeholder="${key}">
+        </div>
+      `;
+      htmlTester += `
+        <div class="rolling-data-item">
+          <input type="number" class="rolling-input-tester rolling-data-input" data-key="${key}" value="${valT}" placeholder="${key}">
         </div>
       `;
     });
@@ -399,6 +411,10 @@ window.openRollingCustomerPopup = async function (idCustomer) {
       <div class="rolling-popup-group">
         <label>Cash</label>
         <div class="rolling-data-container">${htmlCash}</div>
+      </div>
+      <div class="rolling-popup-group">
+        <label>Tester</label>
+        <div class="rolling-data-container">${htmlTester}</div>
       </div>
     `;
 
@@ -502,6 +518,10 @@ document.getElementById("btnUpdateRolling")?.addEventListener("click", async fun
     document.querySelectorAll(".rolling-input-cash").forEach(input => {
       if (input.dataset.key && input.value !== "") cash[input.dataset.key] = Number(input.value);
     });
+    const tester = {};
+    document.querySelectorAll(".rolling-input-tester").forEach(input => {
+      if (input.dataset.key && input.value !== "") tester[input.dataset.key] = Number(input.value);
+    });
 
     let hargaPendam = 0, hargaJual = 0, hargaPay = 0;
     Object.entries(konsinyasi).forEach(([key, qty]) => {
@@ -525,6 +545,7 @@ document.getElementById("btnUpdateRolling")?.addEventListener("click", async fun
       keterangan,
       konsinyasi: Object.keys(konsinyasi).length ? konsinyasi : window.deleteField(),
       cash:       Object.keys(cash).length ? cash : window.deleteField(),
+      tester:     Object.keys(tester).length ? tester : window.deleteField(),
     };
 
     const docRef = window.doc(window.db, "users", uid, "customerBaruHunter", id);
@@ -535,6 +556,7 @@ document.getElementById("btnUpdateRolling")?.addEventListener("click", async fun
       const updated = { ...cacheArr[idx], namaCustomer, alamatCustomer, foto: fotoUrl, keterangan };
       if (Object.keys(konsinyasi).length) updated.konsinyasi = konsinyasi; else delete updated.konsinyasi;
       if (Object.keys(cash).length) updated.cash = cash; else delete updated.cash;
+      if (Object.keys(tester).length) updated.tester = tester; else delete updated.tester;
       cacheArr[idx] = updated;
     }
 

@@ -1323,6 +1323,12 @@ window.openHomeCustomerPopup = async function() {
           <label>Cash</label>
           <div id="dataCashHome" class="data-awal-container"></div>
         </div>
+        ${(window.currentUser?.role || "").toLowerCase() === "hunter" ? `
+        <div class="hunter-popup-group">
+          <label>Tester</label>
+          <div id="dataTesterHome" class="data-awal-container"></div>
+        </div>
+        ` : ""}
         <button type="button" class="hunter-btn-lokasi" id="btnLokasiHome">
           <span id="btnLokasiSpinnerHome" style="display:none;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;"></span>
           <span id="btnLokasiTextHome">Ambil Lokasi Sekarang</span>
@@ -1373,9 +1379,26 @@ window.openHomeCustomerPopup = async function() {
         `;
       });
       if (cashContainer) cashContainer.innerHTML = htmlCash;
+
+      const testerContainer = document.getElementById("dataTesterHome");
+      if (testerContainer) {
+        let htmlTester = "";
+        varian.forEach(item => {
+          const key = Object.keys(item)[0];
+          if (!key) return;
+          htmlTester += `
+            <div class="data-awal-item">
+              <input type="number" class="data-awal-input-tester" data-key="${key}" placeholder="${key}">
+            </div>
+          `;
+        });
+        testerContainer.innerHTML = htmlTester;
+      }
     } else {
       if (konsinyasiContainer) konsinyasiContainer.innerHTML = `<div class="customer-empty">Tidak ada data varian</div>`;
       if (cashContainer) cashContainer.innerHTML = `<div class="customer-empty">Tidak ada data varian</div>`;
+      const testerContainerEmpty = document.getElementById("dataTesterHome");
+      if (testerContainerEmpty) testerContainerEmpty.innerHTML = `<div class="customer-empty">Tidak ada data varian</div>`;
     }
 
   } catch { }
@@ -1777,9 +1800,17 @@ window.openHomeCustomerPopup = async function() {
         if (key && val !== "") cash[key] = Number(val);
       });
 
+      // DATA TESTER (khusus hunter)
+      const tester = {};
+      document.querySelectorAll(".data-awal-input-tester").forEach(input => {
+        const key = input.dataset.key;
+        const val = input.value.trim();
+        if (key && val !== "") tester[key] = Number(val);
+      });
+
       // Minimal satu harus diisi
-      if (!Object.keys(konsinyasi).length && !Object.keys(cash).length) {
-        throw new Error("Isi minimal konsinyasi atau cash");
+      if (!Object.keys(konsinyasi).length && !Object.keys(cash).length && !Object.keys(tester).length) {
+        throw new Error("Isi minimal konsinyasi, cash, atau tester");
       }
 
       // LOAD VARIAN DARI window.globalVarian (udah di-fetch pas init Home)
@@ -1868,6 +1899,7 @@ window.openHomeCustomerPopup = async function() {
         jarak,
         ...(Object.keys(konsinyasi).length ? { konsinyasi } : {}),
         ...(Object.keys(cash).length ? { cash } : {}),
+        ...(Object.keys(tester).length ? { tester } : {}),
         keterangan,
         diserahkan: false
       };
