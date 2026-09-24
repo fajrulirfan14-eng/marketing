@@ -36,9 +36,9 @@ window.initInputView = async function(){
     window._inputViewCleanup();
   }
   // Helper dispatch IDB update event
-  window.dispatchIdbUpdate = function(storeName, id = null) {
+  window.dispatchIdbUpdate = function(storeName, id = null, data = null) {
     document.dispatchEvent(new CustomEvent("idbUpdated", {
-      detail: { store: storeName, id }
+      detail: { store: storeName, id, data }
     }));
   };
   const hariEl = document.getElementById("inputHari");
@@ -188,53 +188,27 @@ window.initInputView = async function(){
   try{
     const uid = window.auth.currentUser.uid;
     let userData = null;
-    try {
-      const db = await window.openAppDB();
-      const tx = db.transaction("usersDB", "readonly");
-      const store = tx.objectStore("usersDB");
-      const req = store.get(uid);
-      userData = await new Promise((resolve) => {
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => resolve(null);
-      });
-    } catch (e) {  }
-    if(!userData || !userData.data){
-      if(navigator.onLine){
-        try{
-          const userRef = window.doc(window.db, "users", uid);
-          const userSnap = await window.getDoc(userRef);
-          if(!userSnap.exists()){
-            bawaEl.innerHTML = `
-              <div class="input-bawa-item expired">
-                Data user tidak ditemukan
-              </div>
-            `;
-            return;
-          }
-          const firestoreData = userSnap.data();
-          const db = await window.openAppDB();
-          const tx = db.transaction("usersDB","readwrite");
-          const store = tx.objectStore("usersDB");
-          store.put({
-            id: uid,
-            data: firestoreData
-          });
-          userData = {
-            id: uid,
-            data: firestoreData
-          };
-        } catch(err){
-          bawaEl.innerHTML = `
-            <div class="input-bawa-item expired">
-              Gagal load user
-            </div>
-          `;
-          return;
-        }
+    try{
+      const userRef = window.doc(window.db, "users", uid);
+      const userSnap = await window.getDoc(userRef);
+      if(!userSnap.exists()){
+        bawaEl.innerHTML = `
+          <div class="input-bawa-item expired">
+            Data user tidak ditemukan
+          </div>
+        `;
+        return;
+      }
+      userData = { id: uid, data: userSnap.data() };
+      window._lastUserData = userData;
+    } catch(err){
+      if (window._lastUserData) {
+        // Offline — masih ada data user dari load sebelumnya sesi ini, pakai itu
+        userData = window._lastUserData;
       } else {
         bawaEl.innerHTML = `
           <div class="input-bawa-item expired">
-            Offline & data belum tersedia
+            Gagal load user, cek koneksi
           </div>
         `;
         return;
@@ -265,22 +239,6 @@ window.initInputView = async function(){
     // GLOBAL
     window.globalBawaBarang = bawaBarang;
     window.globalVarian = varian;
-    try {
-      const dbTri = await window.openAppDB();
-      const triRaw = await new Promise(resolve => {
-        const tx = dbTri.transaction("usersDB", "readonly");
-        const store = tx.objectStore("usersDB");
-        const req = store.get(uid);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => resolve(null);
-      });
-      if (triRaw?.trikotomiResult) {
-        window.trikotomiResult = triRaw.trikotomiResult;
-      }
-    } catch(e) {  }
-    if(navigator.onLine){
-      window.syncOfflineDataHarian?.();
-    }
     let isToday = false;
     const rawUpdate =
       userData?.data?.bawaBarangUpdate ||
@@ -322,48 +280,41 @@ window.initInputView = async function(){
     }
     bawaEl.innerHTML = html;
     if (window.inputTampilanBersih) bawaEl.style.display = "none";
-    const db = await window.openAppDB();
-    const tx = db.transaction("customerHarianDB", "readonly");
-    const store = tx.objectStore("customerHarianDB");
-    const customerSnap = await new Promise((resolve, reject) => {
-      const cacheKey = `${uid}_${hariAktif}`;
-      const req = store.get(cacheKey);
-      req.onsuccess = function() {
-        const raw = req.result;
-        let allCustomers = [];
-
-        if (raw && Array.isArray(raw.data)) {
-          allCustomers = raw.data;
-        }
-
-        // FILTER HARI AKTIF (double check)
-        allCustomers = allCustomers.filter(x => x.hari === hariAktif);
-
-        // DEDUPE berdasarkan id
-        const seen = new Set();
-        allCustomers = allCustomers.filter(x => {
-          const cid = x.idCustomer || x.id;
-          if (seen.has(cid)) return false;
-          seen.add(cid);
-          return true;
-        });
-    
-        resolve({
-          empty: allCustomers.length === 0,
-          docs: allCustomers.map(item => ({
-            id: item.id,
-            data: () => item
-          }))
-        });
-      };
-      req.onerror = function() { reject(req.error); };
-    });
+    let customerSnap;
+    let gagalKarenaOffline = false;
+    if (!navigator.onLine) {
+      customerSnap = { empty: true, docs: [] };
+      gagalKarenaOffline = true;
+    } else {
+      try {
+        const q = window.query(
+          window.collection(window.db, "customer"),
+          window.where("pemilik", "==", uid),
+          window.where("status", "==", true),
+          window.where("hari", "==", hariAktif)
+        );
+        const snap = await window.getDocs(q);
+        customerSnap = {
+          empty: snap.empty,
+          docs: snap.docs.map(d => ({ id: d.id, data: () => ({ id: d.id, ...d.data() }) }))
+        };
+      } catch (e) {
+        customerSnap = { empty: true, docs: [] };
+        gagalKarenaOffline = true;
+      }
+    }
     if(customerSnap.empty){
-      listCustomerEl.innerHTML = `
-        <div class="input-customer-empty">
-          Belum ada customer
-        </div>
-      `;
+      listCustomerEl.innerHTML = gagalKarenaOffline
+        ? `
+          <div class="input-customer-empty">
+            Tidak ada koneksi internet, daftar customer gagal dimuat.<br>Coba lagi setelah online.
+          </div>
+        `
+        : `
+          <div class="input-customer-empty">
+            Belum ada customer
+          </div>
+        `;
       return;
     }
     const today = new Date().toISOString().split("T")[0];
@@ -404,18 +355,16 @@ window.initInputView = async function(){
     const dataHarianMap = {};
     window._dataHarianMap = dataHarianMap;
     try{
-      const txPre = db.transaction("dataHarianDB","readonly");
-      const storePre = txPre.objectStore("dataHarianDB");
-      await Promise.all(allCustomerIds.map(cid =>
-        new Promise((resolve)=>{
-          const r = storePre.get(`${cid}_${today}`);
-          r.onsuccess = ()=>{
-            if(r.result) dataHarianMap[cid] = r.result;
-            resolve();
-          };
-          r.onerror = ()=> resolve();
-        })
-      ));
+      await Promise.all(allCustomerIds.map(async cid => {
+        try {
+          const snap = await window.getDoc(
+            window.doc(window.db, "customer", cid, "dataHarian", today)
+          );
+          if (snap.exists()) {
+            dataHarianMap[cid] = { id: `${cid}_${today}`, tanggal: today, idCustomer: cid, ...snap.data() };
+          }
+        } catch (e) { }
+      }));
     }catch(e){  }
 
     const customerList = [];
@@ -647,39 +596,29 @@ window.initInputView = async function(){
       document.removeEventListener("idbUpdated", window._idbUpdateHandler);
     }
     window._idbUpdateHandler = async function(e) {
-      const { store, id } = e.detail || {};
+      const { store, id, data } = e.detail || {};
 
       if (store === "dataHarianDB" && id) {
-        // Update dataHarianMap dari IndexedDB
-        try {
-          const dbUp  = await window.openAppDB();
-          const txUp  = dbUp.transaction("dataHarianDB", "readonly");
-          const req   = txUp.objectStore("dataHarianDB").get(`${id}_${today}`);
-          const fresh = await new Promise(resolve => {
-            req.onsuccess = () => resolve(req.result || null);
-            req.onerror   = () => resolve(null);
-          });
-          if (fresh) {
-            dataHarianMap[id] = fresh;
-            window._dataHarianMap[id] = fresh;
+        const fresh = data || window._dataHarianMap?.[id] || null;
+        if (fresh) {
+          dataHarianMap[id] = fresh;
+          window._dataHarianMap[id] = fresh;
 
-            // Update customerList entry
-            const entry = customerList.find(x => (x.idCustomer || x.id) === id);
-            if (entry) {
-              entry.sudahInput  = true;
-              entry.hasFee      = Object.values(fresh.fee     || {}).some(v => Number(v) > 0);
-              entry.hasDisable  = Object.values(fresh.disable || {}).some(v => Number(v) > 0);
-              const st = String(fresh?.keterangan?.status || "").trim().toLowerCase();
-              entry.statusBadge = st === "pending" ? "PN" : st === "tutup" ? "TP" : st === "putus" ? "PT" : "";
-            }
+          // Update customerList entry
+          const entry = customerList.find(x => (x.idCustomer || x.id) === id);
+          if (entry) {
+            entry.sudahInput  = true;
+            entry.hasFee      = Object.values(fresh.fee     || {}).some(v => Number(v) > 0);
+            entry.hasDisable  = Object.values(fresh.disable || {}).some(v => Number(v) > 0);
+            const st = String(fresh?.keterangan?.status || "").trim().toLowerCase();
+            entry.statusBadge = st === "pending" ? "PN" : st === "tutup" ? "TP" : st === "putus" ? "PT" : "";
           }
-        } catch { }
+        }
 
         // Re-render & update progress
         renderCustomerList();
         updateProgressFromDOM();
       }
-
       if (store === "customerHarianDB" && id) {
         // Update foto di customerDataMap & listCustomerData
         try {
@@ -876,192 +815,58 @@ window.initInputView = async function(){
       window.catatanUnsubscribe();
     }
     const customerRef = window.doc(window.db, "customer", customerId);
-    const uid = window.auth.currentUser.uid;
-    let loadedFromIndexedDB = false;
+
+    // Load langsung dari Firestore
     try{
-      const db = await window.openAppDB();
-      const tx = db.transaction("customerHarianDB", "readonly");
-      const store = tx.objectStore("customerHarianDB");
-      const req = store.get(uid);
-      const localData = await new Promise(
-          (resolve,reject)=>{
-            req.onsuccess = ()=> resolve(req.result || null);
-            req.onerror = ()=> reject(req.error);
-          }
-        );
-      const customer = localData?.data?.find(
-        item => getCustomerId(item) === customerId
-      );
-      if(customer?.catatan){
-        loadedFromIndexedDB = true;
-        popupCatatanText.value = customer.catatan.pesan || "";
-        if(customer.catatan.updateAt){
-          const date = new Date(customer.catatan.updateAt);
+      const snap = await window.getDoc(customerRef);
+      if(snap.exists()){
+        const data = snap.data();
+        const catatan = data.catatan || {};
+        popupCatatanText.value = catatan.pesan || "";
+        if(catatan.updateAt?.seconds){
+          const date = new Date(catatan.updateAt.seconds * 1000);
           popupCatatanUpdate.innerText = "Update: " + date.toLocaleString("id-ID");
         }
       }
-    }catch(err){ }
-    // FALLBACK FIRESTORE
-    if(!loadedFromIndexedDB && navigator.onLine){
-      try{
-        const snap = await window.getDoc(customerRef);
-        if(snap.exists()){
-          const data = snap.data();
-          const catatan = data.catatan || {};
-          popupCatatanText.value = catatan.pesan || "";
-          if(catatan.updateAt ?.seconds){
-            const date = new Date(catatan.updateAt.seconds * 1000);
-            popupCatatanUpdate.innerText = "Update: " + date.toLocaleString("id-ID");
-          }
-          // CACHE KE INDEXEDDB
-          try{
-            const db = await window.openAppDB();
-            const tx = db.transaction("customerHarianDB","readwrite");
-            const store = tx.objectStore("customerHarianDB");
-            const req = store.get(uid);
-            const userData = await new Promise(
-                (
-                  resolve,
-                  reject
-                )=>{
-                  req.onsuccess = ()=> resolve(req.result || {});
-                  req.onerror = ()=> reject(req.error);
-                }
-              );
-            const list = userData.data || [];
-            const index = list.findIndex(item =>
-              getCustomerId(item) === customerId
-            );
-            if(index !== -1){
-              list[index] = {
-                ...list[index],
-                catatan:{
-                  pesan: catatan.pesan || "",
-                  updateAt: catatan.updateAt
-                    ?.seconds
-                    ? catatan.updateAt.seconds * 1000 : Date.now()
-                }
-              };
-            }
-            store.put({
-              ...userData,
-              id: uid,
-              data: list
-            });
-          }catch{ }
-        }
-      }catch{ }
-    }
-  
+    }catch{ }
+
     // REALTIME SNAPSHOT
     if(navigator.onLine){
       window.catatanUnsubscribe = window.onSnapshot(
-          customerRef,
-          async snap=>{
-            if(!snap.exists())
-              return;
-            const data = snap.data();
-            const catatan = data.catatan || {};
-            popupCatatanText.value = catatan.pesan || "";
-            if(catatan.updateAt ?.seconds){
-              const date = new Date(catatan.updateAt.seconds * 1000);
-              popupCatatanUpdate.innerText = "Update: " + date.toLocaleString("id-ID");
-            }else{
-              popupCatatanUpdate.innerText = "Update: -";
-            }
-            try{
-              const db = await window.openAppDB();
-              const tx = db.transaction("customerHarianDB", "readwrite");
-              const store = tx.objectStore("customerHarianDB");
-              const req = store.get(uid);
-              const userData = await new Promise(
-                  (resolve, reject)=>{
-                    req.onsuccess = ()=> resolve(req.result || {});
-                    req.onerror = ()=> reject(req.error);
-                  }
-                );
-              const list = userData.data || [];
-              const index = list.findIndex(item =>
-              getCustomerId(item) === customerId
-              );
-              if(index !== -1){
-                list[index] = {
-                  ...list[index],
-                  catatan:{
-                    pesan: catatan.pesan || "",
-                    updateAt:
-                      catatan
-                      .updateAt
-                      ?.seconds
-                      ? catatan
-                        .updateAt
-                        .seconds
-                        * 1000
-                      : Date.now()
-                  }
-                };
-              }
-              store.put({
-                ...userData,
-                id: uid,
-                data: list
-              });
-            }catch(err){  }
+        customerRef,
+        snap=>{
+          if(!snap.exists()) return;
+          const data = snap.data();
+          const catatan = data.catatan || {};
+          popupCatatanText.value = catatan.pesan || "";
+          if(catatan.updateAt?.seconds){
+            const date = new Date(catatan.updateAt.seconds * 1000);
+            popupCatatanUpdate.innerText = "Update: " + date.toLocaleString("id-ID");
+          }else{
+            popupCatatanUpdate.innerText = "Update: -";
           }
-        );
+        }
+      );
     }
   
     btnSimpanCatatan.onclick = async function(){
-      const now = Date.now();
-      const db = await window.openAppDB();
       try{
         btnSimpanCatatan.disabled = true;
         document.getElementById("btnSimpanCatatanText").innerText = "Menyimpan...";
         const pesan = popupCatatanText.value.trim();
-        const tx = db.transaction("customerHarianDB", "readwrite");
-        const store = tx.objectStore("customerHarianDB");
-        const req = store.get(uid);
-        const userData = await new Promise(
-          (resolve, reject)=>{
-            req.onsuccess = ()=> resolve(req.result || {});
-            req.onerror = ()=> reject(req.error);
-          }
-        );
-        const list = userData.data || [];
-        const index = list.findIndex(item => getCustomerId(item) === customerId);
-        if(index !== -1){
-          list[index] = {
-            ...list[index],
+
+        let tersimpanOnline = false;
+        try{
+          await window.updateDoc(customerRef,{
             catatan:{
               pesan,
-              updateAt: now
+              updateAt: window.serverTimestamp()
             }
-          };
-        }
-        store.put({
-          ...userData,
-          id: uid,
-          data: list,
-        
-          // selalu false dulu
-          isSync: false,
-          updatedAt: Date.now()
-        });
-  
-        let syncSuccess = false;
-        if(navigator.onLine){
-          try{
-            await window.updateDoc(customerRef,{
-              catatan:{
-                pesan,
-                updateAt: window.serverTimestamp()
-              }
-            });
-        
-            syncSuccess = true;
-          }catch{
-            syncSuccess = false;
-          }
+          });
+          tersimpanOnline = true;
+        }catch(err){
+          console.log("Update catatan gagal, masuk antrian:", err);
+          await window.queuePendingWrite("catatan", { customerId, pesan });
         }
 
         // Update memory listCustomerData
@@ -1091,45 +896,6 @@ window.initInputView = async function(){
 
       }catch(err){
         console.log(err); alert("Gagal update catatan");
-        try{
-          const db2 = await window.openAppDB();
-          const tx2 = db2.transaction("customerHarianDB","readwrite");
-          const store2 = tx2.objectStore("customerHarianDB");
-        
-          const req2 = store2.get(uid);
-        
-          const userData2 = await new Promise((resolve,reject)=>{
-            req2.onsuccess = ()=> resolve(req2.result || {});
-            req2.onerror = ()=> reject(req2.error);
-          });
-        
-          const list2 = userData2.data || [];
-        
-          const index2 = list2.findIndex(
-            item => getCustomerId(item) === customerId
-          );
-        
-          if(index2 !== -1){
-            list2[index2] = {
-              ...list2[index2],
-              catatan:{
-                pesan,
-                updateAt: now
-              }
-            };
-          }
-        
-          store2.put({
-            ...userData2,
-            id: uid,
-            data: list2,
-            isSync: syncSuccess,
-            updatedAt: Date.now()
-          });
-        
-        }catch(err){
-          console.log("Update sync catatan gagal:", err);
-        }        
       }finally{
         btnSimpanCatatan.disabled = false;
         document.getElementById("btnSimpanCatatanText").innerText = "Simpan";
@@ -1146,24 +912,9 @@ window.initInputView = async function(){
     namaEl.innerText = data.namaCustomer || "-";
     const today = new Date().toISOString().split("T")[0];
     
-    // NILAI KEY POPUP INPUT
-    let existingData = {};
-    try{
-      const db = await window.openAppDB();
-      const tx = db.transaction("dataHarianDB", "readonly");
-      const store = tx.objectStore("dataHarianDB");
-      const customerId = getCustomerId(data);
-      const req = store.get(`${customerId}_${today}`);
-      existingData = await new Promise(
-          (resolve,reject)=>{
-            req.onsuccess = ()=> resolve(req.result || {});
-            req.onerror = ()=> reject(req.error);
-          }
-        );
-    }catch(err){
-      console.log("load fd indexeddb error", err);
-      existingData = {};
-    }
+    // NILAI KEY POPUP INPUT — dari data yang udah di-preload dari Firestore
+    const customerId = getCustomerId(data);
+    const existingData = window._dataHarianMap?.[customerId] || {};
   
     const bawaBarang = window.globalBawaBarang || [];
     let html = "";
@@ -1241,73 +992,20 @@ window.initInputView = async function(){
         };
     
         // =========================
-        // SAVE INDEXEDDB (SOURCE OF TRUTH)
+        // SIMPAN — coba online dulu, gagal baru masuk antrian
         // =========================
-        const db = await window.openAppDB();
-        const tx = db.transaction("dataHarianDB", "readwrite");
-        const store = tx.objectStore("dataHarianDB");
-    
-        const key = `${customerId}_${today}`;
-    
-        const oldData = await new Promise((resolve, reject) => {
-          const req = store.get(key);
-          req.onsuccess = () => resolve(req.result || {});
-          req.onerror = () => reject(req.error);
-        });
-    
-        store.put({
-          ...oldData,
-          id: key,
-          tanggal: today,
-          idCustomer: customerId,
-          fee,
-          disable,
-          payload,
-        
-          // source of truth offline
-          isSync: false,
-        
-          updatedAt: Date.now()
-        });
-        window.dispatchIdbUpdate("dataHarianDB", customerId);
-    
-        // =========================
-        // FIRESTORE (HANYA JIKA ONLINE)
-        // =========================
-        let syncSuccess = false;
-        if (navigator.onLine) {
-          try {
-            const docRef = window.doc(
-              window.db,
-              "customer",
-              customerId,
-              "dataHarian",
-              today
-            );
-    
-            await window.setDoc(docRef, payload, { merge: true });
-    
-            // OPTIONAL: kalau mau langsung update status sync
-            const tx2 = db.transaction("dataHarianDB", "readwrite");
-            const store2 = tx2.objectStore("dataHarianDB");
-    
-            syncSuccess = true;
-            store2.put({
-              ...oldData,
-              id: key,
-              tanggal: today,
-              idCustomer: customerId,
-              fee,
-              disable,
-              payload,
-              isSync: syncSuccess,
-              updatedAt: Date.now()
-            });
-    
-          } catch (err) {
-            console.log("Firestore sync gagal:", err);
-            syncSuccess = false;
-          }
+        let tersimpanOnline = false;
+        try {
+          const docRef = window.doc(window.db, "customer", customerId, "dataHarian", today);
+          await window.setDoc(docRef, payload, { merge: true });
+          tersimpanOnline = true;
+        } catch (err) {
+          console.log("Firestore sync gagal, masuk antrian:", err);
+          await window.queuePendingWrite("dataHarian", {
+            idCustomer: customerId,
+            tanggal: today,
+            data: { fee, disable }
+          });
         }
     
         // =========================
@@ -1320,8 +1018,13 @@ window.initInputView = async function(){
             disable
           };
         }
+        window.dispatchIdbUpdate("dataHarianDB", customerId, window._dataHarianMap[customerId]);
 
-        showInputKurirToast("Fee/Disable tersimpan", "success");
+        if (tersimpanOnline) {
+          showInputKurirToast("Fee/Disable tersimpan", "success");
+        } else {
+          showInputKurirToast("Tersimpan, menunggu koneksi ⏳", "success");
+        }
         overlay.classList.remove("active");
       } catch (err) {
         console.log(err);
@@ -1360,37 +1063,14 @@ window.initInputView = async function(){
   
     const today = new Date().toISOString().split("T")[0];
     const customerId = getCustomerId(data);
-    let existingData = null;
-    let isExistingDoc = false;
+    let existingData = window._dataHarianMap?.[customerId] || null;
+    let isExistingDoc = !!existingData;
     let dataKemarin = {};
 
-    try{
-      const db = await window.openAppDB();
-      const tx = db.transaction("dataHarianDB", "readonly");
-      const store = tx.objectStore("dataHarianDB");
-      const req = store.get(`${customerId}_${today}`);
-      existingData = await new Promise(
-        (resolve,reject)=>{
-          req.onsuccess = ()=> resolve(req.result || null);
-          req.onerror = ()=> reject(req.error);
-        }
-      );
-
-      if(existingData){
-        isExistingDoc = true;
-        // ambil dataKemarin sekalian dari hasil yang sama
-        if(existingData.dataKemarin && Object.keys(existingData.dataKemarin).length > 0){
-          dataKemarin = existingData.dataKemarin;
-        }
-      }
-
-      // fallback ke root customer
-      if(Object.keys(dataKemarin).length === 0){
-        dataKemarin = data.dataKemarin || {};
-      }
-
-    }catch(err){
-      console.log("Gagal load IndexedDB:", err);
+    if(existingData?.dataKemarin && Object.keys(existingData.dataKemarin).length > 0){
+      dataKemarin = existingData.dataKemarin;
+    }
+    if(Object.keys(dataKemarin).length === 0){
       dataKemarin = data.dataKemarin || {};
     }
   
@@ -1426,21 +1106,14 @@ window.initInputView = async function(){
     function getLatestAvailableDate(customerId, today) {
       return new Promise(async (resolve) => {
         try {
-          const db    = await window.openAppDB();
-          const tx    = db.transaction("dataHarianDB", "readonly");
-          const store = tx.objectStore("dataHarianDB");
-          const index = store.index("customerId");
-
-          // Query hanya record milik customerId ini
-          const req = index.getAll(customerId);
-          req.onsuccess = () => {
-            const all    = req.result || [];
-            const latest = all
-              .filter(x => x.tanggal && x.tanggal < today)
-              .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))[0];
-            resolve(latest?.tanggal || null);
-          };
-          req.onerror = () => resolve(null);
+          const q = window.query(
+            window.collection(window.db, "customer", customerId, "dataHarian"),
+            window.where(window.documentId(), "<", today),
+            window.orderBy(window.documentId(), "desc"),
+            window.limit(1)
+          );
+          const snap = await window.getDocs(q);
+          resolve(snap.empty ? null : snap.docs[0].id);
         } catch {
           resolve(null);
         }
@@ -1870,53 +1543,24 @@ window.initInputView = async function(){
         const hasLainnya = Object.keys(groupData.lainnya || {}).length > 0;
         if (hasLainnya) {
           payload.keterangan = {};
-    
+
           if (window.popupStatus) {
             payload.keterangan.status = window.popupStatus;
           }
-    
+
           if (window.popupFotoLainnya) {
-          try {
-            let fotoBlob = null;
-
-            const base64 = window.popupFotoLainnya;
-            
-            const arr   = base64.split(",");
-            const mime  = arr[0].match(/:(.*?);/)[1];
-            const bstr  = atob(arr[1]);
-            
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            
-            while (n--) {
-              u8arr[n] = bstr.charCodeAt(n);
-            }
-            
-            fotoBlob = new Blob(
-              [u8arr],
-              { type: mime }
-            );
-
-            if (fotoBlob) {
-              const fileName = `fotoKeterangan/${getCustomerId(data)}_${Date.now()}.jpg`;
-              const sRef     = window.storageRef(window.storage, fileName);
-              await window.uploadBytes(sRef, fotoBlob, { contentType: "image/jpeg" });
-              payload.keterangan.foto = await window.getDownloadURL(sRef);
-            }
-          } catch(e) {
-            // Fallback base64 kalau upload gagal
-            payload.keterangan.foto =
+            // simpan base64 dulu — upload beneran dilakuin pas eksekusi (online / dari antrian)
+            payload.keterangan.fotoLokal =
               typeof window.popupFotoLainnya === "string"
                 ? window.popupFotoLainnya
                 : await compressImage(window.popupFotoLainnya);
           }
         }
-        }
-    
+
         const sudahAdaDataKemarin =
           existingData?.dataKemarin &&
           Object.keys(existingData.dataKemarin).length > 0;
-    
+
         if (!sudahAdaDataKemarin) {
           payload.dataKemarin = dataKemarin;
           payload.dataKemarinTanggal = tanggalKemarin;
@@ -1924,7 +1568,7 @@ window.initInputView = async function(){
           payload.dataKemarin = existingData.dataKemarin;
           payload.dataKemarinTanggal = existingData.dataKemarinTanggal || tanggalKemarin;
         }
-    
+
         const newDataKemarin = {};
         (window.globalBawaBarang || [])
           .filter(item => { const k = Object.keys(item)[0]; return item[k]?.isAktif; })
@@ -1935,125 +1579,62 @@ window.initInputView = async function(){
             };
           });
 
-        // SAVE KE INDEXEDDB (SOURCE OF TRUTH OFFLINE)
-        const db = await window.openAppDB();
-        const tx = db.transaction("dataHarianDB", "readwrite");
-        const store = tx.objectStore("dataHarianDB");
-    
-        const idKey = `${payload.idCustomer}_${today}`;
-    
-        await new Promise((resolve, reject) => {
-          const req = store.put({
-            id: idKey,
-            tanggal: today,
-            idCustomer: payload.idCustomer,
-            ...payload,
-            payload,
-            _newDataKemarin: newDataKemarin,
-            isSync: false,
-            updatedAt: Date.now()
-          });
-          req.onsuccess = () => {
-            window.dispatchIdbUpdate("dataHarianDB", payload.idCustomer);
-            resolve();
-          };
-          req.onerror = () => reject(req.error);
-        });
-
-        // FIRESTORE SYNC
-        const docRef = window.doc(
-          window.db,
-          "customer",
-          payload.idCustomer,
-          "dataHarian",
-          today
-        );
-        syncSuccess = false;    
-        if (navigator.onLine) {
-          try {
-            await window.setDoc(docRef, payload, { merge: true });
-            syncSuccess = true;
-
-            // Update dataKemarin di dokumen customer
-            await window.updateDoc(
-              window.doc(window.db, "customer", payload.idCustomer),
-              { dataKemarin: newDataKemarin }
-            );
-
-            // Update IDB customerHarianDB
-            const uid2     = window.auth.currentUser?.uid;
-            const hariNama = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-            const hariAktif = hariNama[new Date().getDay()];
-            const cacheKey  = `${uid2}_${hariAktif}`;
-            const idbC      = await window.openAppDB();
-            const existingC = await new Promise(resolve => {
-              const tx  = idbC.transaction("customerHarianDB", "readonly");
-              const req = tx.objectStore("customerHarianDB").get(cacheKey);
-              req.onsuccess = () => resolve(req.result || null);
-              req.onerror   = () => resolve(null);
-            });
-            if (existingC?.data) {
-              const idx = existingC.data.findIndex(c => (c.idCustomer || c.id) === payload.idCustomer);
-              if (idx !== -1) {
-                existingC.data[idx] = { ...existingC.data[idx], dataKemarin: newDataKemarin };
-                const idbC2 = await window.openAppDB();
-                await new Promise((resolve, reject) => {
-                  const tx = idbC2.transaction("customerHarianDB", "readwrite");
-                  tx.objectStore("customerHarianDB").put({ ...existingC, updatedAt: Date.now() });
-                  tx.oncomplete = () => resolve();
-                  tx.onerror    = () => reject(tx.error);
-                });
-                // Update memory
-                const entry = window.listCustomerData?.find(x => (x.idCustomer || x.id) === payload.idCustomer);
-                if (entry) entry.dataKemarin = newDataKemarin;
-                if (window.customerDataMap?.[payload.idCustomer]) {
-                  window.customerDataMap[payload.idCustomer].dataKemarin = newDataKemarin;
-                }
-              }
-            }
-          } catch (err) {
-            syncSuccess = false;
+        // =========================
+        // SIMPAN — coba online dulu, gagal baru masuk antrian
+        // =========================
+        let tersimpanOnline = false;
+        try {
+          if (payload.keterangan?.fotoLokal) {
+            const arr   = payload.keterangan.fotoLokal.split(",");
+            const mime  = arr[0].match(/:(.*?);/)[1];
+            const bstr  = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const fotoBlob = new Blob([u8arr], { type: mime });
+            const fileName = `fotoKeterangan/${payload.idCustomer}_${Date.now()}.jpg`;
+            const sRef     = window.storageRef(window.storage, fileName);
+            await window.uploadBytes(sRef, fotoBlob, { contentType: "image/jpeg" });
+            payload.keterangan.foto = await window.getDownloadURL(sRef);
+            delete payload.keterangan.fotoLokal;
           }
+
+          const docRef = window.doc(window.db, "customer", payload.idCustomer, "dataHarian", today);
+          await window.setDoc(docRef, payload, { merge: true });
+          await window.updateDoc(
+            window.doc(window.db, "customer", payload.idCustomer),
+            { dataKemarin: newDataKemarin }
+          );
+          tersimpanOnline = true;
+
+          // Update memory listCustomerData (dataKemarin)
+          const entry = window.listCustomerData?.find(x => (x.idCustomer || x.id) === payload.idCustomer);
+          if (entry) entry.dataKemarin = newDataKemarin;
+          if (window.customerDataMap?.[payload.idCustomer]) {
+            window.customerDataMap[payload.idCustomer].dataKemarin = newDataKemarin;
+          }
+        } catch (err) {
+          console.log("Firestore sync gagal, masuk antrian:", err);
+          await window.queuePendingWrite("dataHarian", {
+            idCustomer: payload.idCustomer,
+            tanggal: today,
+            data: payload,
+            newDataKemarin
+          });
         }
-    
-        // =========================
-        // UPDATE INDEXEDDB SYNC STATUS (FINAL TRUTH)
-        // =========================
-        const db2 = await window.openAppDB();
-        const tx2 = db2.transaction("dataHarianDB", "readwrite");
-        const store2 = tx2.objectStore("dataHarianDB");
-        
-        // ambil data lama dulu
-        const oldRecord = await new Promise((resolve,reject)=>{
-          const req = store2.get(idKey);
-        
-          req.onsuccess = ()=> resolve(req.result || {});
-          req.onerror = ()=> reject(req.error);
-        });
-        
-        store2.put({
-          ...oldRecord,
-          ...payload,
-        
-          id: idKey,
-          tanggal: today,
-          idCustomer: payload.idCustomer,
-        
-          isSync: syncSuccess,
-          updatedAt: Date.now()
-        });
-    
+
         // =========================
         // UPDATE MEMORY CACHE
         // =========================
         const customerId = payload.idCustomer;
-    
+
         if (window._dataHarianMap) {
           window._dataHarianMap[customerId] = {
             ...window._dataHarianMap[customerId],
             ...payload
           };
         }
+        window.dispatchIdbUpdate("dataHarianDB", customerId, window._dataHarianMap[customerId]);
     
         // =========================
         // UI UPDATE
@@ -2104,7 +1685,10 @@ window.initInputView = async function(){
         // Re-render list
         window._renderCustomerList?.();
 
-        showInputKurirToast("Data tersimpan", "success");
+        showInputKurirToast(
+          tersimpanOnline ? "Data tersimpan" : "Tersimpan, menunggu koneksi ⏳",
+          "success"
+        );
         overlay.classList.remove("active");
       } catch (err) {
         console.log(err);
@@ -2510,11 +2094,9 @@ window.initInputView = async function(){
         });
 
         const pembayaran = { bayarKonsumen };
-
         const closing = { ...pay };
 
-        const payload = {
-          id: `${uid}_${today}`,
+        const data = {
           uid,
           pemilik: uid,
           idCabang: user.idCabang || "",
@@ -2522,50 +2104,27 @@ window.initInputView = async function(){
           penjualanLangsung,
           closing,
           pay,
-          pembayaran,
-          isSync: false,
-          updatedAt: Date.now()
+          pembayaran
         };
 
-        // Simpan IDB
-        const idb = await window.openAppDB();
-        await new Promise((resolve, reject) => {
-          const tx    = idb.transaction("penjualanLangsungDB", "readwrite");
-          tx.objectStore("penjualanLangsungDB").put(payload);
-          tx.oncomplete = () => resolve();
-          tx.onerror    = () => reject(tx.error);
-        });
-
-        // Sync Firestore jika online
-        if (navigator.onLine) {
-          try {
-            await window.setDoc(
-              window.doc(window.db, "users", uid, "penjualanLangsung", today),
-              {
-                uid,
-                pemilik: uid,
-                idCabang: user.idCabang || "",
-                tanggal: today,
-                penjualanLangsung,
-                closing,
-                pay,
-                pembayaran,
-                updatedAt: window.serverTimestamp()
-              }
-            );
-            // Update isSync
-            const idb2 = await window.openAppDB();
-            await new Promise((resolve, reject) => {
-              const tx    = idb2.transaction("penjualanLangsungDB", "readwrite");
-              tx.objectStore("penjualanLangsungDB").put({ ...payload, isSync: true });
-              tx.oncomplete = () => resolve();
-              tx.onerror    = () => reject(tx.error);
-            });
-          } catch { }
+        // Simpan — coba online dulu, gagal baru masuk antrian
+        let tersimpanOnline = false;
+        try {
+          await window.setDoc(
+            window.doc(window.db, "users", uid, "penjualanLangsung", today),
+            { ...data, updatedAt: window.serverTimestamp() }
+          );
+          tersimpanOnline = true;
+        } catch (err) {
+          console.log("Firestore sync gagal, masuk antrian:", err);
+          await window.queuePendingWrite("penjualanLangsung", { uid, tanggal: today, data });
         }
 
-        btnText.textContent = "Tersimpan ✓";
-        showInputKurirToast("Penjualan langsung tersimpan", "success");
+        btnText.textContent = tersimpanOnline ? "Tersimpan ✓" : "Tersimpan ⏳";
+        showInputKurirToast(
+          tersimpanOnline ? "Penjualan langsung tersimpan" : "Tersimpan, menunggu koneksi ⏳",
+          "success"
+        );
         setTimeout(() => {
           overlay.remove();
           // Buka ulang popup detail supaya data terupdate
@@ -2603,7 +2162,7 @@ window.initInputView = async function(){
       });
     }
 
-    // Online → fetch Firestore langsung
+    // Ringkasan dataHarian hari ini — full online
     if (navigator.onLine && uid) {
       try {
         const snap = await window.getDocs(window.query(
@@ -2611,71 +2170,7 @@ window.initInputView = async function(){
           window.where("pemilik", "==", uid),
           window.where("tanggal", "==", today)
         ));
-        const records = snap.docs.map(d => d.data());
-        processRecords(records);
-
-        // Update IDB dari Firestore — 1 transaction untuk semua
-        try {
-          const idbU = await window.openAppDB();
-
-          // Baca semua existing sekali
-          const allExisting = await new Promise(resolve => {
-            const tx  = idbU.transaction("dataHarianDB", "readonly");
-            const req = tx.objectStore("dataHarianDB").getAll();
-            req.onsuccess = () => resolve(req.result || []);
-            req.onerror   = () => resolve([]);
-          });
-
-          const existingMap = {};
-          allExisting.forEach(item => { existingMap[item.id] = item; });
-
-          // Update semua dalam 1 transaction
-          await new Promise((resolve, reject) => {
-            const tx    = idbU.transaction("dataHarianDB", "readwrite");
-            const store = tx.objectStore("dataHarianDB");
-            records.forEach(record => {
-              if (!record.idCustomer || !record.tanggal) return;
-              const idKey    = `${record.idCustomer}_${record.tanggal}`;
-              const existing = existingMap[idKey] || null;
-              if (existing?.isSync === false) return; // skip — data lokal lebih baru
-              store.put({
-                ...(existing || {}),
-                ...record,
-                id: idKey,
-                tanggal: record.tanggal,
-                idCustomer: record.idCustomer,
-                payload: record,
-                isSync: true,
-                updatedAt: Date.now()
-              });
-            });
-            tx.oncomplete = () => resolve();
-            tx.onerror    = () => reject(tx.error);
-          });
-        } catch { }
-
-      } catch {
-        // Fallback ke IDB kalau query gagal
-        const db = await window.openAppDB();
-        const allData = await new Promise((resolve, reject) => {
-          const tx  = db.transaction("dataHarianDB", "readonly");
-          const req = tx.objectStore("dataHarianDB").getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror   = () => reject(req.error);
-        });
-        processRecords(allData);
-      }
-    } else {
-      // Offline → IDB
-      try {
-        const db = await window.openAppDB();
-        const allData = await new Promise((resolve, reject) => {
-          const tx  = db.transaction("dataHarianDB", "readonly");
-          const req = tx.objectStore("dataHarianDB").getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror   = () => reject(req.error);
-        });
-        processRecords(allData);
+        processRecords(snap.docs.map(d => d.data()));
       } catch {
         const data = window.inputSummaryData || {};
         summary.pembayaran = data.pembayaran || 0;
@@ -2684,6 +2179,13 @@ window.initInputView = async function(){
         summary.disable    = data.disable    || {};
         summary.closing    = data.closing    || {};
       }
+    } else {
+      const data = window.inputSummaryData || {};
+      summary.pembayaran = data.pembayaran || 0;
+      summary.expired    = data.expired    || {};
+      summary.fee        = data.fee        || {};
+      summary.disable    = data.disable    || {};
+      summary.closing    = data.closing    || {};
     }
   
     const activeKeys = [];
@@ -2693,53 +2195,23 @@ window.initInputView = async function(){
       });
     });
 
-    // Load penjualan langsung
+    // Load penjualan langsung — full online
     let penjualanLangsung = {};
-    try {
-        if (navigator.onLine && uid) {
-          const snapPL = await window.getDoc(
-            window.doc(window.db, "users", uid, "penjualanLangsung", today)
-          );
-          if (snapPL.exists()) {
-            const d = snapPL.data();
-            penjualanLangsung = d.penjualanLangsung || {};
-            summary.pembayaran += Number(d?.pembayaran?.bayarKonsumen || 0);
-            Object.entries(penjualanLangsung).forEach(([key, qty]) => {
-              summary.closing[key] = (summary.closing[key] || 0) + Number(qty);
-            });
-
-            // Update penjualanLangsungDB IDB
-            try {
-              const idbPL = await window.openAppDB();
-              await new Promise((resolve, reject) => {
-                const tx    = idbPL.transaction("penjualanLangsungDB", "readwrite");
-                tx.objectStore("penjualanLangsungDB").put({
-                  ...d,
-                  id: `${uid}_${today}`,
-                  isSync: true,
-                  updatedAt: Date.now()
-                });
-                tx.oncomplete = () => resolve();
-                tx.onerror    = () => reject(tx.error);
-              });
-            } catch { }
-          }
-        } else {
-        // Offline → IDB
-        const idbP = await window.openAppDB();
-        const rawP = await new Promise(resolve => {
-          const tx  = idbP.transaction("penjualanLangsungDB", "readonly");
-          const req = tx.objectStore("penjualanLangsungDB").get(`${uid}_${today}`);
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror   = () => resolve(null);
-        });
-        penjualanLangsung = rawP?.penjualanLangsung || {};
-        summary.pembayaran += Number(rawP?.pembayaran?.bayarKonsumen || 0);
-        Object.entries(penjualanLangsung).forEach(([key, qty]) => {
-          summary.closing[key] = (summary.closing[key] || 0) + Number(qty);
-        });
-      }
-    } catch { }
+    if (navigator.onLine && uid) {
+      try {
+        const snapPL = await window.getDoc(
+          window.doc(window.db, "users", uid, "penjualanLangsung", today)
+        );
+        if (snapPL.exists()) {
+          const d = snapPL.data();
+          penjualanLangsung = d.penjualanLangsung || {};
+          summary.pembayaran += Number(d?.pembayaran?.bayarKonsumen || 0);
+          Object.entries(penjualanLangsung).forEach(([key, qty]) => {
+            summary.closing[key] = (summary.closing[key] || 0) + Number(qty);
+          });
+        }
+      } catch { }
+    }
 
     // Hitung Saldo Barang
     const saldoBarang = {};
@@ -3199,18 +2671,10 @@ window.initInputView = async function(){
       btn.textContent = "Menyimpan...";
 
       try {
-        // Hitung jarak dari kantorCabang
+        // Hitung jarak dari kantorCabang — udah ada di memory
         let jarak = 0;
         try {
-          const user    = window.currentUser || {};
-          const idb     = await window.openAppDB();
-          const kantorRaw = await new Promise(resolve => {
-            const tx  = idb.transaction("kantorDB", "readonly");
-            const req = tx.objectStore("kantorDB").get(user.idCabang || "");
-            req.onsuccess = () => resolve(req.result || null);
-            req.onerror   = () => resolve(null);
-          });
-          const kantor = kantorRaw?.data || kantorRaw;
+          const kantor = window.globalKantor;
           const lok    = kantor?.lokasiCabang;
           if (lok) {
             const cabangLat = lok._lat ?? lok.latitude  ?? lok.lat;
@@ -3226,13 +2690,7 @@ window.initInputView = async function(){
           }
         } catch { }
 
-        const updatePayload = {
-          alamatCustomer : alamat,
-          lokasiCustomer : new window.GeoPoint(selectedLat, selectedLng),
-          jarak,
-        };
-
-        // Konversi blob ke base64 untuk disimpan lokal
+        // Konversi blob ke base64 (dipakai kalau perlu masuk antrian)
         let fotoBase64 = null;
         if (lokasiPhotoBlob) {
           fotoBase64 = await new Promise(resolve => {
@@ -3242,144 +2700,54 @@ window.initInputView = async function(){
           });
         }
 
-        // Upload foto jika online, simpan base64 sebagai fallback
-        if (fotoBase64 && navigator.onLine) {
-          try {
+        // Simpan — coba online dulu, gagal baru masuk antrian
+        let tersimpanOnline = false;
+        let fotoUrl = null;
+        try {
+          if (lokasiPhotoBlob) {
             const fileName   = `fotoCustomer/${customerId}_${Date.now()}.jpg`;
             const storageRef = window.storageRef(window.storage, fileName);
             await window.uploadBytes(storageRef, lokasiPhotoBlob);
-            updatePayload.foto = await window.getDownloadURL(storageRef);
-          } catch(e) {
-            // Fallback: pakai base64 lokal
-            updatePayload.fotoLokal = fotoBase64;
+            fotoUrl = await window.getDownloadURL(storageRef);
           }
-        } else if (fotoBase64) {
-          // Offline: simpan base64 lokal saja
-          updatePayload.fotoLokal = fotoBase64;
-        }
-
-        // Simpan ke IndexedDB pending sync dulu (termasuk foto base64)
-        const syncKey = `lokasi_${customerId}`;
-        const idbSync = await window.openAppDB();
-        await new Promise((resolve, reject) => {
-          const tx    = idbSync.transaction("customerBaruDB", "readwrite");
-          tx.objectStore("customerBaruDB").put({
-            id        : syncKey,
-            customerId,
-            type      : "updateLokasi",
-            payload   : {
+          await window.updateDoc(
+            window.doc(window.db, "customer", customerId),
+            {
               alamatCustomer : alamat,
-              lokasiCustomer : { lat: selectedLat, lng: selectedLng },
+              lokasiCustomer : new window.GeoPoint(selectedLat, selectedLng),
               jarak,
-              ...(fotoBase64 && !updatePayload.foto ? { fotoLokal: fotoBase64 } : {}),
-              ...(updatePayload.foto ? { foto: updatePayload.foto } : {}),
-            },
-            isSync    : false,
-            updatedAt : Date.now()
-          });
-          tx.oncomplete = () => resolve();
-          tx.onerror    = () => reject(tx.error);
-        });
-
-        // Firestore update jika online
-        if (navigator.onLine) {
-          try {
-            // Upload foto lokal jika ada dan belum di-upload
-            let fotoUrl = updatePayload.foto || null;
-            if (!fotoUrl && fotoBase64) {
-              try {
-                const base64   = fotoBase64;
-                const arr      = base64.split(",");
-                const mime     = arr[0].match(/:(.*?);/)[1];
-                const bstr     = atob(arr[1]);
-                let n          = bstr.length;
-                const u8arr    = new Uint8Array(n);
-                while (n--) u8arr[n] = bstr.charCodeAt(n);
-                const blob     = new Blob([u8arr], { type: mime });
-                const fileName = `fotoCustomer/${customerId}_${Date.now()}.jpg`;
-                const sRef     = window.storageRef(window.storage, fileName);
-                await window.uploadBytes(sRef, blob);
-                fotoUrl        = await window.getDownloadURL(sRef);
-                updatePayload.foto = fotoUrl;
-              } catch { }
+              ...(fotoUrl ? { foto: fotoUrl } : {})
             }
-
-            await window.updateDoc(
-              window.doc(window.db, "customer", customerId),
-              {
-                alamatCustomer : alamat,
-                lokasiCustomer : new window.GeoPoint(selectedLat, selectedLng),
-                jarak,
-                ...(fotoUrl ? { foto: fotoUrl } : {})
-              }
-            );
-
-            const idbSync2 = await window.openAppDB();
-            await new Promise((resolve, reject) => {
-              const tx    = idbSync2.transaction("customerBaruDB", "readwrite");
-              tx.objectStore("customerBaruDB").put({
-                id        : syncKey,
-                customerId,
-                type      : "updateLokasi",
-                payload   : {
-                  alamatCustomer : alamat,
-                  lokasiCustomer : { lat: selectedLat, lng: selectedLng },
-                  jarak,
-                  ...(fotoUrl ? { foto: fotoUrl } : {})
-                },
-                isSync    : true,
-                updatedAt : Date.now()
-              });
-              tx.oncomplete = () => resolve();
-              tx.onerror    = () => reject(tx.error);
-            });
-          } catch { }
-        }
-
-        // Update IndexedDB customerHarianDB
-        const uid        = window.auth.currentUser?.uid;
-        const hariNamaList = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-        const hariAktif  = hariNamaList[new Date().getDay()];
-        const cacheKey   = `${uid}_${hariAktif}`;
-        const idb        = await window.openAppDB();
-        const existing   = await new Promise(resolve => {
-          const tx  = idb.transaction("customerHarianDB", "readonly");
-          const req = tx.objectStore("customerHarianDB").get(cacheKey);
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror   = () => resolve(null);
-        });
-
-        if (existing && Array.isArray(existing.data)) {
-          const idx = existing.data.findIndex(c => (c.idCustomer || c.id) === customerId);
-          if (idx !== -1) {
-            existing.data[idx] = {
-              ...existing.data[idx],
-              alamatCustomer : alamat,
-              lokasiCustomer : { lat: selectedLat, lng: selectedLng },
-              jarak,
-              // Prioritas: URL Storage > base64 lokal > existing foto
-              foto: updatePayload.foto || fotoBase64 || existing.data[idx].foto || ""
-            };
-            await new Promise((resolve, reject) => {
-              const tx  = idb.transaction("customerHarianDB", "readwrite");
-              tx.objectStore("customerHarianDB").put({ ...existing, updatedAt: Date.now() });
-              tx.oncomplete = () => resolve();
-              tx.onerror    = () => reject(tx.error);
-            });
-            window.dispatchIdbUpdate("customerHarianDB", customerId);
-          }
+          );
+          tersimpanOnline = true;
+        } catch (err) {
+          console.log("Update lokasi gagal, masuk antrian:", err);
+          await window.queuePendingWrite("updateLokasi", {
+            customerId,
+            alamatCustomer : alamat,
+            lokasiCustomer : { lat: selectedLat, lng: selectedLng },
+            jarak,
+            ...(fotoBase64 ? { fotoLokal: fotoBase64 } : {})
+          });
         }
 
         // Update memory listCustomerData & customerDataMap
         const entry = window.listCustomerData?.find(x => (x.idCustomer || x.id) === customerId);
-        if (entry) { entry.alamatCustomer = alamat; entry.lokasiCustomer = { lat: selectedLat, lng: selectedLng }; entry.jarak = jarak; }
+        if (entry) {
+          entry.alamatCustomer = alamat;
+          entry.lokasiCustomer = { lat: selectedLat, lng: selectedLng };
+          entry.jarak = jarak;
+          if (fotoUrl) entry.foto = fotoUrl;
+        }
         if (window.customerDataMap?.[customerId]) {
           window.customerDataMap[customerId].alamatCustomer = alamat;
           window.customerDataMap[customerId].lokasiCustomer = { lat: selectedLat, lng: selectedLng };
           window.customerDataMap[customerId].jarak = jarak;
+          if (fotoUrl) window.customerDataMap[customerId].foto = fotoUrl;
         }
+        window._renderCustomerList?.();
 
-        btn.textContent = "Berhasil ✓";
+        btn.textContent = tersimpanOnline ? "Berhasil ✓" : "Tersimpan ⏳";
         setTimeout(() => closeLokasi(), 1200);
       } catch(err) {
         btn.disabled = false;

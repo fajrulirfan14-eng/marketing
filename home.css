@@ -393,34 +393,6 @@
   margin-top: 4px;
 }
 
-.home-reload-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 42px;
-  height: 42px;
-  border: none;
-  border-radius: 14px;
-  background: var(--home-btn-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--home-btn-color);
-  z-index: 10;
-  transition: background 0.3s ease, color 0.3s ease;
-}
-.home-reload-btn svg {
-  width: 20px;
-  height: 20px;
-}
-.home-reload-btn.loading svg {
-  animation: reloadSpin 0.8s linear infinite;
-}
-@keyframes reloadSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
 /* ── MARKETING CARD ── */
 .marketing-card {
   position: relative;
