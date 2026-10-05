@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download Aplikasi TTN</title>
+<link rel="icon" href="/LogoTTN.png">
+<link rel="stylesheet" href="/root.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg-page); color:var(--text-dark);
+         font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.5; }
+  .hero { background:linear-gradient(145deg,var(--hero-from),var(--hero-mid),var(--hero-to));
+          color:var(--text-white); text-align:center; padding:40px 20px 64px; }
+  .logo { width:84px; height:84px; border-radius:22px; background:#fff; display:inline-flex;
+          align-items:center; justify-content:center; padding:10px; margin-bottom:14px;
+          box-shadow:0 8px 20px var(--shadow-lg); color:var(--brand); font-weight:700; font-size:22px; }
+  .logo img { width:100%; height:100%; object-fit:contain; }
+  .hero h1 { margin:0 0 4px; font-size:22px; }
+  .hero p { margin:0; font-size:14px; color:var(--text-white-dim); }
+  main { max-width:480px; margin:-32px auto 0; padding:0 16px 40px; position:relative; }
+  .app { background:var(--card-bg); border:1px solid var(--border-card); border-radius:18px;
+         padding:14px; margin-bottom:12px; display:flex; align-items:center; gap:14px;
+         box-shadow:0 2px 10px var(--card-shadow); }
+  .ico { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .ico svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .ico.k { background:var(--icon-orange-bg); color:var(--icon-orange-color); }
+  .ico.h { background:var(--icon-purple-bg); color:var(--icon-purple-color); }
+  .ico.s { background:var(--icon-blue-bg); color:var(--icon-blue-color); }
+  .app div.t { flex:1; min-width:0; }
+  .app h2 { margin:0; font-size:15px; }
+  .app p { margin:1px 0 0; font-size:12px; color:var(--text-muted); }
+  .btn { display:inline-flex; align-items:center; gap:6px; background:var(--brand); color:var(--text-white);
+         text-decoration:none; font-weight:600; font-size:13px; padding:10px 14px; border-radius:12px; white-space:nowrap; }
+  .btn:active { background:var(--color-brand-primary); }
+  .btn svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  .info { margin-top:20px; font-size:13px; color:var(--text-muted); background:var(--card-bg);
+          border:1px solid var(--border-card); border-radius:18px; padding:14px 16px; }
+  .info strong { color:var(--text-dark); }
+  .info ol { margin:8px 0 0; padding-left:20px; }
+  footer { text-align:center; margin-top:22px; font-size:12px; color:var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="logo"><img src="/LogoTTN.png" alt="TTN" onerror="this.replaceWith('TTN')"></div>
+  <h1>Download Aplikasi</h1>
+  <p>Teh Tarik Nusantara &middot; pilih sesuai peran Anda</p>
+</div>
+
+<main>
+  <div class="app">
+    <div class="ico k"><svg viewBox="0 0 24 24"><path d="M2 6h11v10H2zM13 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>
+    <div class="t"><h2>Aplikasi Kurir</h2><p>Untuk tim kurir</p></div>
+    <a class="btn" data-app="kurir" href="#"><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>Download</a>
+  </div>
+  <div class="app">
+    <div class="ico h"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg></div>
+    <div class="t"><h2>Aplikasi Hunter</h2><p>Untuk tim hunter</p></div>
+    <a class="btn" data-app="hunter" href="#"><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>Download</a>
+  </div>
+  <div class="app">
+    <div class="ico s"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg></div>
+    <div class="t"><h2>Aplikasi Sales</h2><p>Untuk tim sales</p></div>
+    <a class="btn" data-app="sales" href="#"><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>Download</a>
+  </div>
+
+  <div class="info">
+    <strong>Cara pasang (Android)</strong>
+    <ol>
+      <li>Ketuk Download, lalu buka file yang terunduh.</li>
+      <li>Jika diminta, izinkan pemasangan dari sumber ini.</li>
+      <li>Jika muncul peringatan Play Protect, pilih "Tetap instal".</li>
+    </ol>
+  </div>
+  <footer>&copy; 2022 PT Rizquna Jaya Mandiri</footer>
+</main>
+
+<script>
+  // ── UBAH DI SINI SAJA ──
+  // Folder tempat APK di repo/website ini. Kalau APK ditaruh di root, isi "/"
+  var BASE = "/apk/";
+
+  // Nama file APK (harus sama persis dengan yang di-upload)
+  var FILES = {
+    kurir:  "ttn-kurir.apk",
+    hunter: "ttn-hunter.apk",
+    sales:  "ttn-sales.apk"
+  };
+
+  document.querySelectorAll("[data-app]").forEach(function (a) {
+    var file = FILES[a.getAttribute("data-app")];
+    a.href = BASE + file;
+    a.setAttribute("download", file);
+  });
+
+  // root.css mengganti tema lewat class body.dark-mode; ikuti setelan HP
+  if (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) {
+    document.body.classList.add("dark-mode");
+  }
+</script>
+</body>
+</html>
